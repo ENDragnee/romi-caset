@@ -3,35 +3,33 @@
 ---
 
 <section class="hero-section" id="hero-section">
-  {/* Background Video */}
-  <video
-    id="hero-video"
-    class="hero-video"
-    src="/videos/hero-video.mp4"
-    autoplay
-    muted
-    loop
-    playsinline
-    preload="auto"
-    disablepictureinpicture
-    disableRemotePlayback></video>
-  <div class="hero-overlay"></div>
+  <div class="hero-frame">
+    <div class="hero-video-box">
+      <video
+        id="hero-video"
+        class="hero-video"
+        src="/videos/hero-video.mp4"
+        autoplay
+        muted
+        loop
+        playsinline
+        preload="auto"
+        disablepictureinpicture
+        disableRemotePlayback></video>
+      <div class="hero-overlay"></div>
 
-  <div class="hero-content">
-    {/* Central Brand Logo (Drops in once video renders) */}
-    <div class="hero-brand-drop">
-      <img src="/images/logo.png" alt="KASET PRODUCTION" class="hero-logo" />
-    </div>
-
-    {/* Centered Tagline */}
-    <h1 class="hero-tagline">
-      <span>Music Video &middot; Commercial &middot; Film</span>
-    </h1>
-  </div>
-
-  <div class="scroll-indicator">
-    <div class="mouse">
-      <div class="wheel"></div>
+      <div class="hero-content">
+        <div class="hero-brand-drop">
+          <img
+            src="/images/logo.png"
+            alt="KASET PRODUCTION"
+            class="hero-logo"
+          />
+        </div>
+        <h1 class="hero-tagline">
+          <span>Music Video &middot; Commercial &middot; Film</span>
+        </h1>
+      </div>
     </div>
   </div>
 </section>
@@ -74,19 +72,34 @@
 
 <style>
   .hero-section {
-    position: relative;
-    /* Responsive viewport height covering mobile dynamic address bars */
-    min-height: 100vh;
-    min-height: 100svh;
-    min-height: 100dvh;
-    height: 100dvh;
     width: 100%;
-    overflow: hidden;
+    padding-top: calc(var(--nav-height) + var(--space-lg));
+    padding-bottom: var(--space-2xl);
+    padding-inline: var(--space-xl);
+    box-sizing: border-box;
     display: flex;
     align-items: center;
     justify-content: center;
+    background-color: var(--color-bg); /* Background frames the video */
+  }
+
+  /* Centered Framed Container */
+  .hero-frame {
+    width: 100%;
+    max-width: 1180px;
+    margin: 0 auto;
+  }
+
+  .hero-video-box {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
     background-color: #000;
-    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-md);
   }
 
   .hero-video {
@@ -102,7 +115,6 @@
     transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  /* Fade video in smoothly once ready */
   .hero-section.is-ready .hero-video {
     opacity: 1;
   }
@@ -123,8 +135,6 @@
     position: relative;
     z-index: 2;
     width: 100%;
-    max-width: var(--container-max);
-    margin: 0 auto;
     padding-inline: var(--space-md);
     box-sizing: border-box;
     display: flex;
@@ -134,7 +144,7 @@
     text-align: center;
   }
 
-  /* Keyframe Animations */
+  /* Dropdown animations */
   @keyframes logoDropIn {
     0% {
       opacity: 0;
@@ -169,19 +179,18 @@
   }
 
   .hero-logo {
-    width: clamp(180px, 45vw, 260px);
+    width: clamp(160px, 35vw, 240px);
     height: auto;
     display: block;
     filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.6));
   }
 
-  /* Perfectly Centered Tagline on Mobile & Desktop */
   .hero-tagline {
     font-family: var(--font-heading);
-    font-size: clamp(0.68rem, 2.2vw, 0.85rem);
+    font-size: clamp(0.68rem, 2vw, 0.85rem);
     font-weight: 500;
     letter-spacing: 0.25em;
-    text-indent: 0.25em; /* Counterbalance trailing letter-spacing */
+    text-indent: 0.25em;
     text-transform: uppercase;
     color: #ffffff;
     margin: 0;
@@ -192,16 +201,6 @@
     line-height: 1.5;
   }
 
-  .scroll-indicator {
-    position: absolute;
-    bottom: var(--space-xl);
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 2;
-    opacity: 0;
-  }
-
-  /* Triggered together once video is ready */
   .hero-section.is-ready .hero-brand-drop {
     animation: logoDropIn 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.05s forwards;
   }
@@ -210,42 +209,16 @@
     animation: taglineFadeIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.25s forwards;
   }
 
-  .hero-section.is-ready .scroll-indicator {
-    animation: taglineFadeIn 0.7s ease 0.5s forwards;
-  }
-
-  .mouse {
-    width: 22px;
-    height: 34px;
-    border: 1.5px solid rgba(255, 255, 255, 0.6);
-    border-radius: var(--radius-full);
-    position: relative;
-  }
-
-  .wheel {
-    width: 3px;
-    height: 7px;
-    background-color: white;
-    border-radius: var(--radius-full);
-    position: absolute;
-    top: 5px;
-    left: 50%;
-    transform: translateX(-50%);
-    animation: scroll 2s infinite;
-  }
-
-  @keyframes scroll {
-    0% {
-      transform: translate(-50%, 0);
-      opacity: 1;
+  @media (max-width: 768px) {
+    .hero-section {
+      padding-inline: var(--space-md);
+      padding-top: calc(var(--nav-height) + var(--space-md));
     }
-    100% {
-      transform: translate(-50%, 10px);
-      opacity: 0;
-    }
-  }
 
-  @media (max-width: 480px) {
+    .hero-video-box {
+      aspect-ratio: 16 / 10;
+    }
+
     .hero-tagline {
       letter-spacing: 0.18em;
       text-indent: 0.18em;

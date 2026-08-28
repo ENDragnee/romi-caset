@@ -6,7 +6,7 @@ import { prisma } from "./prisma";
 export const navigation: NavLink[] = [
   { label: "Home", href: "/" },
   {
-    label: "Portfolio",
+    label: "Work",
     href: "/portfolio",
     children: [
       { label: "MUSIC VIDEOS", href: "/portfolio/music-videos" },

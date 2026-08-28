@@ -19,7 +19,7 @@ import SiteFooter from "../features/footer/components/site-footer.astro";
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -31,27 +31,12 @@ import SiteFooter from "../features/footer/components/site-footer.astro";
 
     {/* Astro View Transitions Engine */}
     <ClientRouter />
-
-    {/* Inline script runs synchronously before paint */}
-    <script is:inline>
-      function applyTheme() {
-        var stored = localStorage.getItem("kaset-theme");
-        var preferred = window.matchMedia("(prefers-color-scheme: dark)")
-          .matches
-          ? "dark"
-          : "light";
-        var theme = stored || preferred;
-        document.documentElement.setAttribute("data-theme", theme);
-      }
-      applyTheme();
-      document.addEventListener("astro:after-swap", applyTheme);
-    </script>
   </head>
 
-  <body>
+  <body class="site-body">
     <NavBar transparent={transparentNav} />
 
-    <main id="main-content">
+    <main id="main-content" class="page-content-frame">
       <slot />
     </main>
 
@@ -59,59 +44,97 @@ import SiteFooter from "../features/footer/components/site-footer.astro";
 
     {/* Custom cursor elements */}
     <div class="custom-cursor" aria-hidden="true"></div>
-    <div class="custom-cursor--dot" aria-hidden="true"></div>
+    <div class="custom-cursor--pointer" aria-hidden="true">
+      <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path
+          d="M1.5 1.5L14 7L8 9L6 14.5L1.5 1.5Z"
+          fill="currentColor"
+          stroke="var(--color-bg)"
+          stroke-width="1"
+          stroke-linejoin="round"></path>
+      </svg>
+    </div>
 
     <script>
       function InitCursor() {
         const ring = document.querySelector<HTMLElement>(".custom-cursor");
-        const dot = document.querySelector<HTMLElement>(".custom-cursor--dot");
-        if (!ring || !dot) return;
+        const pointer = document.querySelector<HTMLElement>(
+          ".custom-cursor--pointer",
+        );
+        if (!ring || !pointer) return;
 
         if (!window.matchMedia("(pointer: fine)").matches) return;
 
         document.body.classList.add("has-custom-cursor");
 
         const activeRing = ring;
-        const activeDot = dot;
+        const activePointer = pointer;
 
         let mouseX = -100;
         let mouseY = -100;
         let ringX = -100;
         let ringY = -100;
+        let prevMouseX = -100;
+        let prevMouseY = -100;
         let isOverVideo = false;
 
         const hideCursor = () => {
           activeRing.classList.remove("custom-cursor--visible");
-          activeDot.classList.remove("custom-cursor--visible");
+          activePointer.classList.remove("custom-cursor--visible");
         };
 
         const showCursor = () => {
           if (!isOverVideo) {
             activeRing.classList.add("custom-cursor--visible");
-            activeDot.classList.add("custom-cursor--visible");
+            activePointer.classList.add("custom-cursor--visible");
           }
         };
 
         document.addEventListener("mousemove", (e: MouseEvent) => {
           if (isOverVideo) return;
-
           mouseX = e.clientX;
           mouseY = e.clientY;
-          activeDot.style.left = `${mouseX}px`;
-          activeDot.style.top = `${mouseY}px`;
           showCursor();
         });
 
-        function AnimateRing() {
+        function AnimateCursor() {
           if (!isOverVideo) {
-            ringX += (mouseX - ringX) * 0.18;
-            ringY += (mouseY - ringY) * 0.18;
+            const vx = mouseX - ringX;
+            const vy = mouseY - ringY;
+            ringX += vx * 0.22;
+            ringY += vy * 0.22;
+
+            const mouseVx = mouseX - prevMouseX;
+            const mouseVy = mouseY - prevMouseY;
+            const speed = Math.hypot(mouseVx, mouseVy);
+            const angle = Math.atan2(mouseVy, mouseVx) * (180 / Math.PI);
+
+            prevMouseX = mouseX;
+            prevMouseY = mouseY;
+
+            const blurAmount = Math.min(speed * 0.12, 3.5);
+            const stretch = Math.min(speed * 0.015, 0.45);
+            const squeeze = Math.min(speed * 0.008, 0.25);
+
             activeRing.style.left = `${ringX}px`;
             activeRing.style.top = `${ringY}px`;
+            activeRing.style.filter =
+              blurAmount > 0.3 ? `blur(${blurAmount * 0.8}px)` : "none";
+
+            if (speed > 2.5) {
+              activeRing.style.transform = `translate(-50%, -50%) rotate(${angle}deg) scale(${1 + stretch}, ${1 - squeeze})`;
+            } else {
+              activeRing.style.transform = `translate(-50%, -50%) scale(1)`;
+            }
+
+            activePointer.style.left = `${mouseX}px`;
+            activePointer.style.top = `${mouseY}px`;
+            activePointer.style.filter =
+              blurAmount > 0.4 ? `blur(${blurAmount * 0.4}px)` : "none";
           }
-          requestAnimationFrame(AnimateRing);
+          requestAnimationFrame(AnimateCursor);
         }
-        AnimateRing();
+        AnimateCursor();
 
         const interactiveSelector =
           'a, button, [role="button"], input, textarea, select, label';
@@ -125,7 +148,7 @@ import SiteFooter from "../features/footer/components/site-footer.astro";
         });
 
         const videoZones = document.querySelectorAll<HTMLElement>(
-          ".video-container, [data-video-embed], iframe",
+          ".video-container, [data-video-embed], iframe, video",
         );
         videoZones.forEach((zone) => {
           zone.addEventListener("mouseenter", () => {
@@ -153,3 +176,18 @@ import SiteFooter from "../features/footer/components/site-footer.astro";
     </script>
   </body>
 </html>
+
+<style>
+  .site-body {
+    background-color: var(--color-bg);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .page-content-frame {
+    flex: 1;
+    width: 100%;
+    box-sizing: border-box;
+  }
+</style>
