@@ -76,7 +76,7 @@ import SiteFooter from "../features/footer/components/site-footer.astro";
         let ringY = -100;
         let prevMouseX = -100;
         let prevMouseY = -100;
-        let isOverVideo = false;
+        let isOverIframe = false;
 
         const hideCursor = () => {
           activeRing.classList.remove("custom-cursor--visible");
@@ -84,21 +84,22 @@ import SiteFooter from "../features/footer/components/site-footer.astro";
         };
 
         const showCursor = () => {
-          if (!isOverVideo) {
+          if (!isOverIframe) {
             activeRing.classList.add("custom-cursor--visible");
             activePointer.classList.add("custom-cursor--visible");
           }
         };
 
         document.addEventListener("mousemove", (e: MouseEvent) => {
-          if (isOverVideo) return;
+          if (isOverIframe) return;
           mouseX = e.clientX;
           mouseY = e.clientY;
           showCursor();
         });
 
+        // Kinetic physics loop: smooth follow & motion blur
         function AnimateCursor() {
-          if (!isOverVideo) {
+          if (!isOverIframe) {
             const vx = mouseX - ringX;
             const vy = mouseY - ringY;
             ringX += vx * 0.22;
@@ -136,6 +137,7 @@ import SiteFooter from "../features/footer/components/site-footer.astro";
         }
         AnimateCursor();
 
+        // Enlarge on interactive buttons/links
         const interactiveSelector =
           'a, button, [role="button"], input, textarea, select, label';
         document.querySelectorAll(interactiveSelector).forEach((el) => {
@@ -147,27 +149,28 @@ import SiteFooter from "../features/footer/components/site-footer.astro";
           );
         });
 
-        const videoZones = document.querySelectorAll<HTMLElement>(
-          ".video-container, [data-video-embed], iframe, video",
+        // Only hide over external sandboxed iframes (e.g. YouTube player), NOT background videos
+        const iframeZones = document.querySelectorAll<HTMLElement>(
+          "iframe, [data-video-embed]",
         );
-        videoZones.forEach((zone) => {
+        iframeZones.forEach((zone) => {
           zone.addEventListener("mouseenter", () => {
-            isOverVideo = true;
+            isOverIframe = true;
             hideCursor();
           });
           zone.addEventListener("mouseleave", () => {
-            isOverVideo = false;
+            isOverIframe = false;
             showCursor();
           });
         });
 
         document.addEventListener("mouseleave", hideCursor);
         window.addEventListener("blur", () => {
-          isOverVideo = true;
+          isOverIframe = true;
           hideCursor();
         });
         window.addEventListener("focus", () => {
-          isOverVideo = false;
+          isOverIframe = false;
         });
       }
 

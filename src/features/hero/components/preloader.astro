@@ -1,0 +1,316 @@
+---
+
+---
+
+<div id="preloader" class="preloader-screen" aria-hidden="false">
+  {/* Top metadata bar */}
+  <div class="preloader-top-bar">
+    <span class="meta-tag">ROMI</span>
+    <span class="meta-tag">KASET PRODUCTION</span>
+  </div>
+
+  {/* Center 3D Pure Single-Axis Text Cube */}
+  <div class="preloader-center-content">
+    <div class="tumbler-scene">
+      <div class="text-cube-3d">
+        <div class="text-cube-face face-front">R</div>
+        <div class="text-cube-face face-bottom">O</div>
+        <div class="text-cube-face face-back">M</div>
+        <div class="text-cube-face face-left">I</div>
+        <div class="text-cube-face face-top">R</div>
+        <div class="text-cube-face face-right">O</div>
+      </div>
+    </div>
+
+    <div id="preloader-percentage" class="percentage-counter">0%</div>
+  </div>
+
+  {/* Bottom metadata bar */}
+  <div class="preloader-bottom-bar">
+    <span class="meta-tag">VISUAL ARCHIVE</span>
+    <span class="meta-tag">@ROMI</span>
+  </div>
+</div>
+
+<script>
+  let preloaderRaf: number | null = null;
+
+  function RunPreloader() {
+    const preloader = document.querySelector<HTMLElement>("#preloader");
+    const percentEl = document.querySelector<HTMLElement>(
+      "#preloader-percentage",
+    );
+    const heroSection = document.querySelector<HTMLElement>("#hero-section");
+    const video = document.querySelector<HTMLVideoElement>("#hero-video");
+
+    if (!preloader || !percentEl) return;
+
+    if (preloaderRaf) {
+      cancelAnimationFrame(preloaderRaf);
+      preloaderRaf = null;
+    }
+
+    preloader.style.display = "flex";
+    preloader.classList.remove("fade-out");
+    percentEl.textContent = "0%";
+    document.body.style.overflow = "hidden";
+
+    let progress = 0;
+    let videoReady = false;
+
+    if (video) {
+      if (video.readyState >= 2 || video.currentTime > 0) {
+        videoReady = true;
+      } else {
+        const markReady = () => {
+          videoReady = true;
+        };
+        video.addEventListener("canplay", markReady, { once: true });
+        video.addEventListener("playing", markReady, { once: true });
+        video.addEventListener("loadeddata", markReady, { once: true });
+      }
+    } else {
+      videoReady = true;
+    }
+
+    const startTime = performance.now();
+    const minDuration = 5000; // 5-second buffer
+
+    function updateProgress(now: number) {
+      const elapsed = now - startTime;
+      const timeRatio = Math.min(elapsed / minDuration, 1);
+
+      if (timeRatio < 0.88) {
+        progress = Math.floor(timeRatio * 94);
+      } else if (timeRatio >= 1 && (videoReady || elapsed > 5300)) {
+        progress = 100;
+      } else {
+        progress = 95 + Math.floor((Math.sin(elapsed / 100) + 1) * 1.5);
+      }
+
+      if (percentEl) {
+        percentEl.textContent = `${progress}%`;
+      }
+
+      if (progress >= 100) {
+        if (percentEl) percentEl.textContent = "100%";
+        setTimeout(finishPreloader, 320);
+      } else {
+        preloaderRaf = requestAnimationFrame(updateProgress);
+      }
+    }
+
+    preloaderRaf = requestAnimationFrame(updateProgress);
+
+    function finishPreloader() {
+      if (!preloader) return;
+      preloader.classList.add("fade-out");
+      document.body.style.overflow = "";
+
+      if (heroSection) {
+        heroSection.classList.add("is-ready");
+      }
+
+      setTimeout(() => {
+        preloader.style.display = "none";
+      }, 700);
+    }
+  }
+
+  RunPreloader();
+  document.addEventListener("astro:page-load", RunPreloader);
+</script>
+
+<style>
+  .preloader-screen {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    background-color: #000000;
+    z-index: 999999;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: var(--space-xl) var(--space-2xl);
+    box-sizing: border-box;
+    user-select: none;
+    transition:
+      opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .preloader-screen.fade-out {
+    opacity: 0;
+    transform: translateY(-30px);
+    pointer-events: none;
+  }
+
+  .preloader-top-bar,
+  .preloader-bottom-bar {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .meta-tag {
+    font-family: var(--font-heading);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.55);
+  }
+
+  .preloader-center-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2xl);
+    margin: auto 0;
+  }
+
+  /* ---------- 3D Cube Scene ---------- */
+  .tumbler-scene {
+    width: 140px;
+    height: 140px;
+    perspective: 1000px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .text-cube-3d {
+    width: 120px;
+    height: 120px;
+    position: relative;
+    transform-style: preserve-3d;
+    animation: cleanSingleAxisTumble 4.6s cubic-bezier(0.85, 0, 0.15, 1)
+      infinite;
+    will-change: transform;
+  }
+
+  /*
+    Pure 1-Axis Snaps (X moves for vertical, then Y moves for horizontal):
+    1. Holds Front ('R')           [X: 0,    Y: 0]
+    2. Snap Vertical Down -> ('O') [X: 90,   Y: 0]     (Only X changes)
+    3. Snap Vertical Down -> ('M') [X: 180,  Y: 0]     (Only X changes)
+    4. Snap Horizontal Right -> ('I') [X: 180, Y: -90] (Only Y changes)
+    5. Snap Horizontal Right -> ('R') [X: 180, Y: -180] (Only Y changes)
+  */
+  @keyframes cleanSingleAxisTumble {
+    /* 1. FRONT: 'R' */
+    0%,
+    18% {
+      transform: rotateX(0deg) rotateY(0deg);
+    }
+    /* 2. PURE VERTICAL SNAP -> BOTTOM: 'O' */
+    25%,
+    43% {
+      transform: rotateX(90deg) rotateY(0deg);
+    }
+    /* 3. PURE VERTICAL SNAP -> BACK: 'M' */
+    50%,
+    68% {
+      transform: rotateX(180deg) rotateY(0deg);
+    }
+    /* 4. PURE HORIZONTAL SNAP -> LEFT FACE: 'I' */
+    75%,
+    93% {
+      transform: rotateX(180deg) rotateY(-90deg);
+    }
+    /* 5. PURE HORIZONTAL SNAP BACK -> FRONT: 'R' */
+    100% {
+      transform: rotateX(180deg) rotateY(-180deg);
+    }
+  }
+
+  .text-cube-face {
+    position: absolute;
+    inset: 0;
+    width: 120px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-heading);
+    font-size: clamp(5.5rem, 15vw, 7.5rem);
+    font-weight: 900;
+    line-height: 1;
+    color: #ffffff;
+    text-transform: uppercase;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    text-shadow: 0 0 35px rgba(255, 255, 255, 0.45);
+    user-select: none;
+  }
+
+  /* All 6 3D Face Positions (60px = half of 120px cube) */
+  .face-front {
+    transform: rotateY(0deg) translateZ(60px);
+  }
+  .face-bottom {
+    transform: rotateX(-90deg) translateZ(60px);
+  }
+  .face-back {
+    transform: rotateX(180deg) translateZ(60px);
+  }
+  .face-left {
+    transform: rotateX(180deg) rotateY(-90deg) translateZ(60px);
+  }
+  .face-top {
+    transform: rotateX(90deg) translateZ(60px);
+  }
+  .face-right {
+    transform: rotateX(180deg) rotateY(90deg) translateZ(60px);
+  }
+
+  .percentage-counter {
+    font-family: var(--font-heading);
+    font-size: 0.95rem;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    color: rgba(255, 255, 255, 0.75);
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (max-width: 768px) {
+    .preloader-screen {
+      padding: var(--space-lg);
+    }
+    .tumbler-scene {
+      width: 100px;
+      height: 100px;
+    }
+    .text-cube-3d {
+      width: 90px;
+      height: 90px;
+    }
+    .text-cube-face {
+      width: 90px;
+      height: 90px;
+      font-size: 4.5rem;
+    }
+    .face-front {
+      transform: rotateY(0deg) translateZ(45px);
+    }
+    .face-bottom {
+      transform: rotateX(-90deg) translateZ(45px);
+    }
+    .face-back {
+      transform: rotateX(180deg) translateZ(45px);
+    }
+    .face-left {
+      transform: rotateX(180deg) rotateY(-90deg) translateZ(45px);
+    }
+    .face-top {
+      transform: rotateX(90deg) translateZ(45px);
+    }
+    .face-right {
+      transform: rotateX(180deg) rotateY(90deg) translateZ(45px);
+    }
+  }
+</style>

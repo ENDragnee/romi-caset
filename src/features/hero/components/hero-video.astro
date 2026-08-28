@@ -3,6 +3,7 @@
 ---
 
 <section class="hero-section" id="hero-section">
+  {/* Framed Video Container */}
   <div class="hero-frame">
     <div class="hero-video-box">
       <video
@@ -32,12 +33,40 @@
       </div>
     </div>
   </div>
+
+  {/* FEATURED ∨: Placed outside on the hero background canvas */}
+  <div class="hero-bottom-cue">
+    <button
+      id="scroll-to-featured-btn"
+      class="featured-scroll-cue"
+      type="button"
+      aria-label="Scroll to featured work"
+    >
+      <span class="cue-label">FEATURED</span>
+      <svg
+        class="cue-chevron"
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>
+    </button>
+  </div>
 </section>
 
 <script>
   function InitHeroVideo() {
     const heroSection = document.querySelector<HTMLElement>("#hero-section");
     const video = document.querySelector<HTMLVideoElement>("#hero-video");
+    const scrollBtn = document.querySelector<HTMLButtonElement>(
+      "#scroll-to-featured-btn",
+    );
     if (!heroSection || !video) return;
 
     let isTriggered = false;
@@ -64,6 +93,16 @@
 
       setTimeout(renderHero, 600);
     }
+
+    if (scrollBtn) {
+      scrollBtn.onclick = (e) => {
+        e.preventDefault();
+        const target = document.querySelector("#featured-section");
+        if (target) {
+          target.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      };
+    }
   }
 
   InitHeroVideo();
@@ -73,21 +112,23 @@
 <style>
   .hero-section {
     width: 100%;
-    padding-top: calc(var(--nav-height) + var(--space-lg));
-    padding-bottom: var(--space-2xl);
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding-top: calc(var(--nav-height) + var(--space-xs));
+    padding-bottom: var(--space-md);
     padding-inline: var(--space-xl);
     box-sizing: border-box;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    background-color: var(--color-bg); /* Background frames the video */
+    justify-content: space-between; /* Spaces video in center, button at bottom */
+    background-color: var(--color-bg);
   }
 
-  /* Centered Framed Container */
   .hero-frame {
     width: 100%;
     max-width: 1180px;
-    margin: 0 auto;
+    margin: auto 0; /* Keeps video centered vertically */
   }
 
   .hero-video-box {
@@ -110,6 +151,7 @@
     object-fit: cover;
     z-index: 0;
     opacity: 0;
+    pointer-events: none;
     transform: translateZ(0);
     will-change: opacity;
     transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1);
@@ -142,9 +184,9 @@
     align-items: center;
     justify-content: center;
     text-align: center;
+    pointer-events: none;
   }
 
-  /* Dropdown animations */
   @keyframes logoDropIn {
     0% {
       opacity: 0;
@@ -201,6 +243,62 @@
     line-height: 1.5;
   }
 
+  /* ---------- FEATURED ∨ button outside on the canvas ---------- */
+  .hero-bottom-cue {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding-bottom: var(--space-xs);
+    z-index: 3;
+  }
+
+  .featured-scroll-cue {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--color-text-muted);
+    padding: var(--space-2xs) var(--space-md);
+    opacity: 0;
+    transition:
+      opacity 0.5s ease,
+      color var(--transition-fast),
+      transform var(--transition-fast);
+  }
+
+  .featured-scroll-cue:hover {
+    color: var(--color-accent);
+    transform: translateY(2px);
+  }
+
+  .cue-label {
+    font-family: var(--font-heading);
+    font-size: 0.725rem;
+    font-weight: 600;
+    letter-spacing: 0.25em;
+    text-indent: 0.25em;
+    text-transform: uppercase;
+  }
+
+  @keyframes cuePulseBounce {
+    0%,
+    100% {
+      transform: translateY(0);
+      opacity: 0.7;
+    }
+    50% {
+      transform: translateY(4px);
+      opacity: 1;
+    }
+  }
+
+  .cue-chevron {
+    animation: cuePulseBounce 2s infinite ease-in-out;
+  }
+
   .hero-section.is-ready .hero-brand-drop {
     animation: logoDropIn 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.05s forwards;
   }
@@ -209,10 +307,15 @@
     animation: taglineFadeIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.25s forwards;
   }
 
+  .hero-section.is-ready .featured-scroll-cue {
+    opacity: 1;
+    transition-delay: 0.4s;
+  }
+
   @media (max-width: 768px) {
     .hero-section {
       padding-inline: var(--space-md);
-      padding-top: calc(var(--nav-height) + var(--space-md));
+      padding-top: calc(var(--nav-height) + var(--space-xs));
     }
 
     .hero-video-box {
