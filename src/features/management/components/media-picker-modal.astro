@@ -1,0 +1,186 @@
+---
+
+---
+
+<dialog id="media-picker-modal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Select Asset from Library</h2>
+      <button type="button" class="close-modal btn-icon">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="media-picker-toolbar">
+        <button type="button" id="upload-new-btn" class="btn-secondary btn-sm">
+          <svg
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            ><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+            ></path><polyline points="17 8 12 3 7 8"></polyline><line
+              x1="12"
+              y1="3"
+              x2="12"
+              y2="15"></line></svg
+          >
+          <span>Upload New Asset</span>
+        </button>
+        <input
+          type="file"
+          id="media-upload-input"
+          accept="image/*,video/*"
+          style="display:none"
+          multiple
+        />
+        <span id="upload-status" class="upload-status-text"></span>
+      </div>
+      <div id="media-grid" class="media-selector-grid"></div>
+    </div>
+  </div>
+</dialog>
+
+<style>
+  .modal {
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    border: none;
+    border-radius: var(--radius-xl);
+    background-color: var(--color-surface);
+    color: var(--color-text);
+    padding: 0;
+    max-width: 800px;
+    width: 90vw;
+    max-height: 85vh;
+    box-shadow:
+      0 25px 50px -12px rgba(0, 0, 0, 0.4),
+      0 0 0 1px var(--color-border);
+  }
+
+  .modal::backdrop {
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+
+  .modal-content {
+    display: flex;
+    flex-direction: column;
+    max-height: 80vh;
+  }
+
+  .modal-header {
+    padding: var(--space-lg) var(--space-xl);
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .modal-header h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-family: var(--font-heading);
+    font-weight: 600;
+  }
+
+  .btn-icon {
+    background: transparent;
+    border: none;
+    font-size: 1.8rem;
+    line-height: 1;
+    color: var(--color-text-muted);
+    cursor: pointer;
+  }
+
+  .btn-icon:hover {
+    color: var(--color-text);
+  }
+
+  .modal-body {
+    padding: var(--space-xl);
+    overflow-y: auto;
+  }
+
+  .media-picker-toolbar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    background-color: transparent;
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+
+  .btn-secondary:hover {
+    background-color: var(--color-surface-elevated);
+    border-color: var(--color-accent);
+  }
+
+  .upload-status-text {
+    font-size: 0.85rem;
+    color: var(--color-accent);
+    font-weight: 600;
+  }
+
+  .media-selector-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: var(--space-md);
+  }
+
+  :global(.media-select-card) {
+    aspect-ratio: 1;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    cursor: pointer;
+    border: 2px solid transparent;
+    position: relative;
+    transition: all var(--transition-fast);
+    background-color: var(--color-bg);
+  }
+
+  :global(.media-select-card img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  :global(.media-select-card:hover) {
+    border-color: var(--color-accent);
+    transform: scale(1.02);
+  }
+
+  :global(.select-label) {
+    position: absolute;
+    bottom: 0;
+    inset-inline: 0;
+    background: rgba(0, 0, 0, 0.75);
+    color: white;
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  :global(.loading-state) {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: var(--space-3xl);
+    color: var(--color-text-muted);
+  }
+</style>

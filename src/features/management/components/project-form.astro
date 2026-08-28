@@ -1,0 +1,945 @@
+---
+import MediaPickerModal from "./media-picker-modal.astro";
+
+interface Props {
+  project?: {
+    id: string;
+    title: string;
+    slug: string;
+    client: string | null;
+    category: string;
+    cardType: string;
+    year: number | null;
+    youtubeUrl: string | null;
+    description: string | null;
+    featured: boolean;
+    thumbnail: string | null;
+    gallery: string[];
+  };
+  mode: "create" | "edit";
+}
+
+const { project, mode } = Astro.props;
+const isEdit = mode === "edit";
+---
+
+<div class="form-card">
+  <form id="project-form">
+    {isEdit && <input type="hidden" id="project-id" value={project?.id} />}
+
+    <div class="form-sections-wrapper">
+      {/* Information Section */}
+      <div class="form-section">
+        <h3 class="section-heading">Project Information</h3>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="title-input"
+              >Project Title <span class="required">*</span></label
+            >
+            <input
+              type="text"
+              id="title-input"
+              name="title"
+              required
+              value={project?.title || ""}
+              placeholder="e.g. Neon Horizon"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="slug-input"
+              >URL Slug <span class="required">*</span></label
+            >
+            <input
+              type="text"
+              id="slug-input"
+              name="slug"
+              required
+              value={project?.slug || ""}
+              placeholder="e.g. neon-horizon"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="client-input">Client Name</label>
+            <input
+              type="text"
+              id="client-input"
+              name="client"
+              value={project?.client || ""}
+              placeholder="e.g. Universal Music / Nike"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="category-input"
+              >Category <span class="required">*</span></label
+            >
+            <select id="category-input" name="category" required>
+              <option
+                value="MUSICVIDEO"
+                selected={project?.category === "MUSICVIDEO"}
+                >Music Video</option
+              >
+              <option
+                value="COMMERCIAL"
+                selected={project?.category === "COMMERCIAL"}>Commercial</option
+              >
+              <option value="FILM" selected={project?.category === "FILM"}
+                >Film</option
+              >
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Card Aspect Ratio <span class="required">*</span></label>
+            <div class="radio-pill-group">
+              <label class="radio-pill">
+                <input
+                  type="radio"
+                  name="cardType"
+                  value="WIDE"
+                  checked={!project || project.cardType === "WIDE"}
+                />
+                <span>Wide (16:9)</span>
+              </label>
+              <label class="radio-pill">
+                <input
+                  type="radio"
+                  name="cardType"
+                  value="SQUARE"
+                  checked={project?.cardType === "SQUARE"}
+                />
+                <span>Square (1:1)</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="year-input">Production Year</label>
+            <input
+              type="number"
+              id="year-input"
+              name="year"
+              value={project?.year || ""}
+              placeholder="2025"
+            />
+          </div>
+
+          <div class="form-group full-width">
+            <label for="youtube-input">YouTube / Video Embed URL</label>
+            <input
+              type="url"
+              id="youtube-input"
+              name="youtubeUrl"
+              value={project?.youtubeUrl || ""}
+              placeholder="https://www.youtube.com/watch?v=..."
+            />
+          </div>
+
+          <div class="form-group full-width">
+            <label for="description-input">Project Synopsis / Description</label
+            >
+            <textarea
+              id="description-input"
+              name="description"
+              rows="4"
+              placeholder="Brief project summary, directorial notes, and production credits..."
+              >{project?.description || ""}</textarea
+            >
+          </div>
+
+          <div class="form-group full-width">
+            <label class="checkbox-pill">
+              <input
+                type="checkbox"
+                name="featured"
+                checked={project?.featured || false}
+              />
+              <span class="checkbox-label-text">
+                <strong>Featured on Homepage</strong>
+                <small>Showcase this project in the curated hero reel.</small>
+              </span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      {/* Visuals Section */}
+      <div class="form-section">
+        <h3 class="section-heading">Media Assets</h3>
+
+        {/* Thumbnail */}
+        <div class="media-field-block">
+          <label class="field-label"
+            >Cover Thumbnail <span class="required">*</span></label
+          >
+          <input
+            type="hidden"
+            id="thumbnail-key"
+            name="thumbnailKey"
+            value={project?.thumbnail || ""}
+          />
+          <div
+            id="thumbnail-preview"
+            class={`media-drop-preview ${project?.thumbnail ? "" : "empty"}`}
+          >
+            {
+              project?.thumbnail ? (
+                <div class="thumbnail-chosen-container">
+                  <img
+                    src={`/api/media/${project.thumbnail}`}
+                    alt={project.title}
+                  />
+                  <button
+                    type="button"
+                    class="remove-thumbnail-btn"
+                    title="Remove"
+                  >
+                    &times;
+                  </button>
+                </div>
+              ) : (
+                <div class="empty-upload-prompt">
+                  <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                  >
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <polyline points="21 15 16 10 5 21" />
+                  </svg>
+                  <span>No thumbnail selected</span>
+                  <button
+                    type="button"
+                    class="btn-secondary open-media-picker"
+                    data-target="thumbnail"
+                  >
+                    Choose from Library
+                  </button>
+                </div>
+              )
+            }
+          </div>
+        </div>
+
+        {/* Gallery */}
+        <div class="media-field-block">
+          <div class="gallery-header-row">
+            <label class="field-label">Behind The Scenes Gallery</label>
+            <button
+              type="button"
+              class="btn-secondary btn-sm open-media-picker"
+              data-target="gallery">+ Add Stills</button
+            >
+          </div>
+          <input
+            type="hidden"
+            id="gallery-keys"
+            name="galleryKeys"
+            value={JSON.stringify(project?.gallery || [])}
+          />
+          <div id="gallery-items" class="gallery-grid-preview"></div>
+        </div>
+      </div>
+    </div>
+
+    {/* Form Actions Footer */}
+    <div class="form-actions-bar">
+      <div id="form-error" class="error-inline"></div>
+      <div class="actions-right">
+        <a href="/management/projects" class="btn-secondary">Cancel</a>
+        <button type="submit" class="btn-primary" id="submit-btn">
+          <span>{isEdit ? "Save Changes" : "Create Project"}</span>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+
+{/* Media Picker Modal */}
+<MediaPickerModal />
+
+<script>
+  interface MediaItem {
+    id: string;
+    key: string;
+    filename: string;
+  }
+
+  // Auto-generate slug (Only for create mode or empty slug)
+  const titleInput = document.querySelector<HTMLInputElement>("#title-input");
+  const slugInput = document.querySelector<HTMLInputElement>("#slug-input");
+  const projectIdInput =
+    document.querySelector<HTMLInputElement>("#project-id");
+  const isEditMode = !!projectIdInput?.value;
+
+  if (titleInput && slugInput && !isEditMode) {
+    titleInput.addEventListener("input", () => {
+      slugInput.value = titleInput.value
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
+    });
+  }
+
+  // Form Submission
+  const form = document.querySelector<HTMLFormElement>("#project-form");
+  const submitBtn = document.querySelector<HTMLButtonElement>("#submit-btn");
+  const errorEl = document.querySelector<HTMLElement>("#form-error");
+
+  if (form && submitBtn && errorEl) {
+    form.addEventListener("submit", async (e: SubmitEvent) => {
+      e.preventDefault();
+      errorEl.textContent = "";
+      submitBtn.textContent = isEditMode ? "Saving..." : "Creating...";
+      submitBtn.disabled = true;
+
+      const formData = new FormData(form);
+      const data = {
+        title: formData.get("title"),
+        slug: formData.get("slug"),
+        client: formData.get("client") || null,
+        category: formData.get("category"),
+        cardType: formData.get("cardType"),
+        year: formData.get("year")
+          ? parseInt(formData.get("year") as string)
+          : null,
+        youtubeUrl: formData.get("youtubeUrl") || null,
+        description: formData.get("description") || null,
+        featured: formData.get("featured") === "on",
+        thumbnailKey: formData.get("thumbnailKey") || null,
+        galleryKeys: JSON.parse(
+          (formData.get("galleryKeys") as string) || "[]",
+        ),
+      };
+
+      const endpoint = isEditMode
+        ? `/api/management/projects/${projectIdInput?.value}`
+        : "/api/management/projects";
+
+      const method = isEditMode ? "PUT" : "POST";
+
+      try {
+        const res = await fetch(endpoint, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+
+        if (res.ok) {
+          window.location.href = "/management/projects";
+        } else {
+          const errData = await res.json();
+          errorEl.textContent = errData.message || "Error saving project";
+          submitBtn.textContent = isEditMode
+            ? "Save Changes"
+            : "Create Project";
+          submitBtn.disabled = false;
+        }
+      } catch {
+        errorEl.textContent = "Network error. Try again.";
+        submitBtn.textContent = isEditMode ? "Save Changes" : "Create Project";
+        submitBtn.disabled = false;
+      }
+    });
+  }
+
+  // Media Picker Logic
+  const modal = document.querySelector<HTMLDialogElement>(
+    "#media-picker-modal",
+  );
+  const mediaGrid = document.querySelector<HTMLElement>("#media-grid");
+  const closeModalBtn = modal?.querySelector<HTMLButtonElement>(".close-modal");
+  let currentTarget = "";
+
+  renderGalleryPreview();
+  bindThumbnailRemoveEvent();
+
+  function bindThumbnailRemoveEvent() {
+    const btn = document.querySelector<HTMLButtonElement>(
+      "#thumbnail-preview .remove-thumbnail-btn",
+    );
+    btn?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const thumbnailKeyInput =
+        document.querySelector<HTMLInputElement>("#thumbnail-key");
+      const preview = document.querySelector<HTMLElement>("#thumbnail-preview");
+      if (thumbnailKeyInput && preview) {
+        thumbnailKeyInput.value = "";
+        preview.classList.add("empty");
+        preview.innerHTML = `
+          <div class="empty-upload-prompt">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <span>No thumbnail selected</span>
+            <button type="button" class="btn-secondary open-media-picker" data-target="thumbnail">Choose from Library</button>
+          </div>
+        `;
+        preview
+          .querySelector<HTMLElement>(".open-media-picker")
+          ?.addEventListener("click", () => {
+            currentTarget = "thumbnail";
+            loadMedia();
+            modal?.showModal();
+          });
+      }
+    });
+  }
+
+  document
+    .querySelectorAll<HTMLElement>(".open-media-picker")
+    .forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        currentTarget = (e.currentTarget as HTMLElement).dataset.target || "";
+        loadMedia();
+        modal?.showModal();
+      });
+    });
+
+  closeModalBtn?.addEventListener("click", () => modal?.close());
+
+  async function loadMedia() {
+    if (!mediaGrid) return;
+    mediaGrid.innerHTML = `<div class="loading-state">Loading library assets...</div>`;
+    try {
+      const res = await fetch("/api/management/media");
+      const items: MediaItem[] = await res.json();
+      renderMediaGrid(items);
+    } catch {
+      mediaGrid.innerHTML = `<div class="loading-state">Failed to load media</div>`;
+    }
+  }
+
+  function renderMediaGrid(items: MediaItem[]) {
+    if (!mediaGrid) return;
+    if (items.length === 0) {
+      mediaGrid.innerHTML = `<div class="loading-state">No assets found. Click Upload New.</div>`;
+      return;
+    }
+    mediaGrid.innerHTML = items
+      .map(
+        (item) => `
+      <div class="media-select-card" data-key="${item.key}" data-url="/api/media/${item.key}">
+        <img src="/api/media/${item.key}" alt="${item.filename}" loading="lazy" />
+        <span class="select-label">${item.filename}</span>
+      </div>
+    `,
+      )
+      .join("");
+
+    mediaGrid
+      .querySelectorAll<HTMLElement>(".media-select-card")
+      .forEach((el) => {
+        el.addEventListener("click", (e) => {
+          const target = e.currentTarget as HTMLElement;
+          const key = target.dataset.key || "";
+          const url = target.dataset.url || "";
+          selectMedia(key, url);
+        });
+      });
+  }
+
+  function selectMedia(key: string, url: string) {
+    if (currentTarget === "thumbnail") {
+      const thumbnailKeyInput =
+        document.querySelector<HTMLInputElement>("#thumbnail-key");
+      const preview = document.querySelector<HTMLElement>("#thumbnail-preview");
+
+      if (thumbnailKeyInput && preview) {
+        thumbnailKeyInput.value = key;
+        preview.classList.remove("empty");
+        preview.innerHTML = `
+          <div class="thumbnail-chosen-container">
+            <img src="${url}" alt="Thumbnail" />
+            <button type="button" class="remove-thumbnail-btn" title="Remove">&times;</button>
+          </div>
+        `;
+        bindThumbnailRemoveEvent();
+      }
+      modal?.close();
+    } else if (currentTarget === "gallery") {
+      const input = document.querySelector<HTMLInputElement>("#gallery-keys");
+      if (input) {
+        const keys: string[] = JSON.parse(input.value || "[]");
+        if (!keys.includes(key)) {
+          keys.push(key);
+          input.value = JSON.stringify(keys);
+          renderGalleryPreview();
+        }
+      }
+      modal?.close();
+    }
+  }
+
+  function renderGalleryPreview() {
+    const input = document.querySelector<HTMLInputElement>("#gallery-keys");
+    const container = document.querySelector<HTMLElement>("#gallery-items");
+    if (!input || !container) return;
+
+    const keys: string[] = JSON.parse(input.value || "[]");
+    container.innerHTML = keys
+      .map(
+        (key: string) => `
+      <div class="gallery-item-card">
+        <img src="/api/media/${key}" alt="Gallery item" />
+        <button type="button" class="remove-gallery-item-btn" data-key="${key}" title="Remove">&times;</button>
+      </div>
+    `,
+      )
+      .join("");
+
+    container
+      .querySelectorAll<HTMLButtonElement>(".remove-gallery-item-btn")
+      .forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          const keyToRemove = (e.currentTarget as HTMLElement).dataset.key;
+          const currentKeys: string[] = JSON.parse(input.value || "[]");
+          input.value = JSON.stringify(
+            currentKeys.filter((k: string) => k !== keyToRemove),
+          );
+          renderGalleryPreview();
+        });
+      });
+  }
+
+  // Upload logic inside modal
+  const uploadBtn =
+    document.querySelector<HTMLButtonElement>("#upload-new-btn");
+  const uploadInput = document.querySelector<HTMLInputElement>(
+    "#media-upload-input",
+  );
+  const uploadStatus = document.querySelector<HTMLElement>("#upload-status");
+
+  if (uploadBtn && uploadInput && uploadStatus) {
+    uploadBtn.addEventListener("click", () => uploadInput.click());
+
+    uploadInput.addEventListener("change", async (e: Event) => {
+      const target = e.target as HTMLInputElement;
+      const files = target.files;
+      if (!files || files.length === 0) return;
+
+      uploadStatus.textContent = "Uploading assets...";
+
+      for (const file of Array.from(files)) {
+        try {
+          let fileToUpload = file;
+          let mimeType = file.type || "application/octet-stream";
+
+          // 1. Client-Side Image Compression
+          if (file.type.startsWith("image/")) {
+            const imageCompression = (await import("browser-image-compression"))
+              .default;
+            fileToUpload = await imageCompression(file, {
+              maxSizeMB: 0.8,
+              maxWidthOrHeight: 2000,
+              useWebWorker: true,
+            });
+            mimeType = fileToUpload.type || file.type || "image/jpeg";
+          }
+
+          // 2. Request Presigned URL with compressed file's exact type
+          const urlRes = await fetch("/api/management/upload-url", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              filename: file.name,
+              contentType: mimeType,
+            }),
+          });
+
+          if (!urlRes.ok) throw new Error("Could not get presigned upload URL");
+          const { url, key } = await urlRes.json();
+
+          // 3. Direct PUT to S3 / SeaweedFS / Backblaze
+          const uploadRes = await fetch(url, {
+            method: "PUT",
+            body: fileToUpload,
+            headers: { "Content-Type": mimeType },
+          });
+
+          if (!uploadRes.ok) {
+            const errText = await uploadRes.text();
+            console.error("Direct S3 PUT error:", uploadRes.status, errText);
+            throw new Error(
+              `Direct storage upload rejected with status ${uploadRes.status}`,
+            );
+          }
+
+          // 4. Calculate dimensions
+          const dimensions = await new Promise<{
+            width?: number;
+            height?: number;
+          }>((resolve) => {
+            if (!file.type.startsWith("image/")) return resolve({});
+            const img = new Image();
+            img.onload = () =>
+              resolve({ width: img.naturalWidth, height: img.naturalHeight });
+            img.onerror = () => resolve({});
+            img.src = URL.createObjectURL(fileToUpload);
+          });
+
+          // 5. Register in Database only after S3 confirms upload
+          const registerRes = await fetch("/api/management/media", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              key,
+              filename: file.name,
+              mimeType,
+              size: fileToUpload.size,
+              ...dimensions,
+            }),
+          });
+
+          if (!registerRes.ok) {
+            throw new Error("Failed to register media in database");
+          }
+        } catch (err: any) {
+          console.error("Error uploading file:", file.name, err);
+          alert(`Failed to upload ${file.name}. Check console for details.`);
+        }
+      }
+      uploadStatus.textContent = "";
+      target.value = "";
+      loadMedia();
+    });
+  }
+</script>
+
+<style>
+  .form-card {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .form-sections-wrapper {
+    padding: var(--space-2xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3xl);
+  }
+
+  .form-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+  }
+
+  .section-heading {
+    font-size: 1.1rem;
+    margin: 0;
+    font-family: var(--font-heading);
+    font-weight: 600;
+    padding-bottom: var(--space-xs);
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text);
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg) var(--space-xl);
+  }
+
+  .full-width {
+    grid-column: 1 / -1;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2xs);
+  }
+
+  .form-group label,
+  .field-label {
+    font-size: 0.825rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .required {
+    color: var(--color-accent);
+  }
+
+  .form-group input[type="text"],
+  .form-group input[type="number"],
+  .form-group input[type="url"],
+  .form-group select,
+  .form-group textarea {
+    background-color: var(--color-bg);
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-md);
+    font-family: inherit;
+    font-size: 0.95rem;
+    width: 100%;
+    box-sizing: border-box;
+    transition:
+      border-color var(--transition-fast),
+      box-shadow var(--transition-fast);
+  }
+
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px
+      color-mix(in srgb, var(--color-accent) 15%, transparent);
+  }
+
+  .radio-pill-group {
+    display: flex;
+    gap: var(--space-xs);
+  }
+
+  .radio-pill {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1rem;
+    background-color: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all var(--transition-fast);
+  }
+
+  .radio-pill input {
+    display: none;
+  }
+
+  .radio-pill:has(input:checked) {
+    background-color: color-mix(in srgb, var(--color-accent) 15%, transparent);
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+    font-weight: 600;
+  }
+
+  .checkbox-pill {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-md);
+    padding: var(--space-md);
+    background-color: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+  }
+
+  .checkbox-pill input {
+    margin-top: 3px;
+    width: 18px;
+    height: 18px;
+    accent-color: var(--color-accent);
+  }
+
+  .checkbox-label-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .checkbox-label-text small {
+    color: var(--color-text-muted);
+  }
+
+  .media-field-block {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .media-drop-preview {
+    border: 2px dashed var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-xl);
+    background-color: var(--color-bg);
+    min-height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .empty-upload-prompt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-xs);
+    color: var(--color-text-muted);
+  }
+
+  .thumbnail-chosen-container {
+    position: relative;
+    max-width: 480px;
+    width: 100%;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+  }
+
+  .thumbnail-chosen-container img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .remove-thumbnail-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    border: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    font-size: 1.2rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .gallery-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .gallery-grid-preview {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: var(--space-md);
+  }
+
+  .gallery-item-card {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+  }
+
+  .gallery-item-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .remove-gallery-item-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .form-actions-bar {
+    padding: var(--space-lg) var(--space-2xl);
+    background-color: color-mix(
+      in srgb,
+      var(--color-surface) 60%,
+      var(--color-bg)
+    );
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .actions-right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-left: auto;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    background-color: var(--color-accent);
+    color: var(--color-bg);
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius-md);
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 0.95rem;
+    border: none;
+    cursor: pointer;
+    transition:
+      background-color var(--transition-fast),
+      transform var(--transition-fast);
+  }
+
+  .btn-primary:hover {
+    background-color: var(--color-accent-hover);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    background-color: transparent;
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius-md);
+    font-family: var(--font-heading);
+    font-weight: 500;
+    font-size: 0.95rem;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all var(--transition-fast);
+  }
+
+  .btn-secondary:hover {
+    background-color: var(--color-surface-elevated);
+    border-color: var(--color-accent);
+  }
+
+  .btn-sm {
+    padding: 0.4rem 0.85rem;
+    font-size: 0.85rem;
+  }
+
+  .error-inline {
+    color: #ef4444;
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+</style>

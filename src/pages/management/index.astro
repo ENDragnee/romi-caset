@@ -1,0 +1,65 @@
+---
+import "../../styles/global.css";
+import LoginCard from "../../features/management/components/login-card.astro";
+
+if (Astro.locals.user) {
+  return Astro.redirect("/management/projects");
+}
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studio Access — Kaset Production</title>
+    <script is:inline>
+      (function () {
+        var stored = localStorage.getItem("kaset-theme");
+        var preferred = window.matchMedia("(prefers-color-scheme: dark)")
+          .matches
+          ? "dark"
+          : "light";
+        document.documentElement.setAttribute(
+          "data-theme",
+          stored || preferred,
+        );
+      })();
+    </script>
+  </head>
+  <body class="login-body">
+    <div class="login-wrapper">
+      <LoginCard />
+    </div>
+  </body>
+</html>
+
+<style>
+  .login-body {
+    margin: 0;
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-body);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(
+        circle at 50% 20%,
+        color-mix(in srgb, var(--color-accent) 8%, transparent) 0%,
+        transparent 60%
+      ),
+      radial-gradient(
+        circle at 80% 80%,
+        color-mix(in srgb, var(--color-accent-secondary) 5%, transparent) 0%,
+        transparent 50%
+      );
+  }
+
+  .login-wrapper {
+    width: 100%;
+    max-width: 440px;
+    padding: var(--space-lg);
+  }
+</style>

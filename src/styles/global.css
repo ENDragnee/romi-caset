@@ -1,0 +1,382 @@
+/* ==========================================================================
+   Global Styles — Kaset Production
+   ========================================================================== */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap");
+@import "./theme.css";
+
+/* ---------- Reset ---------- */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.6;
+  min-height: 100vh;
+  transition:
+    background-color var(--transition-theme),
+    color var(--transition-theme);
+  overflow-x: hidden;
+}
+
+/* ---------- Typography ---------- */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+}
+
+h1 {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+}
+h2 {
+  font-size: clamp(1.5rem, 3.5vw, 2.25rem);
+}
+h3 {
+  font-size: clamp(1.125rem, 2.5vw, 1.5rem);
+}
+
+p {
+  max-width: 65ch;
+}
+
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--color-accent-hover);
+}
+
+img,
+video {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+button {
+  font-family: inherit;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: inherit;
+}
+
+/* ---------- Utility: Container ---------- */
+.container {
+  width: 100%;
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding-inline: var(--space-lg);
+}
+
+.container--wide {
+  max-width: var(--container-wide);
+}
+
+/* ---------- Utility: Section ---------- */
+.section {
+  padding-block: var(--space-4xl);
+}
+
+/* ---------- Utility: Divider with centered label ---------- */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  margin-block: var(--space-2xl);
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+.divider__label {
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+/* ---------- Animations ---------- */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-in {
+  opacity: 0;
+  animation: fadeInUp 0.7s var(--transition-slow) forwards;
+}
+
+.animate-fade {
+  opacity: 0;
+  animation: fadeIn 0.6s ease forwards;
+}
+
+.animate-scale {
+  opacity: 0;
+  animation: scaleIn 0.5s ease forwards;
+}
+
+/* Staggered delays for grid children */
+.stagger-1 {
+  animation-delay: 0.05s;
+}
+.stagger-2 {
+  animation-delay: 0.1s;
+}
+.stagger-3 {
+  animation-delay: 0.15s;
+}
+.stagger-4 {
+  animation-delay: 0.2s;
+}
+.stagger-5 {
+  animation-delay: 0.25s;
+}
+.stagger-6 {
+  animation-delay: 0.3s;
+}
+.stagger-7 {
+  animation-delay: 0.35s;
+}
+.stagger-8 {
+  animation-delay: 0.4s;
+}
+.stagger-9 {
+  animation-delay: 0.45s;
+}
+
+/* ---------- Custom Cursor ---------- */
+.custom-cursor {
+  position: fixed;
+  width: 36px;
+  height: 36px;
+  border: 1.5px solid var(--color-accent);
+  background-color: color-mix(in srgb, var(--color-accent) 8%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--color-accent) 25%, transparent);
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  transition:
+    width var(--transition-normal),
+    height var(--transition-normal),
+    border-color var(--transition-normal),
+    background-color var(--transition-normal),
+    opacity var(--transition-normal);
+  z-index: 10000;
+  opacity: 0;
+}
+
+.custom-cursor--dot {
+  position: fixed;
+  width: 6px;
+  height: 6px;
+  background: var(--color-accent);
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.4);
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  z-index: 10001;
+  opacity: 0;
+  transition: opacity var(--transition-normal);
+}
+
+.custom-cursor--visible,
+.custom-cursor--dot.custom-cursor--visible {
+  opacity: 1;
+}
+
+.custom-cursor--hover {
+  width: 52px;
+  height: 52px;
+  border-color: var(--color-accent-secondary);
+  background-color: color-mix(
+    in srgb,
+    var(--color-accent-secondary) 15%,
+    transparent
+  );
+}
+
+/* Only hide default cursor when custom cursor is active on the page */
+/* Only hide default cursor when custom cursor is active on the page */
+@media (pointer: fine) {
+  body.has-custom-cursor,
+  body.has-custom-cursor a,
+  body.has-custom-cursor button,
+  body.has-custom-cursor [role="button"] {
+    cursor: none !important;
+  }
+
+  /* Restore native cursor over video players and iframes */
+  body.has-custom-cursor .video-container,
+  body.has-custom-cursor .video-container *,
+  body.has-custom-cursor iframe {
+    cursor: auto !important;
+  }
+}
+
+@media (pointer: coarse) {
+  .custom-cursor,
+  .custom-cursor--dot {
+    display: none !important;
+  }
+}
+
+/* ---------- Accessibility ---------- */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ---------- Selection ---------- */
+::selection {
+  background: var(--color-accent);
+  color: var(--color-bg);
+}
+
+/* ---------- Scrollbar ---------- */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent);
+}
+
+/* ==========================================================================
+   Page Transitions & Dramatic Drop-In Animations (Reference Match)
+   ========================================================================== */
+
+@keyframes dropDownTitle {
+  0% {
+    opacity: 0;
+    transform: translateY(-80px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes riseUpContent {
+  0% {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Big Title Descending from Top */
+.hero-title-drop {
+  opacity: 0;
+  animation: dropDownTitle 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards;
+  will-change: transform, opacity;
+}
+
+/* Page content rising simultaneously */
+.content-rise-up {
+  opacity: 0;
+  animation: riseUpContent 0.85s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
+  will-change: transform, opacity;
+}
+
+/* Smooth View Transitions cross-fade & slide */
+::view-transition-old(root) {
+  animation: 0.35s cubic-bezier(0.4, 0, 1, 1) both fadeOut;
+}
+
+::view-transition-new(root) {
+  animation: 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both fadeIn;
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

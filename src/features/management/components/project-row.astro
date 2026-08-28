@@ -1,0 +1,317 @@
+---
+interface Props {
+  project: {
+    id: string;
+    title: string;
+    slug: string;
+    client: string | null;
+    category: string;
+    year: number | null;
+    featured: boolean;
+    thumbnail: string | null;
+  };
+}
+
+const { project } = Astro.props;
+
+const categoryLabels: Record<string, string> = {
+  MUSICVIDEO: "Music Video",
+  COMMERCIAL: "Commercial",
+  FILM: "Film",
+};
+
+// Normalize thumbnail URL
+const thumbnailSrc = project.thumbnail
+  ? project.thumbnail.startsWith("http") ||
+    project.thumbnail.startsWith("/api/media/")
+    ? project.thumbnail
+    : `/api/media/${project.thumbnail.startsWith("/") ? project.thumbnail.slice(1) : project.thumbnail}`
+  : null;
+---
+
+<tr class="project-row" data-project-id={project.id}>
+  <td>
+    <div class="thumbnail-wrapper">
+      {
+        thumbnailSrc ? (
+          <img src={thumbnailSrc} alt={project.title} loading="lazy" />
+        ) : (
+          <div class="placeholder-thumbnail">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <polyline points="21 15 16 10 5 21" />
+            </svg>
+          </div>
+        )
+      }
+    </div>
+  </td>
+
+  <td>
+    <div class="project-title-meta">
+      <a href={`/management/projects/${project.id}`} class="project-title-link">
+        {project.title}
+      </a>
+      <span class="project-slug-preview">/{project.slug}</span>
+    </div>
+  </td>
+
+  <td>
+    <span class="client-name">{project.client || "—"}</span>
+  </td>
+
+  <td>
+    <span class={`pill-badge category-${project.category.toLowerCase()}`}>
+      {categoryLabels[project.category] || project.category}
+    </span>
+  </td>
+
+  <td>
+    <span class="year-text">{project.year || "—"}</span>
+  </td>
+
+  <td>
+    {
+      project.featured ? (
+        <span class="featured-badge" title="Displayed in featured hero reel">
+          <span class="dot-indicator" />
+          <span>Featured</span>
+        </span>
+      ) : (
+        <span class="standard-badge">Standard</span>
+      )
+    }
+  </td>
+
+  <td>
+    <div class="action-buttons">
+      <a
+        href={`/project/${project.slug}`}
+        target="_blank"
+        class="btn-icon-subtle"
+        title="View on live website"
+      >
+        <svg
+          width="15"
+          height="15"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"
+          ></path>
+          <polyline points="15 3 21 3 21 9"></polyline>
+          <line x1="10" y1="14" x2="21" y2="3"></line>
+        </svg>
+      </a>
+
+      <a
+        href={`/management/projects/${project.id}`}
+        class="btn-icon-subtle"
+        title="Edit project"
+      >
+        <svg
+          width="15"
+          height="15"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
+          ></path>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
+          ></path>
+        </svg>
+      </a>
+
+      <button
+        type="button"
+        class="btn-icon-subtle delete-project-btn"
+        data-id={project.id}
+        title="Delete project"
+      >
+        <svg
+          width="15"
+          height="15"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path
+            d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+          ></path>
+        </svg>
+      </button>
+    </div>
+  </td>
+</tr>
+
+<style>
+  .project-row {
+    transition: background-color var(--transition-fast);
+  }
+
+  .project-row:hover {
+    background-color: var(--color-surface-elevated);
+  }
+
+  td {
+    padding: var(--space-md) var(--space-lg);
+    border-bottom: 1px solid var(--color-border);
+    vertical-align: middle;
+  }
+
+  .thumbnail-wrapper {
+    width: 72px;
+    height: 46px;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background-color: var(--color-bg);
+    border: 1px solid var(--color-border);
+  }
+
+  .thumbnail-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .placeholder-thumbnail {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-muted);
+    background-color: var(--color-bg);
+  }
+
+  .project-title-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .project-title-link {
+    font-family: var(--font-heading);
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-text);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+  }
+
+  .project-title-link:hover {
+    color: var(--color-accent);
+  }
+
+  .project-slug-preview {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    font-family: monospace;
+  }
+
+  .client-name {
+    font-size: 0.875rem;
+    color: var(--color-text);
+    font-weight: 500;
+  }
+
+  .year-text {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Badges */
+  .pill-badge {
+    display: inline-block;
+    padding: 0.2rem 0.65rem;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    border: 1px solid var(--color-border);
+    background-color: var(--color-bg);
+    color: var(--color-text-muted);
+  }
+
+  .featured-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0.2rem 0.65rem;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 600;
+    background-color: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
+    color: var(--color-accent);
+  }
+
+  .dot-indicator {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--color-accent);
+  }
+
+  .standard-badge {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+  }
+
+  /* Action Buttons */
+  .action-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-2xs);
+  }
+
+  .btn-icon-subtle {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--color-text-muted);
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    text-decoration: none;
+  }
+
+  .btn-icon-subtle:hover {
+    background-color: var(--color-surface);
+    border-color: var(--color-border);
+    color: var(--color-text);
+  }
+
+  .btn-icon-subtle.delete-project-btn:hover {
+    background-color: color-mix(in srgb, #ef4444 12%, transparent);
+    border-color: color-mix(in srgb, #ef4444 30%, transparent);
+    color: #ef4444;
+  }
+</style>

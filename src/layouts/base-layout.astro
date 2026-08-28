@@ -1,0 +1,155 @@
+---
+import { ClientRouter } from "astro:transitions";
+import "../styles/global.css";
+
+interface Props {
+  title?: string;
+  description?: string;
+  transparentNav?: boolean;
+}
+
+const {
+  title = "Kaset Production",
+  description = "Music video, commercial, and film production & editing.",
+  transparentNav = false,
+} = Astro.props;
+
+import NavBar from "../features/navigation/components/nav-bar.astro";
+import SiteFooter from "../features/footer/components/site-footer.astro";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+
+    {/* Astro View Transitions Engine */}
+    <ClientRouter />
+
+    {/* Inline script runs synchronously before paint */}
+    <script is:inline>
+      function applyTheme() {
+        var stored = localStorage.getItem("kaset-theme");
+        var preferred = window.matchMedia("(prefers-color-scheme: dark)")
+          .matches
+          ? "dark"
+          : "light";
+        var theme = stored || preferred;
+        document.documentElement.setAttribute("data-theme", theme);
+      }
+      applyTheme();
+      document.addEventListener("astro:after-swap", applyTheme);
+    </script>
+  </head>
+
+  <body>
+    <NavBar transparent={transparentNav} />
+
+    <main id="main-content">
+      <slot />
+    </main>
+
+    <SiteFooter />
+
+    {/* Custom cursor elements */}
+    <div class="custom-cursor" aria-hidden="true"></div>
+    <div class="custom-cursor--dot" aria-hidden="true"></div>
+
+    <script>
+      function InitCursor() {
+        const ring = document.querySelector<HTMLElement>(".custom-cursor");
+        const dot = document.querySelector<HTMLElement>(".custom-cursor--dot");
+        if (!ring || !dot) return;
+
+        if (!window.matchMedia("(pointer: fine)").matches) return;
+
+        document.body.classList.add("has-custom-cursor");
+
+        const activeRing = ring;
+        const activeDot = dot;
+
+        let mouseX = -100;
+        let mouseY = -100;
+        let ringX = -100;
+        let ringY = -100;
+        let isOverVideo = false;
+
+        const hideCursor = () => {
+          activeRing.classList.remove("custom-cursor--visible");
+          activeDot.classList.remove("custom-cursor--visible");
+        };
+
+        const showCursor = () => {
+          if (!isOverVideo) {
+            activeRing.classList.add("custom-cursor--visible");
+            activeDot.classList.add("custom-cursor--visible");
+          }
+        };
+
+        document.addEventListener("mousemove", (e: MouseEvent) => {
+          if (isOverVideo) return;
+
+          mouseX = e.clientX;
+          mouseY = e.clientY;
+          activeDot.style.left = `${mouseX}px`;
+          activeDot.style.top = `${mouseY}px`;
+          showCursor();
+        });
+
+        function AnimateRing() {
+          if (!isOverVideo) {
+            ringX += (mouseX - ringX) * 0.18;
+            ringY += (mouseY - ringY) * 0.18;
+            activeRing.style.left = `${ringX}px`;
+            activeRing.style.top = `${ringY}px`;
+          }
+          requestAnimationFrame(AnimateRing);
+        }
+        AnimateRing();
+
+        const interactiveSelector =
+          'a, button, [role="button"], input, textarea, select, label';
+        document.querySelectorAll(interactiveSelector).forEach((el) => {
+          el.addEventListener("mouseenter", () =>
+            activeRing.classList.add("custom-cursor--hover"),
+          );
+          el.addEventListener("mouseleave", () =>
+            activeRing.classList.remove("custom-cursor--hover"),
+          );
+        });
+
+        const videoZones = document.querySelectorAll<HTMLElement>(
+          ".video-container, [data-video-embed], iframe",
+        );
+        videoZones.forEach((zone) => {
+          zone.addEventListener("mouseenter", () => {
+            isOverVideo = true;
+            hideCursor();
+          });
+          zone.addEventListener("mouseleave", () => {
+            isOverVideo = false;
+            showCursor();
+          });
+        });
+
+        document.addEventListener("mouseleave", hideCursor);
+        window.addEventListener("blur", () => {
+          isOverVideo = true;
+          hideCursor();
+        });
+        window.addEventListener("focus", () => {
+          isOverVideo = false;
+        });
+      }
+
+      InitCursor();
+      document.addEventListener("astro:page-load", InitCursor);
+    </script>
+  </body>
+</html>

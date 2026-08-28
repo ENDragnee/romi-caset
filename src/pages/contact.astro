@@ -1,0 +1,117 @@
+---
+import BaseLayout from "../layouts/base-layout.astro";
+import ContactForm from "../features/contact/components/contact-form.astro";
+---
+
+<BaseLayout title="Contact — Kaset Production">
+  <section class="section container contact-page">
+    {/* Header / Divider drops in from top */}
+    <div class="content-wrapper">
+      <div class="divider hero-title-drop">
+        <span class="divider__label">Get In Touch</span>
+      </div>
+
+      {/* Content rises smoothly from bottom */}
+      <div class="contact-grid content-rise-up">
+        <div class="contact-info">
+          <h1 class="contact-heading">Let's create something remarkable.</h1>
+          <p class="contact-text">
+            Whether you're looking to shoot a music video, commercial, or
+            narrative film, we'd love to hear about your project vision. Fill
+            out the inquiry form or reach out directly.
+          </p>
+
+          <div class="contact-links">
+            <a href="mailto:hello@kasetproduction.com" class="contact-link">
+              hello@kasetproduction.com
+            </a>
+          </div>
+        </div>
+
+        <div class="contact-form-wrapper">
+          <ContactForm />
+        </div>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .contact-page {
+    padding-top: calc(var(--nav-height) + var(--space-2xl));
+    padding-bottom: var(--space-5xl);
+  }
+
+  .content-wrapper {
+    width: 100%;
+    max-width: 960px;
+    margin: 0 auto;
+    padding-inline: var(--space-md);
+    box-sizing: border-box;
+  }
+
+  .contact-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.1fr;
+    gap: var(--space-4xl);
+    margin-top: var(--space-3xl);
+  }
+
+  .contact-info {
+    max-width: 480px;
+  }
+
+  .contact-heading {
+    font-family: var(--font-heading);
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 600;
+    line-height: 1.1;
+    margin-bottom: var(--space-lg);
+    color: var(--color-text);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+
+  .contact-text {
+    font-size: 1rem;
+    line-height: 1.65;
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-xl);
+  }
+
+  .contact-link {
+    display: inline-block;
+    color: var(--color-accent);
+    font-family: var(--font-heading);
+    font-size: 1.1rem;
+    font-weight: 500;
+    text-decoration: none;
+    position: relative;
+    padding-bottom: 2px;
+  }
+
+  .contact-link::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background-color: var(--color-accent);
+    transform-origin: right;
+    transform: scaleX(0);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .contact-link:hover::after {
+    transform-origin: left;
+    transform: scaleX(1);
+  }
+
+  @media (max-width: 768px) {
+    .contact-grid {
+      grid-template-columns: 1fr;
+      gap: var(--space-3xl);
+    }
+  }
+</style>

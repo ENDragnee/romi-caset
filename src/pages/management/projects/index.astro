@@ -1,0 +1,86 @@
+---
+import { prisma } from "@/lib/prisma";
+import ManagementLayout from "../../../features/management/components/management-layout.astro";
+import ProjectsTable from "../../../features/management/components/projects-table.astro";
+
+const projects = await prisma.project.findMany({
+  orderBy: { createdAt: "desc" },
+});
+---
+
+<ManagementLayout title="Projects" currentPath="/management/projects">
+  <div class="projects-dashboard">
+    <div class="dashboard-header">
+      <div class="header-left">
+        <p class="header-subtitle">
+          Manage your portfolio reel, clients, and featured work.
+        </p>
+      </div>
+
+      <div class="header-actions">
+        <a href="/management/projects/new" class="btn-primary">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span>New Project</span>
+        </a>
+      </div>
+    </div>
+
+    {/* Modular Projects Table */}
+    <ProjectsTable projects={projects} />
+  </div>
+</ManagementLayout>
+
+<style>
+  .projects-dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+  }
+
+  .dashboard-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .header-subtitle {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    margin: 0;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    background-color: var(--color-accent);
+    color: var(--color-bg);
+    padding: 0.65rem 1.25rem;
+    border-radius: var(--radius-md);
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition:
+      background-color var(--transition-fast),
+      transform var(--transition-fast);
+    border: none;
+  }
+
+  .btn-primary:hover {
+    background-color: var(--color-accent-hover);
+    transform: translateY(-1px);
+  }
+</style>

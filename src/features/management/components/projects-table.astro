@@ -1,0 +1,204 @@
+---
+import ProjectRow from "./project-row.astro";
+
+interface Props {
+  projects: Array<{
+    id: string;
+    title: string;
+    slug: string;
+    client: string | null;
+    category: string;
+    year: number | null;
+    featured: boolean;
+    thumbnail: string | null;
+  }>;
+}
+
+const { projects } = Astro.props;
+---
+
+<div class="projects-table-wrapper">
+  {
+    projects.length === 0 ? (
+      <div class="empty-state">
+        <div class="empty-icon-circle">
+          <svg
+            width="32"
+            height="32"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+          </svg>
+        </div>
+        <h3>No projects found</h3>
+        <p>Get started by creating your first portfolio project entry.</p>
+        <a href="/management/projects/new" class="btn-secondary">
+          Create First Project
+        </a>
+      </div>
+    ) : (
+      <div class="table-card">
+        <div class="table-container">
+          <table class="projects-table">
+            <thead>
+              <tr>
+                <th class="th-media">Asset</th>
+                <th>Project Details</th>
+                <th>Client</th>
+                <th>Category</th>
+                <th>Year</th>
+                <th>Status</th>
+                <th class="th-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {projects.map((project) => (
+                <ProjectRow project={project} />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )
+  }
+</div>
+
+<script>
+  const deleteBtns = document.querySelectorAll<HTMLButtonElement>(
+    ".delete-project-btn",
+  );
+  deleteBtns.forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      if (!id) return;
+
+      if (
+        confirm("Are you sure you want to permanently delete this project?")
+      ) {
+        try {
+          const res = await fetch(`/api/management/projects/${id}`, {
+            method: "DELETE",
+          });
+          if (res.ok) {
+            window.location.reload();
+          } else {
+            alert("Failed to delete project");
+          }
+        } catch {
+          alert("Error deleting project");
+        }
+      }
+    });
+  });
+</script>
+
+<style>
+  /* Empty State */
+  .empty-state {
+    background-color: var(--color-surface);
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-xl);
+    padding: var(--space-5xl) var(--space-xl);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .empty-icon-circle {
+    width: 64px;
+    height: 64px;
+    border-radius: var(--radius-full);
+    background-color: var(--color-surface-elevated);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-xs);
+  }
+
+  .empty-state h3 {
+    font-size: 1.25rem;
+    margin: 0;
+  }
+
+  .empty-state p {
+    color: var(--color-text-muted);
+    margin: 0 0 var(--space-md) 0;
+    font-size: 0.9rem;
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    background-color: transparent;
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    padding: 0.65rem 1.25rem;
+    border-radius: var(--radius-md);
+    font-family: var(--font-heading);
+    font-weight: 500;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: all var(--transition-fast);
+  }
+
+  .btn-secondary:hover {
+    background-color: var(--color-surface-elevated);
+    border-color: var(--color-accent);
+  }
+
+  /* Table Card */
+  .table-card {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .table-container {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .projects-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+  }
+
+  .projects-table th {
+    padding: var(--space-md) var(--space-lg);
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    font-family: var(--font-heading);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    background-color: color-mix(
+      in srgb,
+      var(--color-surface) 70%,
+      var(--color-bg)
+    );
+  }
+
+  .th-media {
+    width: 90px;
+  }
+
+  .th-actions {
+    text-align: right;
+    width: 120px;
+  }
+</style>

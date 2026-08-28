@@ -1,11 +1,83 @@
 ---
-import Welcome from '../components/Welcome.astro';
-import Layout from '../layouts/Layout.astro';
+import BaseLayout from "../layouts/base-layout.astro";
+import HeroVideo from "../features/hero/components/hero-video.astro";
+import ProjectGrid from "../features/portfolio/components/project-grid.astro";
+import { prisma } from "@/lib/prisma";
 
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+const featuredProjects = await prisma.project.findMany({
+  where: { featured: true },
+  take: 6,
+  orderBy: { createdAt: "desc" },
+});
 ---
 
-<Layout>
-	<Welcome />
-</Layout>
+<BaseLayout title="Kaset Production" transparentNav={true}>
+  <HeroVideo />
+
+  <section class="section featured-section content-rise-up">
+    <div class="content-wrapper">
+      <div class="divider">
+        <span class="divider__label">Selected Work</span>
+      </div>
+
+      <ProjectGrid projects={featuredProjects} />
+
+      <div class="view-all-wrapper">
+        <a href="/portfolio" class="view-all-link">View All Work →</a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .featured-section {
+    padding-top: var(--space-xl);
+    padding-bottom: var(--space-4xl);
+    width: 100%;
+  }
+
+  .content-wrapper {
+    width: 100%;
+    max-width: 960px;
+    margin: 0 auto;
+    padding-inline: var(--space-md);
+    box-sizing: border-box;
+  }
+
+  .view-all-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: var(--space-3xl);
+  }
+
+  .view-all-link {
+    color: var(--color-accent);
+    font-family: var(--font-heading);
+    font-size: 1rem;
+    font-weight: 500;
+    text-decoration: none;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    position: relative;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .view-all-link::after {
+    content: "";
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background-color: var(--color-accent);
+    transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .view-all-link:hover {
+    transform: translateX(4px);
+  }
+
+  .view-all-link:hover::after {
+    width: 100%;
+  }
+</style>

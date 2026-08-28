@@ -1,0 +1,49 @@
+---
+import ManagementLayout from "../../../features/management/components/management-layout.astro";
+import ProjectForm from "../../../features/management/components/project-form.astro";
+---
+
+<ManagementLayout title="Create Project" currentPath="/management/projects">
+  <div class="page-container">
+    <div class="page-header-row">
+      <div>
+        <a href="/management/projects" class="back-link">← Back to Projects</a>
+        <h2 class="form-title">New Portfolio Project</h2>
+      </div>
+    </div>
+
+    {/* Modular Project Form */}
+    <ProjectForm mode="create" />
+  </div>
+</ManagementLayout>
+
+<style>
+  .page-container {
+    max-width: 1080px;
+    margin: 0 auto;
+  }
+
+  .page-header-row {
+    margin-bottom: var(--space-xl);
+  }
+
+  .back-link {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+    display: inline-block;
+    margin-bottom: var(--space-2xs);
+  }
+
+  .back-link:hover {
+    color: var(--color-accent);
+  }
+
+  .form-title {
+    font-size: 1.5rem;
+    font-family: var(--font-heading);
+    margin: 0;
+    font-weight: 600;
+  }
+</style>

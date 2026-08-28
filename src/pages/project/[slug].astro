@@ -1,0 +1,132 @@
+---
+import BaseLayout from "../../layouts/base-layout.astro";
+import VideoEmbed from "../../features/project-detail/components/video-embed.astro";
+import GalleryGrid from "../../features/project-detail/components/gallery-grid.astro";
+import { prisma } from "@/lib/prisma";
+
+const { slug } = Astro.params;
+const project = await prisma.project.findUnique({
+  where: { slug: slug as string },
+});
+if (!project) return Astro.redirect("/portfolio");
+
+const headerTitle = project.client
+  ? `'${project.title.toLowerCase()}' by ${project.client.toLowerCase()}`
+  : `'${project.title.toLowerCase()}'`;
+---
+
+<BaseLayout title={`${project.title} — Kaset Production`}>
+  <main class="project-detail container">
+    <div class="content-wrapper">
+      {/* Title Divider drops in from top */}
+      <div class="divider hero-title-drop">
+        <span class="divider__label">{headerTitle}</span>
+      </div>
+
+      {/* Video & details rise smoothly from bottom */}
+      <div class="project-content content-rise-up">
+        {
+          project.youtubeUrl && (
+            <div class="video-container">
+              <VideoEmbed url={project.youtubeUrl} title={project.title} />
+            </div>
+          )
+        }
+
+        {
+          project.description && (
+            <div class="project-description">
+              <p>{project.description}</p>
+            </div>
+          )
+        }
+
+        {
+          project.gallery && project.gallery.length > 0 && (
+            <div class="gallery-section">
+              <GalleryGrid images={project.gallery} alt={project.title} />
+            </div>
+          )
+        }
+
+        <div class="back-link-container">
+          <a href="/portfolio" class="back-link">← Back to Portfolio</a>
+        </div>
+      </div>
+    </div>
+  </main>
+</BaseLayout>
+
+<style>
+  .project-detail {
+    padding-top: calc(var(--nav-height) + var(--space-2xl));
+    padding-bottom: var(--space-5xl);
+    width: 100%;
+  }
+
+  .content-wrapper {
+    width: 100%;
+    max-width: 960px;
+    margin: 0 auto;
+    padding-inline: var(--space-md);
+    box-sizing: border-box;
+  }
+
+  .divider {
+    margin-bottom: var(--space-2xl);
+  }
+
+  .divider__label {
+    font-family: var(--font-heading);
+    font-size: 1rem;
+    letter-spacing: 0.05em;
+    color: var(--color-text);
+  }
+
+  .project-content {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .video-container {
+    width: 100%;
+    margin: 0 auto var(--space-3xl);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .project-description {
+    max-width: 720px;
+    margin: 0 auto var(--space-3xl);
+    text-align: center;
+    font-size: 1rem;
+    line-height: 1.65;
+    color: var(--color-text-muted);
+  }
+
+  .gallery-section {
+    width: 100%;
+    margin-bottom: var(--space-3xl);
+  }
+
+  .back-link-container {
+    display: flex;
+    justify-content: center;
+    margin-top: var(--space-3xl);
+  }
+
+  .back-link {
+    color: var(--color-text-muted);
+    text-decoration: none;
+    font-family: var(--font-heading);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.85rem;
+    transition: color 0.3s ease;
+  }
+
+  .back-link:hover {
+    color: var(--color-text);
+  }
+</style>

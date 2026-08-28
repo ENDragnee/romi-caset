@@ -1,0 +1,518 @@
+---
+
+---
+
+<dialog id="upload-modal" class="modal-dialog">
+  <div class="modal-container">
+    <div class="modal-header">
+      <div>
+        <h2 class="modal-title">Upload Media</h2>
+        <p class="modal-subtitle">
+          Upload photography, stills, or video assets.
+        </p>
+      </div>
+      <button type="button" class="close-btn" aria-label="Close dialog"
+        >&times;</button
+      >
+    </div>
+
+    <div class="modal-body">
+      <div id="dropzone-view" class="dropzone">
+        <div class="dropzone-icon-ring">
+          <svg
+            width="32"
+            height="32"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            ><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+            ></path><polyline points="17 8 12 3 7 8"></polyline><line
+              x1="12"
+              y1="3"
+              x2="12"
+              y2="15"></line></svg
+          >
+        </div>
+        <h4 class="dropzone-primary-text">Drag & drop files here</h4>
+        <p class="dropzone-secondary-text">
+          or <span class="browse-highlight">browse from your computer</span>
+        </p>
+        <div class="dropzone-badge">
+          JPG, PNG, WEBP, MP4 &bull; Compressed automatically
+        </div>
+        <input
+          type="file"
+          id="file-input"
+          multiple
+          accept="image/*,video/*"
+          style="display: none;"
+        />
+      </div>
+
+      <div id="progress-view" class="progress-view" style="display: none;">
+        <div class="progress-header">
+          <span class="progress-title">Uploading Assets</span>
+          <span id="progress-count" class="progress-count">0 items</span>
+        </div>
+        <div id="upload-items-list" class="upload-items-list"></div>
+        <div
+          class="progress-footer"
+          style="display: none;"
+          id="progress-done-footer"
+        >
+          <button
+            type="button"
+            class="btn-done"
+            onclick="window.location.reload()">Done & View Library</button
+          >
+        </div>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<script>
+  const uploadModal =
+    document.querySelector<HTMLDialogElement>("#upload-modal");
+  const closeBtn = uploadModal?.querySelector<HTMLButtonElement>(".close-btn");
+  const dropzoneView = document.querySelector<HTMLElement>("#dropzone-view");
+  const progressView = document.querySelector<HTMLElement>("#progress-view");
+  const fileInput = document.querySelector<HTMLInputElement>("#file-input");
+  const uploadList = document.querySelector<HTMLElement>("#upload-items-list");
+  const doneFooter = document.querySelector<HTMLElement>(
+    "#progress-done-footer",
+  );
+  const countEl = document.querySelector<HTMLElement>("#progress-count");
+
+  if (
+    uploadModal &&
+    closeBtn &&
+    dropzoneView &&
+    progressView &&
+    fileInput &&
+    uploadList &&
+    doneFooter
+  ) {
+    closeBtn.addEventListener("click", () => {
+      uploadModal.close();
+      if (progressView.style.display === "block") {
+        window.location.reload();
+      }
+    });
+
+    dropzoneView.addEventListener("click", () => fileInput.click());
+
+    dropzoneView.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropzoneView.classList.add("dragover");
+    });
+
+    dropzoneView.addEventListener("dragleave", () => {
+      dropzoneView.classList.remove("dragover");
+    });
+
+    dropzoneView.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropzoneView.classList.remove("dragover");
+      if (e.dataTransfer?.files.length) {
+        handleFiles(e.dataTransfer.files);
+      }
+    });
+
+    fileInput.addEventListener("change", () => {
+      if (fileInput.files?.length) {
+        handleFiles(fileInput.files);
+      }
+    });
+
+    async function handleFiles(files: FileList) {
+      if (!dropzoneView || !progressView || !uploadList || !doneFooter) return;
+
+      dropzoneView.style.display = "none";
+      progressView.style.display = "flex";
+      uploadList.innerHTML = "";
+      doneFooter.style.display = "none";
+
+      if (countEl)
+        countEl.textContent = `${files.length} item${files.length > 1 ? "s" : ""}`;
+
+      const items = Array.from(files).map((file) => {
+        const el = document.createElement("div");
+        el.className = "upload-item-row";
+        el.innerHTML = `
+          <div class="item-name-meta">
+            <span class="item-name">${file.name}</span>
+            <span class="item-status">Preparing...</span>
+          </div>
+          <div class="item-progress-bar"><div class="item-progress-fill"></div></div>
+        `;
+        uploadList.appendChild(el);
+        return { file, el };
+      });
+
+      for (const { file, el } of items) {
+        await UploadFile(file, el);
+      }
+
+      doneFooter.style.display = "block";
+    }
+
+    async function UploadFile(file: File, el: HTMLElement) {
+      const statusEl = el.querySelector<HTMLElement>(".item-status");
+      const progressFill = el.querySelector<HTMLElement>(".item-progress-fill");
+      if (!statusEl || !progressFill) return;
+
+      try {
+        let fileToUpload = file;
+        let mimeType = file.type || "application/octet-stream";
+
+        // 1. Client-Side Image Compression
+        if (file.type.startsWith("image/")) {
+          statusEl.textContent = "Compressing...";
+          progressFill.style.width = "25%";
+          const imageCompression = (await import("browser-image-compression"))
+            .default;
+          fileToUpload = await imageCompression(file, {
+            maxSizeMB: 0.8,
+            maxWidthOrHeight: 2000,
+            useWebWorker: true,
+          });
+          mimeType = fileToUpload.type || file.type || "image/jpeg";
+        }
+
+        // 2. Request Presigned URL with exact compressed MIME type
+        statusEl.textContent = "Getting Presigned URL...";
+        progressFill.style.width = "45%";
+        const urlRes = await fetch("/api/management/upload-url", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            filename: file.name,
+            contentType: mimeType,
+          }),
+        });
+
+        if (!urlRes.ok) throw new Error("Could not get presigned upload URL");
+
+        const { url, key } = await urlRes.json();
+
+        // 3. Direct PUT to S3 / SeaweedFS / Backblaze B2
+        statusEl.textContent = "Uploading to Storage...";
+        progressFill.style.width = "75%";
+
+        const uploadRes = await fetch(url, {
+          method: "PUT",
+          body: fileToUpload,
+          headers: {
+            "Content-Type": mimeType,
+          },
+        });
+
+        if (!uploadRes.ok) {
+          const errText = await uploadRes.text();
+          console.error("Direct S3 PUT error:", uploadRes.status, errText);
+          throw new Error(
+            `Direct storage upload rejected with status ${uploadRes.status}`,
+          );
+        }
+
+        // 4. Calculate Dimensions
+        const dimensions = await GetImageDimensions(fileToUpload);
+
+        // 5. Only register in database AFTER S3 confirms 200 OK
+        statusEl.textContent = "Saving to Database...";
+        progressFill.style.width = "90%";
+
+        const registerRes = await fetch("/api/management/media", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            key,
+            filename: file.name,
+            mimeType,
+            size: fileToUpload.size,
+            ...dimensions,
+          }),
+        });
+
+        if (!registerRes.ok) {
+          throw new Error("Failed to register media in database");
+        }
+
+        progressFill.style.width = "100%";
+        statusEl.textContent = "Complete ✓";
+        statusEl.classList.add("status-success");
+      } catch (err: any) {
+        statusEl.textContent = "Failed ✗";
+        statusEl.classList.add("status-error");
+        console.error("Upload error for file:", file.name, err);
+      }
+    }
+
+    function GetImageDimensions(
+      file: File,
+    ): Promise<{ width?: number; height?: number }> {
+      return new Promise((resolve) => {
+        if (!file.type.startsWith("image/")) return resolve({});
+        const img = new Image();
+        img.onload = () =>
+          resolve({ width: img.naturalWidth, height: img.naturalHeight });
+        img.onerror = () => resolve({});
+        img.src = URL.createObjectURL(file);
+      });
+    }
+  }
+</script>
+
+<style>
+  .modal-dialog {
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    border: none;
+    border-radius: var(--radius-xl);
+    background-color: var(--color-surface);
+    color: var(--color-text);
+    padding: 0;
+    max-width: 600px;
+    width: 92vw;
+    max-height: 85vh;
+    box-shadow:
+      0 25px 50px -12px rgba(0, 0, 0, 0.4),
+      0 0 0 1px var(--color-border);
+  }
+
+  .modal-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .modal-container {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .modal-header {
+    padding: var(--space-xl);
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .modal-title {
+    font-family: var(--font-heading);
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  .modal-subtitle {
+    font-size: 0.825rem;
+    color: var(--color-text-muted);
+    margin: 4px 0 0 0;
+  }
+
+  .close-btn {
+    background: none;
+    border: none;
+    font-size: 1.75rem;
+    line-height: 1;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    padding: 0;
+    transition: color var(--transition-fast);
+  }
+
+  .close-btn:hover {
+    color: var(--color-text);
+  }
+
+  .modal-body {
+    padding: var(--space-xl);
+  }
+
+  /* Dropzone */
+  .dropzone {
+    border: 2px dashed var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4xl) var(--space-xl);
+    text-align: center;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-xs);
+    background-color: var(--color-bg);
+    transition: all var(--transition-fast);
+  }
+
+  .dropzone:hover,
+  .dropzone.dragover {
+    border-color: var(--color-accent);
+    background-color: color-mix(
+      in srgb,
+      var(--color-accent) 6%,
+      var(--color-bg)
+    );
+  }
+
+  .dropzone-icon-ring {
+    width: 60px;
+    height: 60px;
+    border-radius: var(--radius-full);
+    background-color: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    color: var(--color-accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: var(--space-xs);
+  }
+
+  .dropzone-primary-text {
+    font-family: var(--font-heading);
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  .dropzone-secondary-text {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    margin: 0;
+  }
+
+  .browse-highlight {
+    color: var(--color-accent);
+    font-weight: 600;
+    text-decoration: underline;
+  }
+
+  .dropzone-badge {
+    margin-top: var(--space-sm);
+    font-size: 0.725rem;
+    color: var(--color-text-muted);
+    letter-spacing: 0.05em;
+    background-color: var(--color-surface);
+    padding: 3px 10px;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--color-border);
+  }
+
+  /* Progress View */
+  .progress-view {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .progress-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .progress-title {
+    font-family: var(--font-heading);
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+
+  .progress-count {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+  }
+
+  .upload-items-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    max-height: 280px;
+    overflow-y: auto;
+  }
+
+  :global(.upload-item-row) {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: var(--space-sm) var(--space-md);
+    background-color: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+  }
+
+  :global(.item-name-meta) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.85rem;
+  }
+
+  :global(.item-name) {
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 70%;
+  }
+
+  :global(.item-status) {
+    font-size: 0.775rem;
+    color: var(--color-text-muted);
+    font-weight: 500;
+  }
+
+  :global(.item-status.status-success) {
+    color: #10b981;
+    font-weight: 600;
+  }
+
+  :global(.item-status.status-error) {
+    color: #ef4444;
+    font-weight: 600;
+  }
+
+  :global(.item-progress-bar) {
+    width: 100%;
+    height: 4px;
+    background-color: var(--color-surface);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+  }
+
+  :global(.item-progress-fill) {
+    height: 100%;
+    width: 0%;
+    background-color: var(--color-accent);
+    transition: width 0.3s ease;
+  }
+
+  .progress-footer {
+    text-align: center;
+    margin-top: var(--space-sm);
+  }
+
+  .btn-done {
+    background-color: var(--color-accent);
+    color: var(--color-bg);
+    border: none;
+    padding: 0.75rem 1.75rem;
+    border-radius: var(--radius-md);
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition:
+      background-color var(--transition-fast),
+      transform var(--transition-fast);
+  }
+
+  .btn-done:hover {
+    background-color: var(--color-accent-hover);
+    transform: translateY(-1px);
+  }
+</style>

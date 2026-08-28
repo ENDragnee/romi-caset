@@ -23,3 +23,11 @@ pnpm-debug.log*
 # jetbrains setting folder
 .idea/
 idea-board/
+
+/src/generated/prisma
+s3.json
+.direnv
+public/_gt/
+.direnv
+.direnv/*
+.vercel

@@ -1,0 +1,58 @@
+---
+import type { Project } from "../../../lib/types";
+import ProjectCard from "./project-card.astro";
+import ProjectCardWide from "./project-card-wide.astro";
+
+interface Props {
+  projects: Project[];
+}
+
+const { projects = [] } = Astro.props;
+---
+
+<div class="portfolio-grid-container">
+  <div class="project-grid">
+    {
+      projects.map((project, index) => (
+        <div class="grid-item">
+          {project.cardType === "WIDE" ? (
+            <ProjectCardWide project={project} index={index} />
+          ) : (
+            <ProjectCard project={project} index={index} />
+          )}
+        </div>
+      ))
+    }
+  </div>
+</div>
+
+<style>
+  .portfolio-grid-container {
+    width: 100%;
+    max-width: 960px;
+    margin-left: auto;
+    margin-right: auto;
+    display: flex;
+    justify-content: center;
+  }
+
+  .project-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .grid-item {
+    width: 100%;
+    grid-column: span 1 !important;
+  }
+
+  @media (max-width: 768px) {
+    .project-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+  }
+</style>

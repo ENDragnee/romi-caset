@@ -1,0 +1,41 @@
+---
+import BaseLayout from "../../layouts/base-layout.astro";
+import ProjectGrid from "../../features/portfolio/components/project-grid.astro";
+import { prisma } from "@/lib/prisma";
+
+const allProjects = await prisma.project.findMany({
+  orderBy: { createdAt: "desc" },
+});
+---
+
+<BaseLayout title="Portfolio — Kaset Production">
+  <section class="section portfolio-page">
+    <div class="content-wrapper">
+      {/* Divider drops in from top */}
+      <div class="divider hero-title-drop">
+        <span class="divider__label">All Work</span>
+      </div>
+
+      {/* Grid rises smoothly from bottom */}
+      <div class="content-rise-up">
+        <ProjectGrid projects={allProjects} />
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .portfolio-page {
+    padding-top: calc(var(--nav-height) + var(--space-2xl));
+    padding-bottom: var(--space-5xl);
+    width: 100%;
+  }
+
+  .content-wrapper {
+    width: 100%;
+    max-width: 960px;
+    margin: 0 auto;
+    padding-inline: var(--space-md);
+    box-sizing: border-box;
+  }
+</style>

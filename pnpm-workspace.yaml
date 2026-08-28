@@ -1,5 +1,8 @@
 allowBuilds:
+  '@prisma/engines': true
+  bcrypt: true
   esbuild: true
+  prisma: true
   sharp: true
 minimumReleaseAgeExclude:
   - '@astrojs/markdown-satteri@0.3.8'

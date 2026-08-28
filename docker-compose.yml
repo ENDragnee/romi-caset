@@ -1,0 +1,57 @@
+name: romi_caset
+
+services:
+  postgres:
+    image: postgres:18.3
+    container_name: romi_caset_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: romi 
+      POSTGRES_PASSWORD: qazwsxedc
+      POSTGRES_DB: romi 
+    ports:
+      - "5432:5432"
+    volumes:
+      - romi_postgres_vol:/var/lib/postgresql
+    networks:
+      - romi_network
+
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.25
+    container_name: romi_storage
+    restart: unless-stopped
+    ports:
+      - "8333:8333" # S3 API Port
+      - "9333:9333" # Master Server Port
+      - "8888:8888" # Filer (Useful for browsing files)
+      - "8080:8080" # Volume Server Port
+    command: 'server -dir=/data -s3 -s3.config=/etc/seaweedfs/s3.json'
+    volumes:
+      - romi_seaweed_vol:/data
+      - ./s3.json:/etc/seaweedfs/s3.json
+    networks:
+      - romi_network
+
+  nextjs_app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: romi_app
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+    networks:
+      - romi_network
+    depends_on:
+      - postgres
+      - seaweedfs
+
+volumes:
+  romi_postgres_vol:
+  romi_seaweed_vol:
+
+networks:
+  romi_network:
+    driver: bridge

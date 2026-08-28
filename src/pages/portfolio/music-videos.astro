@@ -1,0 +1,40 @@
+---
+import BaseLayout from "../../layouts/base-layout.astro";
+import ProjectGrid from "../../features/portfolio/components/project-grid.astro";
+import { prisma } from "@/lib/prisma";
+
+const categoryProjects = await prisma.project.findMany({
+  where: { category: "MUSICVIDEO" },
+  orderBy: { createdAt: "desc" },
+});
+---
+
+<BaseLayout title="Music Videos — Kaset Production">
+  <section class="section portfolio-category-page">
+    <div class="content-wrapper">
+      <div class="divider hero-title-drop">
+        <span class="divider__label">Music Videos</span>
+      </div>
+
+      <div class="content-rise-up">
+        <ProjectGrid projects={categoryProjects} />
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .portfolio-category-page {
+    padding-top: calc(var(--nav-height) + var(--space-2xl));
+    padding-bottom: var(--space-5xl);
+    width: 100%;
+  }
+
+  .content-wrapper {
+    width: 100%;
+    max-width: 960px;
+    margin: 0 auto;
+    padding-inline: var(--space-md);
+    box-sizing: border-box;
+  }
+</style>

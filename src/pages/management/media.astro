@@ -1,0 +1,253 @@
+---
+import { prisma } from "@/lib/prisma";
+import ManagementLayout from "../../features/management/components/management-layout.astro";
+import MediaCard from "../../features/management/components/media-card.astro";
+import UploadModal from "../../features/management/components/upload-modal.astro";
+
+const mediaItems = await prisma.media.findMany({
+  orderBy: { createdAt: "desc" },
+});
+---
+
+<ManagementLayout title="Media Library" currentPath="/management/media">
+  <div class="media-page-wrapper">
+    <div class="media-header">
+      <div>
+        <p class="section-subtitle">
+          Manage high-resolution assets, production stills, and background
+          covers.
+        </p>
+      </div>
+      <button id="open-upload-btn" class="btn-primary">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          ><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline
+            points="17 8 12 3 7 8"></polyline><line
+            x1="12"
+            y1="3"
+            x2="12"
+            y2="15"></line></svg
+        >
+        <span>Upload Assets</span>
+      </button>
+    </div>
+
+    {
+      mediaItems.length === 0 ? (
+        <div class="empty-state">
+          <div class="empty-icon-circle">
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <>
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <polyline points="21 15 16 10 5 21" />
+              </>
+            </svg>
+          </div>
+          <h3>No media assets yet</h3>
+          <p>
+            Upload high-resolution photography or behind-the-scenes visuals.
+          </p>
+          <button type="button" class="btn-secondary" id="empty-upload-btn">
+            Upload First Asset
+          </button>
+        </div>
+      ) : (
+        <div class="media-grid-main">
+          {mediaItems.map((item) => (
+            <MediaCard
+              id={item.id}
+              mediaKey={item.key}
+              filename={item.filename}
+              size={item.size}
+              width={item.width}
+              height={item.height}
+            />
+          ))}
+        </div>
+      )
+    }
+  </div>
+
+  {/* Modular Luxury Upload Modal */}
+  <UploadModal />
+
+  <script>
+    const uploadModal =
+      document.querySelector<HTMLDialogElement>("#upload-modal");
+    const openUploadBtn =
+      document.querySelector<HTMLButtonElement>("#open-upload-btn");
+    const emptyUploadBtn =
+      document.querySelector<HTMLButtonElement>("#empty-upload-btn");
+
+    const openModal = () => uploadModal?.showModal();
+    openUploadBtn?.addEventListener("click", openModal);
+    emptyUploadBtn?.addEventListener("click", openModal);
+
+    // Copy S3 Key Handler
+    document
+      .querySelectorAll<HTMLButtonElement>(".copy-key-btn")
+      .forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const key = btn.dataset.key;
+          if (key) {
+            navigator.clipboard.writeText(key);
+            const original = btn.innerHTML;
+            btn.innerHTML = `<span style="font-size:11px;">✓</span>`;
+            setTimeout(() => (btn.innerHTML = original), 1500);
+          }
+        });
+      });
+
+    // Delete Media Handler
+    document
+      .querySelectorAll<HTMLButtonElement>(".delete-media-btn")
+      .forEach((btn) => {
+        btn.addEventListener("click", async (e) => {
+          e.stopPropagation();
+          const id = btn.dataset.id;
+          if (!id) return;
+
+          if (confirm("Are you sure you want to delete this media asset?")) {
+            try {
+              const res = await fetch(`/api/management/media/${id}`, {
+                method: "DELETE",
+              });
+              if (res.ok) {
+                window.location.reload();
+              } else {
+                alert("Failed to delete media asset");
+              }
+            } catch {
+              alert("Error deleting media asset");
+            }
+          }
+        });
+      });
+  </script>
+
+  <style>
+    .media-page-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xl);
+    }
+
+    .media-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .section-subtitle {
+      color: var(--color-text-muted);
+      font-size: 0.9rem;
+      margin: 0;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xs);
+      background-color: var(--color-accent);
+      color: var(--color-bg);
+      padding: 0.65rem 1.25rem;
+      border-radius: var(--radius-md);
+      font-family: var(--font-heading);
+      font-weight: 600;
+      font-size: 0.9rem;
+      border: none;
+      cursor: pointer;
+      transition:
+        background-color var(--transition-fast),
+        transform var(--transition-fast);
+      text-decoration: none;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--color-accent-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xs);
+      background-color: transparent;
+      color: var(--color-text);
+      border: 1px solid var(--color-border);
+      padding: 0.65rem 1.25rem;
+      border-radius: var(--radius-md);
+      font-family: var(--font-heading);
+      font-weight: 500;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .btn-secondary:hover {
+      background-color: var(--color-surface-elevated);
+      border-color: var(--color-accent);
+    }
+
+    /* Empty State */
+    .empty-state {
+      background-color: var(--color-surface);
+      border: 1px dashed var(--color-border);
+      border-radius: var(--radius-xl);
+      padding: var(--space-5xl) var(--space-xl);
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+
+    .empty-icon-circle {
+      width: 64px;
+      height: 64px;
+      border-radius: var(--radius-full);
+      background-color: var(--color-surface-elevated);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-xs);
+    }
+
+    .empty-state h3 {
+      font-size: 1.25rem;
+      margin: 0;
+    }
+
+    .empty-state p {
+      color: var(--color-text-muted);
+      margin: 0 0 var(--space-md) 0;
+      font-size: 0.9rem;
+    }
+
+    /* Media Grid */
+    .media-grid-main {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: var(--space-xl);
+    }
+  </style>
+</ManagementLayout>
