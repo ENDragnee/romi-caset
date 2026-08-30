@@ -36,7 +36,7 @@ import SiteFooter from "../features/footer/components/site-footer.astro";
   <body class="site-body">
     <NavBar transparent={transparentNav} />
 
-    <main id="main-content" class="page-content-frame">
+    <main id="main-content">
       <slot />
     </main>
 
@@ -97,7 +97,6 @@ import SiteFooter from "../features/footer/components/site-footer.astro";
           showCursor();
         });
 
-        // Kinetic physics loop: smooth follow & motion blur
         function AnimateCursor() {
           if (!isOverIframe) {
             const vx = mouseX - ringX;
@@ -137,7 +136,6 @@ import SiteFooter from "../features/footer/components/site-footer.astro";
         }
         AnimateCursor();
 
-        // Enlarge on interactive buttons/links
         const interactiveSelector =
           'a, button, [role="button"], input, textarea, select, label';
         document.querySelectorAll(interactiveSelector).forEach((el) => {
@@ -149,7 +147,6 @@ import SiteFooter from "../features/footer/components/site-footer.astro";
           );
         });
 
-        // Only hide over external sandboxed iframes (e.g. YouTube player), NOT background videos
         const iframeZones = document.querySelectorAll<HTMLElement>(
           "iframe, [data-video-embed]",
         );
@@ -186,11 +183,12 @@ import SiteFooter from "../features/footer/components/site-footer.astro";
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    margin: 0;
+    padding: 0;
   }
 
-  .page-content-frame {
+  main {
     flex: 1;
     width: 100%;
-    box-sizing: border-box;
   }
 </style>

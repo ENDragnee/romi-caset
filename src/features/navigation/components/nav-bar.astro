@@ -15,13 +15,6 @@ const { transparent = false } = Astro.props;
       <img src="/images/logo.png" alt="KASET PRODUCTION" class="logo-img" />
     </a>
 
-    {/* Center Mobile Quick Link (Visible only on mobile/tablet) */}
-    <div class="mobile-center-quick-link">
-      <a href="/portfolio" class="quick-portfolio-link">
-        <span>Work</span>
-      </a>
-    </div>
-
     {/* Right: Desktop Navigation + Mobile Menu Toggle */}
     <div class="nav-right-group">
       <nav class="desktop-nav" aria-label="Main Navigation">
@@ -187,7 +180,6 @@ const { transparent = false } = Astro.props;
 </script>
 
 <style>
-  /* ---------- Header Container ---------- */
   .nav-header {
     position: fixed;
     top: 0;
@@ -206,7 +198,6 @@ const { transparent = false } = Astro.props;
   }
 
   .nav-header.transparent .nav-link,
-  .nav-header.transparent .quick-portfolio-link,
   .nav-header.transparent .mobile-toggle {
     color: var(--color-text);
   }
@@ -223,18 +214,16 @@ const { transparent = false } = Astro.props;
     align-items: center;
     justify-content: space-between;
     padding-inline: var(--space-xl);
-    position: relative;
   }
 
   .logo-link {
     display: flex;
     align-items: center;
     flex-shrink: 0;
-    z-index: 2;
   }
 
   .logo-img {
-    height: 54px;
+    height: 76px;
     width: auto;
     display: block;
     transition: transform var(--transition-fast);
@@ -244,65 +233,11 @@ const { transparent = false } = Astro.props;
     transform: scale(1.02);
   }
 
-  /* ---------- Center Mobile Quick Link ---------- */
-  .mobile-center-quick-link {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 2;
-  }
-
-  .quick-portfolio-link {
-    font-family: var(--font-heading);
-    font-size: 0.85rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.14em;
-    color: var(--color-text);
-    text-decoration: none;
-    padding: var(--space-2xs) var(--space-sm);
-    position: relative;
-    transition: color var(--transition-fast);
-  }
-
-  .quick-portfolio-link::after {
-    content: "";
-    position: absolute;
-    bottom: -2px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 0;
-    height: 1.5px;
-    background-color: var(--color-accent);
-    transition: width var(--transition-fast);
-  }
-
-  .quick-portfolio-link:hover {
-    color: var(--color-accent);
-  }
-
-  .quick-portfolio-link:hover::after {
-    width: 80%;
-  }
-
-  /* Hide mobile center link on desktop screens */
-  @media (min-width: 768px) {
-    .mobile-center-quick-link {
-      display: none;
-    }
-  }
-
-  /* ---------- Right Group (Nav + Actions) ---------- */
   .nav-right-group {
     display: flex;
     align-items: center;
     gap: var(--space-2xl);
     margin-left: auto;
-    z-index: 2;
   }
 
   .desktop-nav {
@@ -357,7 +292,6 @@ const { transparent = false } = Astro.props;
     color: var(--color-accent);
   }
 
-  /* Dropdown */
   .dropdown {
     position: absolute;
     top: calc(100% + 4px);
@@ -490,7 +424,7 @@ const { transparent = false } = Astro.props;
   }
 
   .logo-img-mobile {
-    height: 44px;
+    height: 76px;
     width: auto;
   }
 
@@ -578,7 +512,7 @@ const { transparent = false } = Astro.props;
 
   @media (max-width: 768px) {
     .logo-img {
-      height: 42px;
+      height: 76px;
     }
   }
 </style>

@@ -3,61 +3,42 @@
 ---
 
 <section class="hero-section" id="hero-section">
-  {/* Framed Video Container */}
-  <div class="hero-frame">
-    <div class="hero-video-box">
-      <video
-        id="hero-video"
-        class="hero-video"
-        src="/videos/hero-video.mp4"
-        autoplay
-        muted
-        loop
-        playsinline
-        preload="auto"
-        disablepictureinpicture
-        disableRemotePlayback></video>
-      <div class="hero-overlay"></div>
+  {/* Full-bleed background video */}
+  <video
+    id="hero-video"
+    class="hero-video"
+    src="/videos/hero-video.mp4"
+    autoplay
+    muted
+    loop
+    playsinline
+    preload="auto"
+    disablepictureinpicture
+    disableRemotePlayback></video>
+  <div class="hero-overlay"></div>
 
-      <div class="hero-content">
-        <div class="hero-brand-drop">
-          <img
-            src="/images/logo.png"
-            alt="KASET PRODUCTION"
-            class="hero-logo"
-          />
-        </div>
-        <h1 class="hero-tagline">
-          <span>Music Video &middot; Commercial &middot; Film</span>
-        </h1>
-      </div>
-    </div>
-  </div>
-
-  {/* FEATURED ∨: Placed outside on the hero background canvas */}
-  <div class="hero-bottom-cue">
-    <button
-      id="scroll-to-featured-btn"
-      class="featured-scroll-cue"
-      type="button"
-      aria-label="Scroll to featured work"
+  {/* Centered FEATURED ∨ cue */}
+  <button
+    id="scroll-to-featured-btn"
+    class="featured-scroll-cue"
+    type="button"
+    aria-label="Scroll to featured work"
+  >
+    <span class="cue-label">FEATURED</span>
+    <svg
+      class="cue-chevron"
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
     >
-      <span class="cue-label">FEATURED</span>
-      <svg
-        class="cue-chevron"
-        width="14"
-        height="14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2.5"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      >
-        <polyline points="6 9 12 15 18 9"></polyline>
-      </svg>
-    </button>
-  </div>
+      <polyline points="6 9 12 15 18 9"></polyline>
+    </svg>
+  </button>
 </section>
 
 <script>
@@ -111,36 +92,15 @@
 
 <style>
   .hero-section {
-    width: 100%;
-    min-height: 100vh;
-    min-height: 100dvh;
-    padding-top: calc(var(--nav-height) + var(--space-xs));
-    padding-bottom: var(--space-md);
-    padding-inline: var(--space-xl);
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-between; /* Spaces video in center, button at bottom */
-    background-color: var(--color-bg);
-  }
-
-  .hero-frame {
-    width: 100%;
-    max-width: 1180px;
-    margin: auto 0; /* Keeps video centered vertically */
-  }
-
-  .hero-video-box {
     position: relative;
     width: 100%;
-    aspect-ratio: 16 / 9;
+    height: 100vh;
+    height: 100dvh;
     overflow: hidden;
-    background-color: #000;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: var(--shadow-md);
+    background-color: #000;
   }
 
   .hero-video {
@@ -167,7 +127,8 @@
     background: linear-gradient(
       to bottom,
       rgba(0, 0, 0, 0.25) 0%,
-      rgba(0, 0, 0, 0.75) 100%
+      rgba(0, 0, 0, 0.4) 60%,
+      rgba(0, 0, 0, 0.8) 100%
     );
     z-index: 1;
     pointer-events: none;
@@ -177,6 +138,8 @@
     position: relative;
     z-index: 2;
     width: 100%;
+    max-width: var(--container-max);
+    margin: 0 auto;
     padding-inline: var(--space-md);
     box-sizing: border-box;
     display: flex;
@@ -221,7 +184,7 @@
   }
 
   .hero-logo {
-    width: clamp(160px, 35vw, 240px);
+    width: clamp(180px, 45vw, 260px);
     height: auto;
     display: block;
     filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.6));
@@ -229,7 +192,7 @@
 
   .hero-tagline {
     font-family: var(--font-heading);
-    font-size: clamp(0.68rem, 2vw, 0.85rem);
+    font-size: clamp(0.68rem, 2.2vw, 0.85rem);
     font-weight: 500;
     letter-spacing: 0.25em;
     text-indent: 0.25em;
@@ -243,16 +206,13 @@
     line-height: 1.5;
   }
 
-  /* ---------- FEATURED ∨ button outside on the canvas ---------- */
-  .hero-bottom-cue {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    padding-bottom: var(--space-xs);
-    z-index: 3;
-  }
-
+  /* Centered FEATURED ∨ at the bottom of the viewport */
   .featured-scroll-cue {
+    position: absolute;
+    bottom: var(--space-xl);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -260,7 +220,7 @@
     background: transparent;
     border: none;
     cursor: pointer;
-    color: var(--color-text-muted);
+    color: rgba(255, 255, 255, 0.8);
     padding: var(--space-2xs) var(--space-md);
     opacity: 0;
     transition:
@@ -271,7 +231,7 @@
 
   .featured-scroll-cue:hover {
     color: var(--color-accent);
-    transform: translateY(2px);
+    transform: translateX(-50%) translateY(2px);
   }
 
   .cue-label {
@@ -287,7 +247,7 @@
     0%,
     100% {
       transform: translateY(0);
-      opacity: 0.7;
+      opacity: 0.75;
     }
     50% {
       transform: translateY(4px);
@@ -313,18 +273,13 @@
   }
 
   @media (max-width: 768px) {
-    .hero-section {
-      padding-inline: var(--space-md);
-      padding-top: calc(var(--nav-height) + var(--space-xs));
-    }
-
-    .hero-video-box {
-      aspect-ratio: 16 / 10;
-    }
-
     .hero-tagline {
       letter-spacing: 0.18em;
       text-indent: 0.18em;
+    }
+
+    .featured-scroll-cue {
+      bottom: var(--space-lg);
     }
   }
 </style>

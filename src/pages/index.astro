@@ -13,7 +13,7 @@ const featuredProjects = await prisma.project.findMany({
 ---
 
 <BaseLayout title="Kaset Production" transparentNav={true}>
-  {/* 5-Second ROMI Buffer Screen */}
+  {/* 5-Second Buffer Preloader */}
   <Preloader />
 
   <div class="homepage-curtain-wrapper">
@@ -36,10 +36,53 @@ const featuredProjects = await prisma.project.findMany({
         <div class="view-all-wrapper">
           <a href="/portfolio" class="view-all-link">View All Work →</a>
         </div>
+
+        {/* Reverted Minimal Up-Navigation Cue */}
+        <div class="return-hero-wrapper">
+          <button
+            id="scroll-to-hero-btn"
+            class="hero-scroll-cue"
+            type="button"
+            aria-label="Scroll back to hero section"
+          >
+            <svg
+              class="cue-chevron-up"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+            <span class="cue-label">HERO</span>
+          </button>
+        </div>
       </div>
     </section>
   </div>
 </BaseLayout>
+
+<script>
+  function InitCurtainScroll() {
+    const scrollToHeroBtn = document.querySelector<HTMLButtonElement>(
+      "#scroll-to-hero-btn",
+    );
+
+    if (scrollToHeroBtn) {
+      scrollToHeroBtn.onclick = (e) => {
+        e.preventDefault();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      };
+    }
+  }
+
+  InitCurtainScroll();
+  document.addEventListener("astro:page-load", InitCurtainScroll);
+</script>
 
 <style>
   .homepage-curtain-wrapper {
@@ -47,6 +90,7 @@ const featuredProjects = await prisma.project.findMany({
     width: 100%;
   }
 
+  /* Pinned Hero */
   .sticky-hero-container {
     position: sticky;
     top: 0;
@@ -56,6 +100,7 @@ const featuredProjects = await prisma.project.findMany({
     will-change: transform;
   }
 
+  /* Rising Featured Section covering the pinned hero */
   .featured-section {
     position: relative;
     z-index: 2;
@@ -111,5 +156,57 @@ const featuredProjects = await prisma.project.findMany({
 
   .view-all-link:hover::after {
     width: 100%;
+  }
+
+  /* ---------- Minimal Up-Navigation to Hero ---------- */
+  .return-hero-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: var(--space-4xl);
+  }
+
+  .hero-scroll-cue {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--color-text-muted);
+    padding: var(--space-xs) var(--space-md);
+    transition:
+      color var(--transition-fast),
+      transform var(--transition-fast);
+  }
+
+  .hero-scroll-cue:hover {
+    color: var(--color-accent);
+    transform: translateY(-2px);
+  }
+
+  .cue-label {
+    font-family: var(--font-heading);
+    font-size: 0.725rem;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-indent: 0.22em;
+    text-transform: uppercase;
+  }
+
+  @keyframes cuePulseUp {
+    0%,
+    100% {
+      transform: translateY(0);
+      opacity: 0.75;
+    }
+    50% {
+      transform: translateY(-4px);
+      opacity: 1;
+    }
+  }
+
+  .cue-chevron-up {
+    animation: cuePulseUp 2s infinite ease-in-out;
   }
 </style>
