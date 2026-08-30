@@ -4,10 +4,26 @@ const year = new Date().getFullYear();
 
 <footer class="site-footer">
   <div class="container footer-inner">
+    {/* Left: Copyright */}
     <p class="footer-copy">
       &copy; {year} kaset production &mdash; all rights reserved.
     </p>
 
+    {/* Center: Discrete Developer Credit */}
+    <div class="footer-credit">
+      <span class="credit-label">Site by</span>
+      <a
+        href="mailto:mesfinmastwal@gmail.com"
+        class="credit-link"
+        title="mesfinmastwal@gmail.com"
+      >
+        Mastwal Mesfin
+      </a>
+      <span class="credit-dot">&bull;</span>
+      <a href="tel:0915949551" class="credit-link">0915949551</a>
+    </div>
+
+    {/* Right: Social Links */}
     <div class="footer-socials">
       <a
         href="https://instagram.com"
@@ -16,11 +32,10 @@ const year = new Date().getFullYear();
         aria-label="Instagram"
         class="social-link"
       >
-        <!-- Instagram icon -->
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          width="20"
-          height="20"
+          width="18"
+          height="18"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -41,11 +56,10 @@ const year = new Date().getFullYear();
         aria-label="Vimeo"
         class="social-link"
       >
-        <!-- Vimeo icon -->
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          width="20"
-          height="20"
+          width="18"
+          height="18"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -66,11 +80,10 @@ const year = new Date().getFullYear();
         aria-label="YouTube"
         class="social-link"
       >
-        <!-- YouTube icon -->
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          width="20"
-          height="20"
+          width="18"
+          height="18"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -92,8 +105,9 @@ const year = new Date().getFullYear();
 <style>
   .site-footer {
     border-top: 1px solid var(--color-border);
-    padding: var(--space-xl) 0;
+    padding: var(--space-lg) 0;
     transition: border-color var(--transition-theme);
+    background-color: var(--color-bg);
   }
 
   .footer-inner {
@@ -105,9 +119,39 @@ const year = new Date().getFullYear();
   }
 
   .footer-copy {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: var(--color-text-muted);
     letter-spacing: 0.02em;
+    margin: 0;
+  }
+
+  /* Discrete Credit */
+  .footer-credit {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    letter-spacing: 0.03em;
+  }
+
+  .credit-label {
+    opacity: 0.8;
+  }
+
+  .credit-link {
+    color: var(--color-text-muted);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+  }
+
+  .credit-link:hover {
+    color: var(--color-accent);
+  }
+
+  .credit-dot {
+    opacity: 0.4;
+    font-size: 0.6rem;
   }
 
   .footer-socials {
@@ -128,5 +172,14 @@ const year = new Date().getFullYear();
   .social-link:hover {
     color: var(--color-accent);
     transform: translateY(-2px);
+  }
+
+  @media (max-width: 768px) {
+    .footer-inner {
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: var(--space-sm);
+    }
   }
 </style>
