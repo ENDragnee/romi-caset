@@ -4,11 +4,24 @@
 
 <dialog id="media-picker-modal" class="modal">
   <div class="modal-content">
+    <!-- Modal Header -->
     <div class="modal-header">
-      <h2>Select Asset from Library</h2>
-      <button type="button" class="close-modal btn-icon">&times;</button>
+      <div>
+        <h2 id="picker-title">Select Assets for Project</h2>
+        <p id="picker-subtitle" class="modal-subtitle">
+          Click items to select or deselect
+        </p>
+      </div>
+      <button
+        type="button"
+        class="close-modal btn-icon"
+        aria-label="Close modal">&times;</button
+      >
     </div>
+
+    <!-- Modal Body -->
     <div class="modal-body">
+      <!-- Toolbar & Upload Progress -->
       <div class="media-picker-toolbar">
         <button type="button" id="upload-new-btn" class="btn-secondary btn-sm">
           <svg
@@ -18,15 +31,14 @@
             fill="none"
             stroke="currentColor"
             stroke-width="2"
-            ><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
-            ></path><polyline points="17 8 12 3 7 8"></polyline><line
-              x1="12"
-              y1="3"
-              x2="12"
-              y2="15"></line></svg
           >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
           <span>Upload New Asset</span>
         </button>
+
         <input
           type="file"
           id="media-upload-input"
@@ -34,12 +46,508 @@
           style="display:none"
           multiple
         />
-        <span id="upload-status" class="upload-status-text"></span>
+
+        <div id="picker-multi-actions" class="toolbar-actions">
+          <button
+            type="button"
+            id="select-all-page-btn"
+            class="btn-text btn-xs"
+          >
+            Select All on Page
+          </button>
+          <button
+            type="button"
+            id="clear-selection-btn"
+            class="btn-text btn-xs text-muted"
+          >
+            Clear Selection
+          </button>
+        </div>
       </div>
-      <div id="media-grid" class="media-selector-grid"></div>
+
+      <!-- Live Upload & Compression Progress -->
+      <div
+        id="picker-upload-progress"
+        class="picker-upload-progress"
+        style="display: none;"
+      >
+        <div class="progress-info-row">
+          <span id="picker-progress-stage" class="progress-stage-text"
+            >Preparing assets...</span
+          >
+          <span id="picker-progress-percent" class="progress-percent-text"
+            >0%</span
+          >
+        </div>
+        <div class="progress-track">
+          <div
+            id="picker-progress-bar"
+            class="progress-fill"
+            style="width: 0%;"
+          >
+          </div>
+        </div>
+      </div>
+
+      <!-- Media Grid -->
+      <div id="media-grid" class="media-selector-grid">
+        <div class="loading-state">Loading asset library...</div>
+      </div>
+    </div>
+
+    <!-- Modal Footer with Pagination & Confirm Actions -->
+    <div class="modal-footer">
+      <!-- Pagination Controls -->
+      <div class="pagination-controls">
+        <button type="button" id="picker-prev-btn" class="btn-page" disabled>
+          &larr; Prev
+        </button>
+        <span id="picker-page-info" class="page-indicator">Page 1 of 1</span>
+        <button type="button" id="picker-next-btn" class="btn-page" disabled>
+          Next &rarr;
+        </button>
+      </div>
+
+      <!-- Selection Action -->
+      <div class="selection-actions">
+        <span id="selected-summary-count" class="selected-badge"
+          >0 selected</span
+        >
+        <button
+          type="button"
+          id="confirm-selection-btn"
+          class="btn-primary btn-sm"
+          disabled
+        >
+          Insert Selected Assets
+        </button>
+      </div>
     </div>
   </div>
 </dialog>
+
+<script>
+  interface MediaItem {
+    id: string;
+    key: string;
+    filename: string;
+    mimeType?: string;
+    size?: number;
+    width?: number;
+    height?: number;
+  }
+
+  const modal = document.querySelector<HTMLDialogElement>(
+    "#media-picker-modal",
+  );
+  const closeBtn = modal?.querySelector<HTMLButtonElement>(".close-modal");
+  const uploadBtn = modal?.querySelector<HTMLButtonElement>("#upload-new-btn");
+  const uploadInput = modal?.querySelector<HTMLInputElement>(
+    "#media-upload-input",
+  );
+  const grid = modal?.querySelector<HTMLElement>("#media-grid");
+
+  // Title elements
+  const titleEl = modal?.querySelector<HTMLElement>("#picker-title");
+  const subtitleEl = modal?.querySelector<HTMLElement>("#picker-subtitle");
+  const multiActions = modal?.querySelector<HTMLElement>(
+    "#picker-multi-actions",
+  );
+
+  // Progress Elements
+  const progressBox = modal?.querySelector<HTMLElement>(
+    "#picker-upload-progress",
+  );
+  const progressStage = modal?.querySelector<HTMLElement>(
+    "#picker-progress-stage",
+  );
+  const progressPercent = modal?.querySelector<HTMLElement>(
+    "#picker-progress-percent",
+  );
+  const progressBar = modal?.querySelector<HTMLElement>("#picker-progress-bar");
+
+  // Pagination Elements
+  const prevBtn = modal?.querySelector<HTMLButtonElement>("#picker-prev-btn");
+  const nextBtn = modal?.querySelector<HTMLButtonElement>("#picker-next-btn");
+  const pageInfo = modal?.querySelector<HTMLElement>("#picker-page-info");
+
+  // Selection Elements
+  const selectAllBtn = modal?.querySelector<HTMLButtonElement>(
+    "#select-all-page-btn",
+  );
+  const clearSelectionBtn = modal?.querySelector<HTMLButtonElement>(
+    "#clear-selection-btn",
+  );
+  const selectedCountBadge = modal?.querySelector<HTMLElement>(
+    "#selected-summary-count",
+  );
+  const confirmBtn = modal?.querySelector<HTMLButtonElement>(
+    "#confirm-selection-btn",
+  );
+
+  // State
+  let currentPage = 1;
+  const pageSize = 18;
+  let totalPages = 1;
+  let currentTarget = "thumbnail";
+  let isMultiple = false;
+  let rawAllItems: MediaItem[] = []; // Used if backend returns all items
+  let currentItems: MediaItem[] = []; // Current page items
+  const selectedAssets = new Map<string, MediaItem>();
+
+  // Open / Close Handlers
+  closeBtn?.addEventListener("click", () => modal?.close());
+  uploadBtn?.addEventListener("click", () => uploadInput?.click());
+
+  // Listen for open event from project form or other callers
+  window.addEventListener("open-media-picker", (e: any) => {
+    const detail = e.detail || {};
+    currentTarget = detail.target || "thumbnail";
+    isMultiple = detail.multiple ?? currentTarget === "gallery";
+
+    // Configure UI for single vs multiple mode
+    if (titleEl) {
+      titleEl.textContent = isMultiple
+        ? "Select Project Stills (Gallery)"
+        : "Select Cover Thumbnail";
+    }
+    if (subtitleEl) {
+      subtitleEl.textContent = isMultiple
+        ? "Click to check/uncheck multiple assets for the gallery"
+        : "Click an image to select it as the project thumbnail";
+    }
+    if (multiActions) {
+      multiActions.style.display = isMultiple ? "flex" : "none";
+    }
+    if (confirmBtn) {
+      confirmBtn.textContent = isMultiple
+        ? "Insert Selected Assets"
+        : "Use Selected Asset";
+    }
+
+    // Load preselected keys
+    selectedAssets.clear();
+    if (detail.preselectedKeys && Array.isArray(detail.preselectedKeys)) {
+      detail.preselectedKeys.forEach((key: string) => {
+        if (key) selectedAssets.set(key, { id: key, key, filename: key });
+      });
+    } else if (
+      typeof detail.preselectedKeys === "string" &&
+      detail.preselectedKeys
+    ) {
+      selectedAssets.set(detail.preselectedKeys, {
+        id: detail.preselectedKeys,
+        key: detail.preselectedKeys,
+        filename: detail.preselectedKeys,
+      });
+    }
+
+    updateSelectionUI();
+    modal?.showModal();
+    loadMedia(1);
+  });
+
+  // Fetch Media with Server or Client Pagination
+  async function loadMedia(page = 1) {
+    if (!grid) return;
+    grid.innerHTML = `<div class="loading-state">Loading assets (Page ${page})...</div>`;
+    currentPage = page;
+
+    try {
+      const res = await fetch(
+        `/api/management/media?page=${page}&limit=${pageSize}`,
+      );
+      if (!res.ok) throw new Error("Failed to fetch media");
+      const data = await res.json();
+
+      if (Array.isArray(data)) {
+        // Backend returned full flat array; handle client-side pagination slicing
+        rawAllItems = data;
+        totalPages = Math.max(1, Math.ceil(rawAllItems.length / pageSize));
+        const start = (currentPage - 1) * pageSize;
+        currentItems = rawAllItems.slice(start, start + pageSize);
+      } else {
+        // Backend returned paginated object
+        currentItems = data.items || [];
+        totalPages =
+          data.totalPages ||
+          Math.ceil((data.total || currentItems.length) / pageSize) ||
+          1;
+      }
+
+      renderGrid();
+      updatePaginationUI();
+    } catch (err) {
+      grid.innerHTML = `<div class="loading-state">Could not load assets. Please try again.</div>`;
+      console.error(err);
+    }
+  }
+
+  function renderGrid() {
+    if (!grid) return;
+    if (currentItems.length === 0) {
+      grid.innerHTML = `<div class="loading-state">No assets found on this page.</div>`;
+      return;
+    }
+
+    grid.innerHTML = "";
+    currentItems.forEach((item) => {
+      const isSelected =
+        selectedAssets.has(item.key) || selectedAssets.has(item.id);
+      const isVideo =
+        item.mimeType?.startsWith("video/") || item.key.endsWith(".mp4");
+      const card = document.createElement("div");
+      card.className = `media-select-card ${isSelected ? "selected" : ""}`;
+      card.dataset.key = item.key;
+      card.dataset.id = item.id;
+
+      card.innerHTML = `
+        <div class="selection-checkbox ${isSelected ? "checked" : ""}">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </div>
+        ${
+          isVideo
+            ? `<div class="video-preview-ph"><span>▶ Video</span></div>`
+            : `<img src="/api/media/${item.key}" alt="${item.filename}" loading="lazy" />`
+        }
+        <div class="select-label">${item.filename}</div>
+      `;
+
+      card.addEventListener("click", () => handleCardClick(item, card));
+      grid.appendChild(card);
+    });
+  }
+
+  function handleCardClick(item: MediaItem, cardEl: HTMLElement) {
+    if (isMultiple) {
+      // Multiple Selection mode (for Gallery)
+      if (selectedAssets.has(item.key)) {
+        selectedAssets.delete(item.key);
+        cardEl.classList.remove("selected");
+        cardEl
+          .querySelector(".selection-checkbox")
+          ?.classList.remove("checked");
+      } else {
+        selectedAssets.set(item.key, item);
+        cardEl.classList.add("selected");
+        cardEl.querySelector(".selection-checkbox")?.classList.add("checked");
+      }
+      updateSelectionUI();
+    } else {
+      // Single Selection mode (for Thumbnail)
+      selectedAssets.clear();
+      selectedAssets.set(item.key, item);
+
+      // Update UI selection on active page
+      grid?.querySelectorAll(".media-select-card").forEach((c) => {
+        c.classList.remove("selected");
+        c.querySelector(".selection-checkbox")?.classList.remove("checked");
+      });
+      cardEl.classList.add("selected");
+      cardEl.querySelector(".selection-checkbox")?.classList.add("checked");
+
+      updateSelectionUI();
+      // Directly confirm on single click
+      confirmSelection();
+    }
+  }
+
+  function updateSelectionUI() {
+    const count = selectedAssets.size;
+    if (selectedCountBadge) {
+      selectedCountBadge.textContent = `${count} asset${count === 1 ? "" : "s"} selected`;
+      selectedCountBadge.classList.toggle("has-selection", count > 0);
+    }
+    if (confirmBtn) {
+      confirmBtn.disabled = count === 0;
+      if (isMultiple) {
+        confirmBtn.textContent =
+          count > 0 ? `Insert Selected (${count})` : "Insert Selected Assets";
+      } else {
+        confirmBtn.textContent = "Use Selected Asset";
+      }
+    }
+  }
+
+  function updatePaginationUI() {
+    if (pageInfo) pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+    if (prevBtn) prevBtn.disabled = currentPage <= 1;
+    if (nextBtn) nextBtn.disabled = currentPage >= totalPages;
+  }
+
+  prevBtn?.addEventListener("click", () => {
+    if (currentPage > 1) {
+      if (rawAllItems.length > 0) {
+        currentPage--;
+        const start = (currentPage - 1) * pageSize;
+        currentItems = rawAllItems.slice(start, start + pageSize);
+        renderGrid();
+        updatePaginationUI();
+      } else {
+        loadMedia(currentPage - 1);
+      }
+    }
+  });
+
+  nextBtn?.addEventListener("click", () => {
+    if (currentPage < totalPages) {
+      if (rawAllItems.length > 0) {
+        currentPage++;
+        const start = (currentPage - 1) * pageSize;
+        currentItems = rawAllItems.slice(start, start + pageSize);
+        renderGrid();
+        updatePaginationUI();
+      } else {
+        loadMedia(currentPage + 1);
+      }
+    }
+  });
+
+  // Select all on current page
+  selectAllBtn?.addEventListener("click", () => {
+    currentItems.forEach((item) => {
+      selectedAssets.set(item.key, item);
+    });
+    renderGrid();
+    updateSelectionUI();
+  });
+
+  // Clear selection
+  clearSelectionBtn?.addEventListener("click", () => {
+    selectedAssets.clear();
+    renderGrid();
+    updateSelectionUI();
+  });
+
+  function confirmSelection() {
+    const selectedArray = Array.from(selectedAssets.values());
+    window.dispatchEvent(
+      new CustomEvent("media-picker-selected", {
+        detail: {
+          target: currentTarget,
+          items: selectedArray,
+          keys: selectedArray.map((i) => i.key),
+        },
+      }),
+    );
+    modal?.close();
+  }
+
+  confirmBtn?.addEventListener("click", confirmSelection);
+
+  // Upload Input with Compression Progress
+  uploadInput?.addEventListener("change", async () => {
+    if (!uploadInput.files?.length) return;
+    const files = Array.from(uploadInput.files);
+    uploadInput.value = "";
+
+    if (progressBox) progressBox.style.display = "block";
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      await uploadFileWithProgress(file, i + 1, files.length);
+    }
+
+    if (progressBox) {
+      setTimeout(() => {
+        progressBox.style.display = "none";
+      }, 1500);
+    }
+
+    loadMedia(1);
+  });
+
+  async function uploadFileWithProgress(
+    file: File,
+    index: number,
+    total: number,
+  ) {
+    const setStatus = (msg: string, pct: number) => {
+      if (progressStage)
+        progressStage.textContent = `[${index}/${total}] ${msg}`;
+      if (progressPercent) progressPercent.textContent = `${pct}%`;
+      if (progressBar) progressBar.style.width = `${pct}%`;
+    };
+
+    try {
+      let fileToUpload = file;
+      let mimeType = file.type || "application/octet-stream";
+
+      if (file.type.startsWith("image/")) {
+        setStatus(`Compressing ${file.name}...`, 25);
+        const imageCompression = (await import("browser-image-compression"))
+          .default;
+        fileToUpload = await imageCompression(file, {
+          maxSizeMB: 0.8,
+          maxWidthOrHeight: 2000,
+          useWebWorker: true,
+        });
+        mimeType = fileToUpload.type || file.type || "image/jpeg";
+      }
+
+      setStatus("Getting presigned URL...", 50);
+      const urlRes = await fetch("/api/management/upload-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: file.name, contentType: mimeType }),
+      });
+      if (!urlRes.ok) throw new Error("Failed to get presigned upload URL");
+      const { url, key } = await urlRes.json();
+
+      setStatus("Uploading to storage...", 75);
+      const uploadRes = await fetch(url, {
+        method: "PUT",
+        body: fileToUpload,
+        headers: { "Content-Type": mimeType },
+      });
+      if (!uploadRes.ok) throw new Error("Upload to storage failed");
+
+      const dimensions = await getImageDimensions(fileToUpload);
+
+      setStatus("Registering in database...", 90);
+      const registerRes = await fetch("/api/management/media", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          key,
+          filename: file.name,
+          mimeType,
+          size: fileToUpload.size,
+          ...dimensions,
+        }),
+      });
+
+      if (!registerRes.ok) throw new Error("Database registration failed");
+      const createdItem: MediaItem = await registerRes.json();
+
+      if (createdItem && (createdItem.key || createdItem.id)) {
+        selectedAssets.set(createdItem.key || createdItem.id, createdItem);
+        updateSelectionUI();
+      }
+
+      setStatus(`Done: ${file.name}`, 100);
+    } catch (err) {
+      console.error(err);
+      setStatus(`Error with ${file.name}`, 100);
+      if (progressBar) progressBar.style.backgroundColor = "#ef4444";
+    }
+  }
+
+  function getImageDimensions(
+    file: File,
+  ): Promise<{ width?: number; height?: number }> {
+    return new Promise((resolve) => {
+      if (!file.type.startsWith("image/")) return resolve({});
+      const img = new Image();
+      img.onload = () =>
+        resolve({ width: img.naturalWidth, height: img.naturalHeight });
+      img.onerror = () => resolve({});
+      img.src = URL.createObjectURL(file);
+    });
+  }
+</script>
 
 <style>
   .modal {
@@ -51,9 +559,9 @@
     background-color: var(--color-surface);
     color: var(--color-text);
     padding: 0;
-    max-width: 800px;
-    width: 90vw;
-    max-height: 85vh;
+    max-width: 900px;
+    width: 92vw;
+    max-height: 88vh;
     box-shadow:
       0 25px 50px -12px rgba(0, 0, 0, 0.4),
       0 0 0 1px var(--color-border);
@@ -62,17 +570,17 @@
   .modal::backdrop {
     background: rgba(0, 0, 0, 0.65);
     backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
   }
 
   .modal-content {
     display: flex;
     flex-direction: column;
-    max-height: 80vh;
+    height: 86vh;
+    max-height: 86vh;
   }
 
   .modal-header {
-    padding: var(--space-lg) var(--space-xl);
+    padding: var(--space-md) var(--space-xl);
     border-bottom: 1px solid var(--color-border);
     display: flex;
     justify-content: space-between;
@@ -81,64 +589,105 @@
 
   .modal-header h2 {
     margin: 0;
-    font-size: 1.2rem;
+    font-size: 1.15rem;
     font-family: var(--font-heading);
     font-weight: 600;
+  }
+
+  .modal-subtitle {
+    margin: 2px 0 0 0;
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
   }
 
   .btn-icon {
     background: transparent;
     border: none;
-    font-size: 1.8rem;
+    font-size: 1.6rem;
     line-height: 1;
     color: var(--color-text-muted);
     cursor: pointer;
   }
-
   .btn-icon:hover {
     color: var(--color-text);
   }
 
   .modal-body {
-    padding: var(--space-xl);
+    padding: var(--space-lg) var(--space-xl);
     overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
   }
 
   .media-picker-toolbar {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: var(--space-md);
-    margin-bottom: var(--space-lg);
   }
 
-  .btn-secondary {
-    display: inline-flex;
+  .toolbar-actions {
+    display: flex;
     align-items: center;
-    gap: var(--space-xs);
-    background-color: transparent;
-    color: var(--color-text);
-    border: 1px solid var(--color-border);
-    padding: 0.5rem 1rem;
-    border-radius: var(--radius-md);
-    font-size: 0.85rem;
+    gap: var(--space-sm);
+  }
+
+  .btn-text {
+    background: transparent;
+    border: none;
+    color: var(--color-accent);
+    font-size: 0.8rem;
     cursor: pointer;
-    transition: all var(--transition-fast);
+    text-decoration: underline;
   }
 
-  .btn-secondary:hover {
-    background-color: var(--color-surface-elevated);
-    border-color: var(--color-accent);
+  .btn-text.text-muted {
+    color: var(--color-text-muted);
   }
 
-  .upload-status-text {
-    font-size: 0.85rem;
+  /* Progress Bar */
+  .picker-upload-progress {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .progress-info-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.775rem;
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+
+  .progress-stage-text {
+    color: var(--color-text);
+  }
+  .progress-percent-text {
     color: var(--color-accent);
     font-weight: 600;
   }
 
+  .progress-track {
+    height: 4px;
+    background-color: var(--color-surface);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background-color: var(--color-accent);
+    transition: width 0.25s ease;
+  }
+
+  /* Grid */
   .media-selector-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(125px, 1fr));
     gap: var(--space-md);
   }
 
@@ -151,6 +700,13 @@
     position: relative;
     transition: all var(--transition-fast);
     background-color: var(--color-bg);
+    user-select: none;
+  }
+
+  :global(.media-select-card.selected) {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 2px
+      color-mix(in srgb, var(--color-accent) 40%, transparent);
   }
 
   :global(.media-select-card img) {
@@ -159,9 +715,37 @@
     object-fit: cover;
   }
 
-  :global(.media-select-card:hover) {
+  :global(.video-preview-ph) {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--color-surface);
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+  }
+
+  :global(.selection-checkbox) {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 20px;
+    height: 20px;
+    border-radius: var(--radius-full);
+    background: rgba(0, 0, 0, 0.55);
+    border: 1.5px solid rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: transparent;
+    transition: all var(--transition-fast);
+  }
+
+  :global(.selection-checkbox.checked) {
+    background: var(--color-accent);
     border-color: var(--color-accent);
-    transform: scale(1.02);
+    color: var(--color-bg);
   }
 
   :global(.select-label) {
@@ -170,17 +754,104 @@
     inset-inline: 0;
     background: rgba(0, 0, 0, 0.75);
     color: white;
-    font-size: 0.7rem;
-    padding: 2px 6px;
+    font-size: 0.675rem;
+    padding: 3px 6px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
-  :global(.loading-state) {
+  .loading-state {
     grid-column: 1 / -1;
     text-align: center;
     padding: var(--space-3xl);
     color: var(--color-text-muted);
+  }
+
+  /* Modal Footer */
+  .modal-footer {
+    padding: var(--space-md) var(--space-xl);
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--color-surface);
+  }
+
+  .pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .btn-page {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+    padding: 4px 10px;
+    border-radius: var(--radius-md);
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+  .btn-page:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .page-indicator {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+  }
+
+  .selection-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+  }
+
+  .selected-badge {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+  }
+
+  .selected-badge.has-selection {
+    color: var(--color-accent);
+    font-weight: 600;
+  }
+
+  .btn-primary {
+    background-color: var(--color-accent);
+    color: var(--color-bg);
+    padding: 0.55rem 1.15rem;
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+  .btn-primary:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .btn-primary:not(:disabled):hover {
+    background-color: var(--color-accent-hover);
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    background-color: transparent;
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    padding: 0.45rem 0.85rem;
+    border-radius: var(--radius-md);
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+  .btn-sm {
+    padding: 0.4rem 0.85rem;
+    font-size: 0.85rem;
   }
 </style>

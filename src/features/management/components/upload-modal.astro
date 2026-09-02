@@ -6,9 +6,10 @@
   <div class="modal-container">
     <div class="modal-header">
       <div>
-        <h2 class="modal-title">Upload Media</h2>
+        <h2 class="modal-title">Upload Media Assets</h2>
         <p class="modal-subtitle">
-          Upload photography, stills, or video assets.
+          Files are automatically compressed on-the-fly before cloud storage
+          upload.
         </p>
       </div>
       <button type="button" class="close-btn" aria-label="Close dialog"
@@ -28,20 +29,18 @@
             stroke-width="1.8"
             stroke-linecap="round"
             stroke-linejoin="round"
-            ><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
-            ></path><polyline points="17 8 12 3 7 8"></polyline><line
-              x1="12"
-              y1="3"
-              x2="12"
-              y2="15"></line></svg
           >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
         </div>
-        <h4 class="dropzone-primary-text">Drag & drop files here</h4>
+        <h4 class="dropzone-primary-text">Drag & drop media files here</h4>
         <p class="dropzone-secondary-text">
           or <span class="browse-highlight">browse from your computer</span>
         </p>
         <div class="dropzone-badge">
-          JPG, PNG, WEBP, MP4 &bull; Compressed automatically
+          Images (JPG, PNG, WEBP) &bull; Videos (MP4, MOV)
         </div>
         <input
           type="file"
@@ -52,9 +51,10 @@
         />
       </div>
 
+      <!-- Uploading / Compression Progress View -->
       <div id="progress-view" class="progress-view" style="display: none;">
         <div class="progress-header">
-          <span class="progress-title">Uploading Assets</span>
+          <span class="progress-title">Optimizing & Uploading Assets</span>
           <span id="progress-count" class="progress-count">0 items</span>
         </div>
         <div id="upload-items-list" class="upload-items-list"></div>
@@ -66,8 +66,10 @@
           <button
             type="button"
             class="btn-done"
-            onclick="window.location.reload()">Done & View Library</button
+            onclick="window.location.reload()"
           >
+            Done & View Library
+          </button>
         </div>
       </div>
     </div>
@@ -98,7 +100,7 @@
   ) {
     closeBtn.addEventListener("click", () => {
       uploadModal.close();
-      if (progressView.style.display === "block") {
+      if (progressView.style.display === "flex") {
         window.location.reload();
       }
     });
@@ -136,16 +138,18 @@
       uploadList.innerHTML = "";
       doneFooter.style.display = "none";
 
-      if (countEl)
+      if (countEl) {
         countEl.textContent = `${files.length} item${files.length > 1 ? "s" : ""}`;
+      }
 
       const items = Array.from(files).map((file) => {
         const el = document.createElement("div");
         el.className = "upload-item-row";
         el.innerHTML = `
           <div class="item-name-meta">
-            <span class="item-name">${file.name}</span>
-            <span class="item-status">Preparing...</span>
+            <span class="item-name" title="${file.name}">${file.name}</span>
+            <span class="item-size-info">${formatSize(file.size)}</span>
+            <span class="item-status">Queued</span>
           </div>
           <div class="item-progress-bar"><div class="item-progress-fill"></div></div>
         `;
@@ -154,25 +158,27 @@
       });
 
       for (const { file, el } of items) {
-        await UploadFile(file, el);
+        await uploadFile(file, el);
       }
 
       doneFooter.style.display = "block";
     }
 
-    async function UploadFile(file: File, el: HTMLElement) {
+    async function uploadFile(file: File, el: HTMLElement) {
       const statusEl = el.querySelector<HTMLElement>(".item-status");
       const progressFill = el.querySelector<HTMLElement>(".item-progress-fill");
+      const sizeInfoEl = el.querySelector<HTMLElement>(".item-size-info");
       if (!statusEl || !progressFill) return;
 
       try {
         let fileToUpload = file;
         let mimeType = file.type || "application/octet-stream";
 
-        // 1. Client-Side Image Compression
+        // 1. Client-side Image Compression Step
         if (file.type.startsWith("image/")) {
           statusEl.textContent = "Compressing...";
-          progressFill.style.width = "25%";
+          progressFill.style.width = "20%";
+
           const imageCompression = (await import("browser-image-compression"))
             .default;
           fileToUpload = await imageCompression(file, {
@@ -180,11 +186,15 @@
             maxWidthOrHeight: 2000,
             useWebWorker: true,
           });
+
           mimeType = fileToUpload.type || file.type || "image/jpeg";
+          if (sizeInfoEl) {
+            sizeInfoEl.textContent = `${formatSize(file.size)} → ${formatSize(fileToUpload.size)}`;
+          }
         }
 
-        // 2. Request Presigned URL with exact compressed MIME type
-        statusEl.textContent = "Getting Presigned URL...";
+        // 2. Presigned Upload URL Step
+        statusEl.textContent = "Getting Signed URL...";
         progressFill.style.width = "45%";
         const urlRes = await fetch("/api/management/upload-url", {
           method: "POST",
@@ -196,33 +206,28 @@
         });
 
         if (!urlRes.ok) throw new Error("Could not get presigned upload URL");
-
         const { url, key } = await urlRes.json();
 
-        // 3. Direct PUT to S3 / SeaweedFS / Backblaze B2
-        statusEl.textContent = "Uploading to Storage...";
+        // 3. Direct Storage Upload
+        statusEl.textContent = "Uploading to Cloud...";
         progressFill.style.width = "75%";
 
         const uploadRes = await fetch(url, {
           method: "PUT",
           body: fileToUpload,
-          headers: {
-            "Content-Type": mimeType,
-          },
+          headers: { "Content-Type": mimeType },
         });
 
         if (!uploadRes.ok) {
-          const errText = await uploadRes.text();
-          console.error("Direct S3 PUT error:", uploadRes.status, errText);
           throw new Error(
-            `Direct storage upload rejected with status ${uploadRes.status}`,
+            `Cloud upload rejected with status ${uploadRes.status}`,
           );
         }
 
         // 4. Calculate Dimensions
-        const dimensions = await GetImageDimensions(fileToUpload);
+        const dimensions = await getImageDimensions(fileToUpload);
 
-        // 5. Only register in database AFTER S3 confirms 200 OK
+        // 5. Database Asset Registration
         statusEl.textContent = "Saving to Database...";
         progressFill.style.width = "90%";
 
@@ -238,9 +243,8 @@
           }),
         });
 
-        if (!registerRes.ok) {
+        if (!registerRes.ok)
           throw new Error("Failed to register media in database");
-        }
 
         progressFill.style.width = "100%";
         statusEl.textContent = "Complete ✓";
@@ -252,7 +256,15 @@
       }
     }
 
-    function GetImageDimensions(
+    function formatSize(bytes: number) {
+      if (!bytes) return "0 B";
+      const k = 1024;
+      const sizes = ["B", "KB", "MB", "GB"];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+    }
+
+    function getImageDimensions(
       file: File,
     ): Promise<{ width?: number; height?: number }> {
       return new Promise((resolve) => {
@@ -277,7 +289,7 @@
     background-color: var(--color-surface);
     color: var(--color-text);
     padding: 0;
-    max-width: 600px;
+    max-width: 620px;
     width: 92vw;
     max-height: 85vh;
     box-shadow:
@@ -288,7 +300,6 @@
   .modal-dialog::backdrop {
     background: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
   }
 
   .modal-container {
@@ -325,9 +336,7 @@
     color: var(--color-text-muted);
     cursor: pointer;
     padding: 0;
-    transition: color var(--transition-fast);
   }
-
   .close-btn:hover {
     color: var(--color-text);
   }
@@ -336,7 +345,6 @@
     padding: var(--space-xl);
   }
 
-  /* Dropzone */
   .dropzone {
     border: 2px dashed var(--color-border);
     border-radius: var(--radius-lg);
@@ -362,8 +370,8 @@
   }
 
   .dropzone-icon-ring {
-    width: 60px;
-    height: 60px;
+    width: 56px;
+    height: 56px;
     border-radius: var(--radius-full);
     background-color: color-mix(in srgb, var(--color-accent) 12%, transparent);
     color: var(--color-accent);
@@ -375,13 +383,13 @@
 
   .dropzone-primary-text {
     font-family: var(--font-heading);
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     font-weight: 600;
     margin: 0;
   }
 
   .dropzone-secondary-text {
-    font-size: 0.875rem;
+    font-size: 0.85rem;
     color: var(--color-text-muted);
     margin: 0;
   }
@@ -396,14 +404,12 @@
     margin-top: var(--space-sm);
     font-size: 0.725rem;
     color: var(--color-text-muted);
-    letter-spacing: 0.05em;
     background-color: var(--color-surface);
     padding: 3px 10px;
     border-radius: var(--radius-full);
     border: 1px solid var(--color-border);
   }
 
-  /* Progress View */
   .progress-view {
     display: flex;
     flex-direction: column;
@@ -449,7 +455,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 0.85rem;
+    font-size: 0.825rem;
+    gap: var(--space-xs);
   }
 
   :global(.item-name) {
@@ -457,13 +464,20 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 70%;
+    max-width: 50%;
+  }
+
+  :global(.item-size-info) {
+    font-size: 0.725rem;
+    color: var(--color-text-muted);
+    font-family: monospace;
   }
 
   :global(.item-status) {
     font-size: 0.775rem;
     color: var(--color-text-muted);
     font-weight: 500;
+    margin-left: auto;
   }
 
   :global(.item-status.status-success) {
@@ -506,13 +520,5 @@
     font-weight: 600;
     font-size: 0.95rem;
     cursor: pointer;
-    transition:
-      background-color var(--transition-fast),
-      transform var(--transition-fast);
-  }
-
-  .btn-done:hover {
-    background-color: var(--color-accent-hover);
-    transform: translateY(-1px);
   }
 </style>
