@@ -14,7 +14,7 @@ const { projects = [] } = Astro.props;
   <div class="project-grid">
     {
       projects.map((project, index) => (
-        <div class="grid-item">
+        <div class="grid-item" data-category={project.category}>
           {project.cardType === "WIDE" ? (
             <ProjectCardWide project={project} index={index} />
           ) : (
@@ -41,12 +41,25 @@ const { projects = [] } = Astro.props;
     grid-template-columns: repeat(3, 1fr);
     gap: 8px;
     width: 100%;
-    justify-content: center;
+    align-items: start;
   }
 
   .grid-item {
     width: 100%;
     grid-column: span 1 !important;
+    transition:
+      opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+      filter 0.4s ease,
+      transform 0.4s ease;
+    will-change: opacity, filter, transform;
+  }
+
+  /* Grey-out non-selected projects */
+  :global(.grid-item.is-dimmed) {
+    opacity: 0.18 !important;
+    filter: grayscale(100%) brightness(0.4) !important;
+    pointer-events: none !important;
+    transform: scale(0.97);
   }
 
   @media (max-width: 768px) {

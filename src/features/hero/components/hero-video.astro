@@ -1,23 +1,71 @@
 ---
+interface Props {
+  videos?: string[];
+}
 
+const { videos = ["/videos/hero-video.mp4"] } = Astro.props;
+
+const initialVideosJson = JSON.stringify(videos);
+const hasMultiple = videos.length > 1;
 ---
 
-<section class="hero-section" id="hero-section">
-  {/* Full-bleed background video */}
-  <video
-    id="hero-video"
-    class="hero-video"
-    src="/videos/hero-video.mp4"
-    autoplay
-    muted
-    loop
-    playsinline
-    preload="auto"
-    disablepictureinpicture
-    disableRemotePlayback></video>
+<section class="hero-section" id="hero-section" data-videos={initialVideosJson}>
+  {/* Dual video elements for seamless zero-flicker cross-fades */}
+  <div class="video-crossfade-stage">
+    <video
+      id="hero-video-a"
+      class="hero-video active"
+      src={videos[0]}
+      autoplay
+      muted
+      playsinline
+      preload="auto"
+      disablepictureinpicture
+      disableRemotePlayback></video>
+
+    {
+      hasMultiple && (
+        <video
+          id="hero-video-b"
+          class="hero-video inactive"
+          src={videos[1] || videos[0]}
+          muted
+          playsinline
+          preload="auto"
+          disablepictureinpicture
+          disableRemotePlayback
+        />
+      )
+    }
+  </div>
+
+  {/* Clean, subtle uniform overlay — NO bottom fade to black */}
   <div class="hero-overlay"></div>
 
-  {/* Centered FEATURED ∨ cue */}
+  {/* Centered Brand Content */}
+  <div class="hero-content">
+    <div class="hero-brand-drop">
+      <img src="/images/logo.png" alt="KASET PRODUCTION" class="hero-logo" />
+    </div>
+    <h1 class="hero-tagline">
+      <span>Music Video &middot; Commercial &middot; Film</span>
+    </h1>
+  </div>
+
+  {/* Multi-video carousel index indicator (visible only if >1 video) */}
+  {
+    hasMultiple && (
+      <div id="video-carousel-indicator" class="video-carousel-indicator">
+        <span id="current-clip-index" class="clip-counter">
+          01
+        </span>
+        <span class="clip-divider">/</span>
+        <span class="clip-total">{String(videos.length).padStart(2, "0")}</span>
+      </div>
+    )
+  }
+
+  {/* Centered FEATURED ∨ scroll cue */}
   <button
     id="scroll-to-featured-btn"
     class="featured-scroll-cue"
@@ -42,39 +90,105 @@
 </section>
 
 <script>
-  function InitHeroVideo() {
+  function InitHeroVideoCarousel() {
     const heroSection = document.querySelector<HTMLElement>("#hero-section");
-    const video = document.querySelector<HTMLVideoElement>("#hero-video");
+    const videoA = document.querySelector<HTMLVideoElement>("#hero-video-a");
+    const videoB = document.querySelector<HTMLVideoElement>("#hero-video-b");
+    const indicatorEl = document.querySelector<HTMLElement>(
+      "#current-clip-index",
+    );
     const scrollBtn = document.querySelector<HTMLButtonElement>(
       "#scroll-to-featured-btn",
     );
-    if (!heroSection || !video) return;
 
-    let isTriggered = false;
+    if (!heroSection || !videoA) return;
+
+    let videoList: string[] = [];
+    try {
+      videoList = JSON.parse(
+        heroSection.dataset.videos || '["/videos/hero-video.mp4"]',
+      );
+    } catch {
+      videoList = ["/videos/hero-video.mp4"];
+    }
+
+    let currentIndex = 0;
+    let isVideoReady = false;
 
     const renderHero = () => {
-      if (isTriggered) return;
-      isTriggered = true;
+      if (isVideoReady) return;
+      isVideoReady = true;
       heroSection.classList.add("is-ready");
     };
 
-    video.muted = true;
-    video.defaultMuted = true;
+    videoA.muted = true;
+    videoA.defaultMuted = true;
+    if (videoB) {
+      videoB.muted = true;
+      videoB.defaultMuted = true;
+    }
 
-    if (video.readyState >= 2 && !video.paused) {
+    // Initial readiness trigger
+    if (videoA.readyState >= 2 && !videoA.paused) {
       renderHero();
     } else {
-      video.addEventListener("loadeddata", renderHero, { once: true });
-      video.addEventListener("playing", renderHero, { once: true });
-      video.addEventListener("canplay", renderHero, { once: true });
-
-      video.play().catch(() => {
-        renderHero();
-      });
-
+      videoA.addEventListener("loadeddata", renderHero, { once: true });
+      videoA.addEventListener("playing", renderHero, { once: true });
+      videoA.addEventListener("canplay", renderHero, { once: true });
+      videoA.play().catch(() => renderHero());
       setTimeout(renderHero, 600);
     }
 
+    // Sequential multi-video carousel logic
+    if (videoList.length > 1 && videoB) {
+      let activeVideo = videoA;
+      let standbyVideo = videoB;
+
+      const playNextVideo = () => {
+        const nextIndex = (currentIndex + 1) % videoList.length;
+        currentIndex = nextIndex;
+
+        // Prepare standby video with the next source
+        standbyVideo.src = videoList[nextIndex];
+        standbyVideo.currentTime = 0;
+
+        standbyVideo
+          .play()
+          .then(() => {
+            // Cross-fade: Bring standby to front, fade active to back
+            standbyVideo.classList.remove("inactive");
+            standbyVideo.classList.add("active");
+            activeVideo.classList.remove("active");
+            activeVideo.classList.add("inactive");
+
+            // Update counter (e.g. "02")
+            if (indicatorEl) {
+              indicatorEl.textContent = String(nextIndex + 1).padStart(2, "0");
+            }
+
+            // Swap references
+            const temp = activeVideo;
+            activeVideo = standbyVideo;
+            standbyVideo = temp;
+
+            // Attach listener for the new active video
+            activeVideo.addEventListener("ended", playNextVideo, {
+              once: true,
+            });
+          })
+          .catch((err) => {
+            console.error("Video crossfade error:", err);
+            setTimeout(playNextVideo, 2000);
+          });
+      };
+
+      activeVideo.addEventListener("ended", playNextVideo, { once: true });
+    } else {
+      // Single video: standard seamless loop
+      videoA.loop = true;
+    }
+
+    // Smooth scroll down when cue clicked
     if (scrollBtn) {
       scrollBtn.onclick = (e) => {
         e.preventDefault();
@@ -86,8 +200,8 @@
     }
   }
 
-  InitHeroVideo();
-  document.addEventListener("astro:page-load", InitHeroVideo);
+  InitHeroVideoCarousel();
+  document.addEventListener("astro:page-load", InitHeroVideoCarousel);
 </script>
 
 <style>
@@ -103,33 +217,42 @@
     background-color: #000;
   }
 
+  .video-crossfade-stage {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+  }
+
   .hero-video {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    z-index: 0;
     opacity: 0;
-    pointer-events: none;
     transform: translateZ(0);
     will-change: opacity;
-    transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  .hero-section.is-ready .hero-video {
+  .hero-video.active {
     opacity: 1;
+    z-index: 1;
   }
 
+  .hero-video.inactive {
+    opacity: 0;
+    z-index: 0;
+  }
+
+  /* Clean subtle uniform film overlay without bottom fade */
   .hero-overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(
-      to bottom,
-      rgba(0, 0, 0, 0.25) 0%,
-      rgba(0, 0, 0, 0.4) 60%,
-      rgba(0, 0, 0, 0.8) 100%
-    );
+    background: rgba(0, 0, 0, 0.22);
     z-index: 1;
     pointer-events: none;
   }
@@ -206,7 +329,32 @@
     line-height: 1.5;
   }
 
-  /* Centered FEATURED ∨ at the bottom of the viewport */
+  /* Multi-video carousel index badge */
+  .video-carousel-indicator {
+    position: absolute;
+    bottom: var(--space-xl);
+    right: var(--space-2xl);
+    z-index: 3;
+    font-family: var(--font-heading);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    color: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  .clip-divider {
+    opacity: 0.4;
+  }
+
+  /* Centered FEATURED ∨ cue */
   .featured-scroll-cue {
     position: absolute;
     bottom: var(--space-xl);
@@ -220,7 +368,7 @@
     background: transparent;
     border: none;
     cursor: pointer;
-    color: rgba(255, 255, 255, 0.8);
+    color: rgba(255, 255, 255, 0.85);
     padding: var(--space-2xs) var(--space-md);
     opacity: 0;
     transition:
@@ -280,6 +428,11 @@
 
     .featured-scroll-cue {
       bottom: var(--space-lg);
+    }
+
+    .video-carousel-indicator {
+      bottom: var(--space-lg);
+      right: var(--space-lg);
     }
   }
 </style>
