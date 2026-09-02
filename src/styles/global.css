@@ -221,7 +221,7 @@ button {
     border-color var(--transition-normal),
     background-color var(--transition-normal),
     opacity var(--transition-normal);
-  z-index: 10000;
+  z-index: 2147483646 !important;
   opacity: 0;
   will-change: transform, left, top, filter;
 }
@@ -237,7 +237,7 @@ button {
     -2px,
     -2px
   ); /* Aligns arrow tip directly under mouse coordinate */
-  z-index: 10001;
+  z-index: 2147483647 !important;
   opacity: 0;
   transition: opacity var(--transition-normal);
   will-change: transform, left, top, filter;

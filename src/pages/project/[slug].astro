@@ -18,9 +18,11 @@ const headerTitle = project.client
 <BaseLayout title={`${project.title} — Kaset Production`}>
   <main class="project-detail container">
     <div class="content-wrapper">
-      {/* Title Divider drops in from top */}
-      <div class="divider hero-title-drop">
-        <span class="divider__label">{headerTitle}</span>
+      {/* Title Divider: Wraps gracefully on mobile without overflowing */}
+      <div class="project-header-divider hero-title-drop">
+        <div class="divider-line"></div>
+        <h1 class="project-heading-title">{headerTitle}</h1>
+        <div class="divider-line"></div>
       </div>
 
       {/* Video & details rise smoothly from bottom */}
@@ -59,7 +61,7 @@ const headerTitle = project.client
 
 <style>
   .project-detail {
-    padding-top: calc(var(--nav-height) + var(--space-2xl));
+    padding-top: calc(var(--nav-height) + var(--space-xl));
     padding-bottom: var(--space-5xl);
     width: 100%;
   }
@@ -72,15 +74,35 @@ const headerTitle = project.client
     box-sizing: border-box;
   }
 
-  .divider {
+  /* Responsive Centered Header Divider */
+  .project-header-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-lg);
     margin-bottom: var(--space-2xl);
+    width: 100%;
   }
 
-  .divider__label {
+  .divider-line {
+    flex: 1;
+    height: 1px;
+    background-color: var(--color-border);
+    min-width: 20px;
+  }
+
+  .project-heading-title {
     font-family: var(--font-heading);
-    font-size: 1rem;
-    letter-spacing: 0.05em;
+    font-size: clamp(0.9rem, 3.2vw, 1.15rem);
+    font-weight: 500;
+    letter-spacing: 0.04em;
     color: var(--color-text);
+    text-align: center;
+    margin: 0;
+    white-space: normal; /* Allows natural wrapping */
+    word-break: break-word;
+    max-width: 85%;
+    line-height: 1.4;
   }
 
   .project-content {
@@ -128,5 +150,14 @@ const headerTitle = project.client
 
   .back-link:hover {
     color: var(--color-text);
+  }
+
+  @media (max-width: 600px) {
+    .project-header-divider {
+      gap: var(--space-sm);
+    }
+    .project-heading-title {
+      max-width: 90%;
+    }
   }
 </style>

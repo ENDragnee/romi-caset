@@ -5,13 +5,13 @@ import ContactForm from "../features/contact/components/contact-form.astro";
 
 <BaseLayout title="Contact — Kaset Production">
   <section class="section container contact-page">
-    {/* Header / Divider drops in from top */}
     <div class="content-wrapper">
+      {/* Clean Divider Header */}
       <div class="divider hero-title-drop">
         <span class="divider__label">Get In Touch</span>
       </div>
 
-      {/* Content rises smoothly from bottom */}
+      {/* Grid */}
       <div class="contact-grid content-rise-up">
         <div class="contact-info">
           <h1 class="contact-heading">Let's create something remarkable.</h1>
@@ -21,7 +21,8 @@ import ContactForm from "../features/contact/components/contact-form.astro";
             out the inquiry form or reach out directly.
           </p>
 
-          <div class="contact-links">
+          <div class="contact-direct-block">
+            <span class="direct-label">DIRECT INQUIRIES</span>
             <a href="mailto:hello@kasetproduction.com" class="contact-link">
               hello@kasetproduction.com
             </a>
@@ -52,60 +53,64 @@ import ContactForm from "../features/contact/components/contact-form.astro";
 
   .contact-grid {
     display: grid;
-    grid-template-columns: 1fr 1.1fr;
+    grid-template-columns: 1fr 1.15fr;
     gap: var(--space-4xl);
-    margin-top: var(--space-3xl);
+    margin-top: var(--space-2xl);
   }
 
   .contact-info {
-    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    max-width: 440px;
   }
 
   .contact-heading {
     font-family: var(--font-heading);
-    font-size: clamp(2rem, 4vw, 3rem);
+    font-size: clamp(2.2rem, 4vw, 3rem);
     font-weight: 600;
     line-height: 1.1;
-    margin-bottom: var(--space-lg);
+    margin: 0 0 var(--space-lg) 0;
     color: var(--color-text);
     text-transform: uppercase;
-    letter-spacing: 0.02em;
+    letter-spacing: -0.01em;
   }
 
   .contact-text {
-    font-size: 1rem;
-    line-height: 1.65;
+    font-size: 0.95rem;
+    line-height: 1.7;
     color: var(--color-text-muted);
-    margin-bottom: var(--space-xl);
+    margin: 0 0 var(--space-2xl) 0;
+  }
+
+  .contact-direct-block {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-top: var(--space-lg);
+    border-top: 1px solid var(--color-border);
+  }
+
+  .direct-label {
+    font-family: var(--font-heading);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
   }
 
   .contact-link {
-    display: inline-block;
-    color: var(--color-accent);
+    color: var(--color-text);
     font-family: var(--font-heading);
-    font-size: 1.1rem;
-    font-weight: 500;
+    font-size: 1.15rem;
+    font-weight: 600;
     text-decoration: none;
-    position: relative;
-    padding-bottom: 2px;
+    transition: color var(--transition-fast);
   }
 
-  .contact-link::after {
-    content: "";
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 1px;
-    background-color: var(--color-accent);
-    transform-origin: right;
-    transform: scaleX(0);
-    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .contact-link:hover::after {
-    transform-origin: left;
-    transform: scaleX(1);
+  .contact-link:hover {
+    color: var(--color-accent);
   }
 
   @media (max-width: 768px) {
