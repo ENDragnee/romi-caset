@@ -8,7 +8,10 @@ interface Props {
 const { transparent = false } = Astro.props;
 ---
 
-<header class={`nav-header ${transparent ? "transparent" : ""}`}>
+<header
+  class={`nav-header ${transparent ? "transparent" : ""}`}
+  id="main-nav-header"
+>
   <div class="container container--wide nav-container">
     {/* Left: Brand Logo */}
     <a href="/" class="logo-link" aria-label="Kaset Production Home">
@@ -122,17 +125,17 @@ const { transparent = false } = Astro.props;
 
 <script>
   function InitNavbar() {
-    const header = document.querySelector<HTMLElement>(".nav-header");
+    const header = document.querySelector<HTMLElement>("#main-nav-header");
 
     if (header) {
       const handleScroll = () => {
-        if (window.scrollY > 40) {
+        if (window.scrollY > 50) {
           header.classList.add("scrolled");
         } else {
           header.classList.remove("scrolled");
         }
       };
-      window.addEventListener("scroll", handleScroll);
+      window.addEventListener("scroll", handleScroll, { passive: true });
       handleScroll();
     }
 
@@ -180,6 +183,7 @@ const { transparent = false } = Astro.props;
 </script>
 
 <style>
+  /* ---------- Header Container ---------- */
   .nav-header {
     position: fixed;
     top: 0;
@@ -189,23 +193,45 @@ const { transparent = false } = Astro.props;
     z-index: 1000;
     transition:
       background-color var(--transition-normal),
+      border-color var(--transition-normal),
       backdrop-filter var(--transition-normal);
     background-color: var(--color-bg);
+    border-bottom: 1px solid var(--color-border);
   }
 
+  /* Transparent Mode (Over the dark hero video) */
   .nav-header.transparent {
     background-color: transparent;
+    border-bottom: 1px solid transparent;
   }
 
+  /* High-Contrast White Text over Video */
   .nav-header.transparent .nav-link,
   .nav-header.transparent .mobile-toggle {
-    color: var(--color-text);
+    color: #ffffff !important;
+    text-shadow: 0 1px 12px rgba(0, 0, 0, 0.7);
   }
 
+  .nav-header.transparent .nav-link:hover {
+    color: rgba(255, 255, 255, 0.75) !important;
+  }
+
+  /* Scrolled State (Over white content sections) */
   .nav-header.scrolled {
-    background-color: color-mix(in srgb, var(--color-bg) 90%, transparent);
+    background-color: rgba(255, 255, 255, 0.94);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .nav-header.scrolled .nav-link,
+  .nav-header.scrolled .mobile-toggle {
+    color: #000000 !important;
+    text-shadow: none;
+  }
+
+  .nav-header.scrolled .nav-link:hover {
+    color: rgba(0, 0, 0, 0.6) !important;
   }
 
   .nav-container {
@@ -220,10 +246,11 @@ const { transparent = false } = Astro.props;
     display: flex;
     align-items: center;
     flex-shrink: 0;
+    z-index: 2;
   }
 
   .logo-img {
-    height: 76px;
+    height: 52px;
     width: auto;
     display: block;
     transition: transform var(--transition-fast);
@@ -233,11 +260,13 @@ const { transparent = false } = Astro.props;
     transform: scale(1.02);
   }
 
+  /* ---------- Desktop Navigation ---------- */
   .nav-right-group {
     display: flex;
     align-items: center;
     gap: var(--space-2xl);
     margin-left: auto;
+    z-index: 2;
   }
 
   .desktop-nav {
@@ -288,19 +317,16 @@ const { transparent = false } = Astro.props;
     transform: rotate(180deg);
   }
 
-  .nav-link:hover {
-    color: var(--color-accent);
-  }
-
+  /* Dropdown (Always clean white card with dark text) */
   .dropdown {
     position: absolute;
     top: calc(100% + 4px);
     left: 50%;
     transform: translateX(-50%) translateY(8px);
-    background-color: var(--color-surface);
-    border: 1px solid var(--color-border);
+    background-color: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.1);
     border-radius: var(--radius-sm);
-    box-shadow: var(--shadow-lg);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
     list-style: none;
     padding: var(--space-xs);
     margin: 0;
@@ -311,7 +337,6 @@ const { transparent = false } = Astro.props;
       opacity var(--transition-fast),
       transform var(--transition-fast),
       visibility var(--transition-fast);
-    backdrop-filter: blur(8px);
   }
 
   .nav-item:hover .dropdown {
@@ -323,22 +348,23 @@ const { transparent = false } = Astro.props;
   .dropdown-link {
     display: block;
     padding: var(--space-xs) var(--space-md);
-    color: var(--color-text);
+    color: #000000 !important;
     text-decoration: none;
     font-size: 0.85rem;
     font-family: var(--font-heading);
     letter-spacing: 0.05em;
-    border-radius: var(--radius-sm);
+    text-shadow: none !important;
     transition:
       background-color var(--transition-fast),
       color var(--transition-fast);
   }
 
   .dropdown-link:hover {
-    background-color: var(--color-surface-elevated);
-    color: var(--color-accent);
+    background-color: #f5f5f5;
+    color: #666666 !important;
   }
 
+  /* ---------- Mobile Toggle & Drawer ---------- */
   .nav-actions {
     display: flex;
     align-items: center;
@@ -389,13 +415,12 @@ const { transparent = false } = Astro.props;
     bottom: -6px;
   }
 
-  /* Mobile Drawer */
   .mobile-menu {
     position: fixed;
     inset: 0;
     width: 100vw;
     height: 100dvh;
-    background-color: var(--color-bg);
+    background-color: #ffffff;
     z-index: 2000;
     display: flex;
     flex-direction: column;
@@ -424,7 +449,7 @@ const { transparent = false } = Astro.props;
   }
 
   .logo-img-mobile {
-    height: 76px;
+    height: 44px;
     width: auto;
   }
 
@@ -433,13 +458,9 @@ const { transparent = false } = Astro.props;
     border: none;
     font-size: 2.2rem;
     line-height: 1;
-    color: var(--color-text);
+    color: #000000;
     cursor: pointer;
     padding: var(--space-2xs);
-  }
-
-  .mobile-close:hover {
-    color: var(--color-accent);
   }
 
   .mobile-nav-list {
@@ -468,7 +489,7 @@ const { transparent = false } = Astro.props;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    color: var(--color-text);
+    color: #000000;
     text-decoration: none;
   }
 
@@ -512,7 +533,7 @@ const { transparent = false } = Astro.props;
 
   @media (max-width: 768px) {
     .logo-img {
-      height: 76px;
+      height: 42px;
     }
   }
 </style>
