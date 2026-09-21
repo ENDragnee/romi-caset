@@ -19,7 +19,7 @@ import SiteFooter from "../features/footer/components/site-footer.astro";
 ---
 
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -29,7 +29,7 @@ import SiteFooter from "../features/footer/components/site-footer.astro";
     <meta name="description" content={description} />
     <title>{title}</title>
 
-    {/* Astro View Transitions Engine */}
+    {/* Astro View Transitions */}
     <ClientRouter />
   </head>
 
@@ -48,8 +48,8 @@ import SiteFooter from "../features/footer/components/site-footer.astro";
       <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path
           d="M1.5 1.5L14 7L8 9L6 14.5L1.5 1.5Z"
-          fill="currentColor"
-          stroke="var(--color-bg)"
+          fill="#000000"
+          stroke="#ffffff"
           stroke-width="1"
           stroke-linejoin="round"></path>
       </svg>
@@ -180,11 +180,10 @@ import SiteFooter from "../features/footer/components/site-footer.astro";
 <style>
   .site-body {
     background-color: var(--color-bg);
+    color: var(--color-text);
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    margin: 0;
-    padding: 0;
   }
 
   main {

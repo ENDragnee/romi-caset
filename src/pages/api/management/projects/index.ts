@@ -31,6 +31,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         youtubeUrl: body.youtubeUrl || null,
         description: body.description || null,
         featured: Boolean(body.featured),
+        order: body.order !== undefined ? parseInt(body.order) : 0,
         thumbnail,
         gallery,
       },

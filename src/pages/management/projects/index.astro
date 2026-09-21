@@ -4,7 +4,7 @@ import ManagementLayout from "../../../features/management/components/management
 import ProjectsTable from "../../../features/management/components/projects-table.astro";
 
 const projects = await prisma.project.findMany({
-  orderBy: { createdAt: "desc" },
+  orderBy: [{ order: "asc" }],
 });
 ---
 

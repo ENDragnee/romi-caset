@@ -4,119 +4,203 @@ import ContactForm from "../features/contact/components/contact-form.astro";
 ---
 
 <BaseLayout title="Contact — Kaset Production">
-  <section class="section container contact-page">
-    <div class="content-wrapper">
-      {/* Clean Divider Header */}
-      <div class="divider hero-title-drop">
-        <span class="divider__label">Get In Touch</span>
+  <div class="contact-page-container">
+    {/* Top Statement & Representation Info */}
+    <div class="contact-hero-block content-rise-up">
+      <div class="word-title-group">
+        <h1 class="brand-title">kaset.</h1>
+        <span class="phonetic-tag">contact & representation</span>
+        <div class="header-divider"></div>
       </div>
 
-      {/* Grid */}
-      <div class="contact-grid content-rise-up">
-        <div class="contact-info">
-          <h1 class="contact-heading">Let's create something remarkable.</h1>
-          <p class="contact-text">
-            Whether you're looking to shoot a music video, commercial, or
-            narrative film, we'd love to hear about your project vision. Fill
-            out the inquiry form or reach out directly.
-          </p>
-
-          <div class="contact-direct-block">
-            <span class="direct-label">DIRECT INQUIRIES</span>
-            <a href="mailto:hello@kasetproduction.com" class="contact-link">
-              hello@kasetproduction.com
-            </a>
-          </div>
+      <div class="contact-editorial-grid">
+        <div class="editorial-col">
+          <span class="col-label">DIRECT INQUIRIES</span>
+          <a href="mailto:hello@kasetproduction.com" class="editorial-link"
+            >hello@kasetproduction.com</a
+          >
+          <a href="tel:0915949551" class="editorial-link">+251 91 594 9551</a>
         </div>
 
-        <div class="contact-form-wrapper">
-          <ContactForm />
+        <div class="editorial-col">
+          <span class="col-label">STUDIO & LOCATION</span>
+          <p class="editorial-text">
+            London, United Kingdom &bull; Available Worldwide
+          </p>
+          <p class="editorial-text muted">
+            Commercial &bull; Music Video &bull; Film
+          </p>
+        </div>
+
+        <div class="editorial-col">
+          <span class="col-label">SOCIAL ARCHIVE</span>
+          <div class="social-row">
+            <a
+              href="https://instagram.com"
+              target="_blank"
+              rel="noopener noreferrer">instagram</a
+            >
+            <span>/</span>
+            <a
+              href="https://vimeo.com"
+              target="_blank"
+              rel="noopener noreferrer">vimeo</a
+            >
+            <span>/</span>
+            <a
+              href="https://youtube.com"
+              target="_blank"
+              rel="noopener noreferrer">youtube</a
+            >
+          </div>
         </div>
       </div>
     </div>
-  </section>
+
+    {/* Form pushed to the end as secondary inquiry */}
+    <div class="contact-form-section content-rise-up">
+      <div class="form-section-header">
+        <div class="divider">
+          <span class="divider__label">Project Inquiry Form</span>
+        </div>
+      </div>
+
+      <div class="form-outer-wrapper">
+        <ContactForm />
+      </div>
+    </div>
+  </div>
 </BaseLayout>
 
 <style>
-  .contact-page {
-    padding-top: calc(var(--nav-height) + var(--space-2xl));
-    padding-bottom: var(--space-5xl);
-  }
-
-  .content-wrapper {
+  .contact-page-container {
     width: 100%;
     max-width: 960px;
     margin: 0 auto;
-    padding-inline: var(--space-md);
+    padding: calc(var(--nav-height) + var(--space-2xl)) var(--space-md)
+      var(--space-5xl);
     box-sizing: border-box;
-  }
-
-  .contact-grid {
-    display: grid;
-    grid-template-columns: 1fr 1.15fr;
+    display: flex;
+    flex-direction: column;
     gap: var(--space-4xl);
-    margin-top: var(--space-2xl);
   }
 
-  .contact-info {
+  /* Editorial Contact Header */
+  .contact-hero-block {
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    max-width: 440px;
+    gap: var(--space-xl);
   }
 
-  .contact-heading {
+  .brand-title {
     font-family: var(--font-heading);
-    font-size: clamp(2.2rem, 4vw, 3rem);
-    font-weight: 600;
-    line-height: 1.1;
-    margin: 0 0 var(--space-lg) 0;
+    font-size: clamp(2.5rem, 5vw, 3.5rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
     color: var(--color-text);
-    text-transform: uppercase;
-    letter-spacing: -0.01em;
+    margin: 0;
+    line-height: 1;
   }
 
-  .contact-text {
-    font-size: 0.95rem;
-    line-height: 1.7;
+  .phonetic-tag {
+    font-family: var(--font-body);
+    font-size: 0.9rem;
     color: var(--color-text-muted);
-    margin: 0 0 var(--space-2xl) 0;
+    letter-spacing: 0.05em;
   }
 
-  .contact-direct-block {
+  .header-divider {
+    width: 100%;
+    height: 1px;
+    background-color: var(--color-border);
+    margin-top: var(--space-md);
+  }
+
+  /* 3-Column Info Row */
+  .contact-editorial-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-2xl);
+  }
+
+  .editorial-col {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    padding-top: var(--space-lg);
-    border-top: 1px solid var(--color-border);
+    gap: var(--space-xs);
   }
 
-  .direct-label {
+  .col-label {
     font-family: var(--font-heading);
-    font-size: 0.7rem;
-    font-weight: 600;
+    font-size: 0.725rem;
+    font-weight: 700;
     letter-spacing: 0.15em;
     text-transform: uppercase;
-    color: var(--color-text-muted);
-  }
-
-  .contact-link {
     color: var(--color-text);
-    font-family: var(--font-heading);
-    font-size: 1.15rem;
-    font-weight: 600;
-    text-decoration: none;
-    transition: color var(--transition-fast);
+    margin-bottom: 2px;
   }
 
-  .contact-link:hover {
-    color: var(--color-accent);
+  .editorial-link {
+    font-size: 0.95rem;
+    color: var(--color-text);
+    text-decoration: none;
+    font-weight: 500;
+    transition: opacity var(--transition-fast);
+  }
+
+  .editorial-link:hover {
+    opacity: 0.6;
+  }
+
+  .editorial-text {
+    font-size: 0.95rem;
+    color: var(--color-text);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .editorial-text.muted {
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+  }
+
+  .social-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+
+  .social-row a {
+    color: var(--color-text);
+    text-decoration: none;
+  }
+
+  .social-row a:hover {
+    opacity: 0.6;
+  }
+
+  .social-row span {
+    color: var(--color-border);
+  }
+
+  /* Form pushed to the bottom */
+  .contact-form-section {
+    width: 100%;
+    padding-top: var(--space-xl);
+  }
+
+  .form-outer-wrapper {
+    max-width: 640px;
+    margin: var(--space-2xl) auto 0;
   }
 
   @media (max-width: 768px) {
-    .contact-grid {
+    .contact-editorial-grid {
       grid-template-columns: 1fr;
-      gap: var(--space-3xl);
+      gap: var(--space-xl);
     }
   }
 </style>

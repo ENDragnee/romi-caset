@@ -1,8 +1,8 @@
 /* ==========================================================================
-   Global Styles — Kaset Production
+   Global Styles — Kaset Production (Monochrome Minimalist)
    ========================================================================== */
 
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700;800&display=swap");
 @import "./theme.css";
 
 /* ---------- Reset ---------- */
@@ -17,6 +17,8 @@
 html {
   font-size: 16px;
   scroll-behavior: smooth;
+  background-color: var(--color-bg);
+  color: var(--color-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -27,9 +29,6 @@ body {
   color: var(--color-text);
   line-height: 1.6;
   min-height: 100vh;
-  transition:
-    background-color var(--transition-theme),
-    color var(--transition-theme);
   overflow-x: hidden;
 }
 
@@ -43,31 +42,17 @@ h6 {
   font-family: var(--font-heading);
   font-weight: 600;
   line-height: 1.15;
-  letter-spacing: 0.01em;
-}
-
-h1 {
-  font-size: clamp(2rem, 5vw, 3.5rem);
-}
-h2 {
-  font-size: clamp(1.5rem, 3.5vw, 2.25rem);
-}
-h3 {
-  font-size: clamp(1.125rem, 2.5vw, 1.5rem);
-}
-
-p {
-  max-width: 65ch;
+  color: var(--color-text);
 }
 
 a {
-  color: var(--color-accent);
+  color: var(--color-text);
   text-decoration: none;
-  transition: color var(--transition-fast);
+  transition: opacity var(--transition-fast);
 }
 
 a:hover {
-  color: var(--color-accent-hover);
+  opacity: 0.65;
 }
 
 img,
@@ -77,32 +62,7 @@ video {
   display: block;
 }
 
-button {
-  font-family: inherit;
-  border: none;
-  background: none;
-  cursor: pointer;
-  color: inherit;
-}
-
-/* ---------- Utility: Container ---------- */
-.container {
-  width: 100%;
-  max-width: var(--container-max);
-  margin-inline: auto;
-  padding-inline: var(--space-lg);
-}
-
-.container--wide {
-  max-width: var(--container-wide);
-}
-
-/* ---------- Utility: Section ---------- */
-.section {
-  padding-block: var(--space-4xl);
-}
-
-/* ---------- Utility: Divider with centered label ---------- */
+/* ---------- Utility: Divider ---------- */
 .divider {
   display: flex;
   align-items: center;
@@ -121,97 +81,21 @@ button {
 .divider__label {
   font-family: var(--font-heading);
   font-size: 0.85rem;
-  font-weight: 500;
-  letter-spacing: 0.2em;
+  font-weight: 600;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: var(--color-text-muted);
+  color: var(--color-text);
   white-space: nowrap;
 }
 
-/* ---------- Animations ---------- */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(24px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.animate-in {
-  opacity: 0;
-  animation: fadeInUp 0.7s var(--transition-slow) forwards;
-}
-
-.animate-fade {
-  opacity: 0;
-  animation: fadeIn 0.6s ease forwards;
-}
-
-.animate-scale {
-  opacity: 0;
-  animation: scaleIn 0.5s ease forwards;
-}
-
-/* Staggered delays for grid children */
-.stagger-1 {
-  animation-delay: 0.05s;
-}
-.stagger-2 {
-  animation-delay: 0.1s;
-}
-.stagger-3 {
-  animation-delay: 0.15s;
-}
-.stagger-4 {
-  animation-delay: 0.2s;
-}
-.stagger-5 {
-  animation-delay: 0.25s;
-}
-.stagger-6 {
-  animation-delay: 0.3s;
-}
-.stagger-7 {
-  animation-delay: 0.35s;
-}
-.stagger-8 {
-  animation-delay: 0.4s;
-}
-.stagger-9 {
-  animation-delay: 0.45s;
-}
-
-/* ---------- Custom Cursor (Sleek Pointer & Velocity Blur) ---------- */
+/* ---------- Custom Cursor (Monochrome) ---------- */
 .custom-cursor {
   position: fixed;
   width: 22px;
   height: 22px;
-  border: 1.5px solid var(--color-accent);
-  background-color: color-mix(in srgb, var(--color-accent) 10%, transparent);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--color-accent) 30%, transparent);
+  border: 1.5px solid #000000;
+  background-color: rgba(0, 0, 0, 0.05);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   border-radius: 50%;
   pointer-events: none;
   transform: translate(-50%, -50%);
@@ -219,24 +103,19 @@ button {
     width var(--transition-normal),
     height var(--transition-normal),
     border-color var(--transition-normal),
-    background-color var(--transition-normal),
     opacity var(--transition-normal);
   z-index: 2147483646 !important;
   opacity: 0;
   will-change: transform, left, top, filter;
 }
 
-/* Slick Custom Pointer Arrow */
 .custom-cursor--pointer {
   position: fixed;
   width: 14px;
   height: 14px;
-  color: var(--color-accent);
+  color: #000000;
   pointer-events: none;
-  transform: translate(
-    -2px,
-    -2px
-  ); /* Aligns arrow tip directly under mouse coordinate */
+  transform: translate(-2px, -2px);
   z-index: 2147483647 !important;
   opacity: 0;
   transition: opacity var(--transition-normal);
@@ -247,7 +126,6 @@ button {
   width: 100%;
   height: 100%;
   display: block;
-  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.4));
 }
 
 .custom-cursor--visible,
@@ -255,21 +133,13 @@ button {
   opacity: 1;
 }
 
-/* Hover state on clickable elements */
 .custom-cursor--hover {
   width: 38px;
   height: 38px;
-  border-color: var(--color-accent-secondary, #d4af37);
-  background-color: color-mix(
-    in srgb,
-    var(--color-accent-secondary, #d4af37) 18%,
-    transparent
-  );
-  box-shadow: 0 0 16px
-    color-mix(in srgb, var(--color-accent-secondary, #d4af37) 35%, transparent);
+  border-color: #000000;
+  background-color: rgba(0, 0, 0, 0.12);
 }
 
-/* Only hide default cursor when custom cursor is active on fine pointers */
 @media (pointer: fine) {
   body.has-custom-cursor,
   body.has-custom-cursor a,
@@ -278,7 +148,6 @@ button {
     cursor: none !important;
   }
 
-  /* Restore native cursor over video players and iframes */
   body.has-custom-cursor .video-container,
   body.has-custom-cursor .video-container *,
   body.has-custom-cursor iframe {
@@ -293,59 +162,30 @@ button {
   }
 }
 
-/* ---------- Accessibility ---------- */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border-width: 0;
-}
-
-/* ---------- Selection ---------- */
+/* ---------- Selection & Scrollbar ---------- */
 ::selection {
-  background: var(--color-accent);
-  color: var(--color-bg);
+  background: #000000;
+  color: #ffffff;
 }
 
-/* ---------- Scrollbar ---------- */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--color-bg);
+  background: #ffffff;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: var(--radius-full);
+  background: #d4d4d4;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-accent);
+  background: #000000;
 }
 
-/* ==========================================================================
-   Page Transitions & Dramatic Drop-In Animations (Reference Match)
-   ========================================================================== */
-
+/* ---------- View Transition Animations ---------- */
 @keyframes dropDownTitle {
   0% {
     opacity: 0;
-    transform: translateY(-80px) scale(0.96);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes riseUpContent {
-  0% {
-    opacity: 0;
-    transform: translateY(40px);
+    transform: translateY(-50px);
   }
   100% {
     opacity: 1;
@@ -353,43 +193,23 @@ button {
   }
 }
 
-/* Big Title Descending from Top */
+@keyframes riseUpContent {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .hero-title-drop {
   opacity: 0;
-  animation: dropDownTitle 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards;
-  will-change: transform, opacity;
+  animation: dropDownTitle 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards;
 }
 
-/* Page content rising simultaneously */
 .content-rise-up {
   opacity: 0;
-  animation: riseUpContent 0.85s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
-  will-change: transform, opacity;
-}
-
-/* Smooth View Transitions cross-fade & slide */
-::view-transition-old(root) {
-  animation: 0.35s cubic-bezier(0.4, 0, 1, 1) both fadeOut;
-}
-
-::view-transition-new(root) {
-  animation: 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both fadeIn;
-}
-
-@keyframes fadeOut {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  animation: riseUpContent 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
 }

@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 
 const categoryProjects = await prisma.project.findMany({
   where: { category: "MUSICVIDEO" },
-  orderBy: { createdAt: "desc" },
+  orderBy: [{ order: "asc" }, { title: "desc" }, { createdAt: "desc" }],
 });
 ---
 

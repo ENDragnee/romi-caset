@@ -11,6 +11,7 @@ interface Props {
     year: number | null;
     featured: boolean;
     thumbnail: string | null;
+    order?: number;
   }>;
 }
 
@@ -43,10 +44,19 @@ const { projects } = Astro.props;
       </div>
     ) : (
       <div class="table-card">
+        <div class="table-toolbar">
+          <span class="table-help-hint">
+            Tip: Drag <strong>⋮⋮</strong>, type numbers, or click ▲/▼ to freely
+            rearrange order.
+          </span>
+          <span id="reorder-status-badge" class="reorder-status-badge" />
+        </div>
+
         <div class="table-container">
-          <table class="projects-table">
+          <table class="projects-table" id="projects-table">
             <thead>
               <tr>
+                <th class="th-order">Order</th>
                 <th class="th-media">Asset</th>
                 <th>Project Details</th>
                 <th>Client</th>
@@ -56,9 +66,13 @@ const { projects } = Astro.props;
                 <th class="th-actions">Actions</th>
               </tr>
             </thead>
-            <tbody>
-              {projects.map((project) => (
-                <ProjectRow project={project} />
+            <tbody id="projects-tbody">
+              {projects.map((project, index) => (
+                <ProjectRow
+                  project={project}
+                  index={index}
+                  total={projects.length}
+                />
               ))}
             </tbody>
           </table>
@@ -69,37 +83,214 @@ const { projects } = Astro.props;
 </div>
 
 <script>
-  const deleteBtns = document.querySelectorAll<HTMLButtonElement>(
-    ".delete-project-btn",
-  );
-  deleteBtns.forEach((btn) => {
-    btn.addEventListener("click", async (e) => {
-      e.stopPropagation();
-      const id = btn.dataset.id;
-      if (!id) return;
+  function InitTableReordering() {
+    const tbodyEl =
+      document.querySelector<HTMLTableSectionElement>("#projects-tbody");
+    const statusBadge = document.querySelector<HTMLElement>(
+      "#reorder-status-badge",
+    );
+    if (!tbodyEl) return;
 
-      if (
-        confirm("Are you sure you want to permanently delete this project?")
-      ) {
-        try {
-          const res = await fetch(`/api/management/projects/${id}`, {
-            method: "DELETE",
-          });
-          if (res.ok) {
-            window.location.reload();
-          } else {
-            alert("Failed to delete project");
-          }
-        } catch {
-          alert("Error deleting project");
-        }
+    // Preserve non-null narrowing across inner closures
+    const tbody = tbodyEl;
+
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    let draggedRow: HTMLTableRowElement | null = null;
+
+    // Update displayed index numbers & input values optimistically
+    function updateIndices() {
+      const rows = Array.from(
+        tbody.querySelectorAll<HTMLTableRowElement>(".project-row"),
+      );
+      rows.forEach((row, idx) => {
+        const orderInput = row.querySelector<HTMLInputElement>(".order-input");
+        if (orderInput) orderInput.value = String(idx + 1);
+        row.dataset.order = String(idx + 1);
+      });
+    }
+
+    // Debounced batch sync to backend (600ms)
+    function triggerSaveDebounced() {
+      updateIndices();
+
+      if (statusBadge) {
+        statusBadge.textContent = "Saving order...";
+        statusBadge.className = "reorder-status-badge saving";
       }
+
+      if (debounceTimer) clearTimeout(debounceTimer);
+
+      debounceTimer = setTimeout(async () => {
+        const rows = Array.from(
+          tbody.querySelectorAll<HTMLTableRowElement>(".project-row"),
+        );
+        const items = rows.map((r, i) => ({
+          id: r.dataset.projectId || "",
+          order: i + 1,
+        }));
+
+        try {
+          const res = await fetch("/api/management/projects/reorder", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ items }),
+          });
+
+          if (res.ok && statusBadge) {
+            statusBadge.textContent = "✓ Order saved";
+            statusBadge.className = "reorder-status-badge saved";
+            setTimeout(() => {
+              if (statusBadge) statusBadge.textContent = "";
+            }, 2200);
+          }
+        } catch (err) {
+          console.error("Failed to save reorder:", err);
+          if (statusBadge) {
+            statusBadge.textContent = "Failed to save order";
+            statusBadge.className = "reorder-status-badge error";
+          }
+        }
+      }, 600);
+    }
+
+    // 1. Up / Down Move Buttons (Optimistic DOM Swap + Debounce)
+    tbody.querySelectorAll<HTMLButtonElement>(".btn-order").forEach((btn) => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        const action = btn.dataset.action;
+        const row = btn.closest<HTMLTableRowElement>(".project-row");
+        if (!row) return;
+
+        if (action === "up") {
+          const prev = row.previousElementSibling as HTMLTableRowElement | null;
+          if (prev) {
+            tbody.insertBefore(row, prev);
+            triggerSaveDebounced();
+          }
+        } else if (action === "down") {
+          const next = row.nextElementSibling as HTMLTableRowElement | null;
+          if (next) {
+            tbody.insertBefore(next, row);
+            triggerSaveDebounced();
+          }
+        }
+      };
     });
-  });
+
+    // 2. Direct Order Number Change (Jump N positions up/down)
+    tbody
+      .querySelectorAll<HTMLInputElement>(".order-input")
+      .forEach((input) => {
+        const handleJump = () => {
+          const row = input.closest<HTMLTableRowElement>(".project-row");
+          if (!row) return;
+
+          const targetPos = parseInt(input.value, 10);
+          const rows = Array.from(
+            tbody.querySelectorAll<HTMLTableRowElement>(".project-row"),
+          );
+          const maxPos = rows.length;
+
+          if (isNaN(targetPos) || targetPos < 1 || targetPos > maxPos) {
+            updateIndices();
+            return;
+          }
+
+          const targetIdx = targetPos - 1;
+          const currentIdx = rows.indexOf(row);
+          if (targetIdx === currentIdx) return;
+
+          if (targetIdx === 0) {
+            tbody.insertBefore(row, tbody.firstElementChild);
+          } else if (targetIdx >= maxPos - 1) {
+            tbody.appendChild(row);
+          } else {
+            const refRow =
+              targetIdx > currentIdx
+                ? rows[targetIdx].nextElementSibling
+                : rows[targetIdx];
+            tbody.insertBefore(row, refRow);
+          }
+
+          triggerSaveDebounced();
+        };
+
+        input.onkeydown = (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            input.blur();
+          }
+        };
+
+        input.onchange = handleJump;
+      });
+
+    // 3. Native Drag and Drop
+    tbody
+      .querySelectorAll<HTMLTableRowElement>(".project-row")
+      .forEach((row) => {
+        row.ondragstart = (e) => {
+          draggedRow = row;
+          row.classList.add("dragging");
+          if (e.dataTransfer) {
+            e.dataTransfer.effectAllowed = "move";
+            e.dataTransfer.setData("text/plain", row.dataset.projectId || "");
+          }
+        };
+
+        row.ondragover = (e) => {
+          e.preventDefault();
+          if (!draggedRow || draggedRow === row) return;
+
+          const bounding = row.getBoundingClientRect();
+          const offset = e.clientY - bounding.top;
+          const isAfter = offset > bounding.height / 2;
+
+          if (isAfter) {
+            tbody.insertBefore(draggedRow, row.nextSibling);
+          } else {
+            tbody.insertBefore(draggedRow, row);
+          }
+        };
+
+        row.ondragend = () => {
+          row.classList.remove("dragging");
+          draggedRow = null;
+          triggerSaveDebounced();
+        };
+      });
+
+    // Delete Handlers
+    tbody
+      .querySelectorAll<HTMLButtonElement>(".delete-project-btn")
+      .forEach((btn) => {
+        btn.onclick = async (e) => {
+          e.stopPropagation();
+          const id = btn.dataset.id;
+          if (!id) return;
+
+          if (
+            confirm("Are you sure you want to permanently delete this project?")
+          ) {
+            try {
+              const res = await fetch(`/api/management/projects/${id}`, {
+                method: "DELETE",
+              });
+              if (res.ok) window.location.reload();
+              else alert("Failed to delete project");
+            } catch {
+              alert("Error deleting project");
+            }
+          }
+        };
+      });
+  }
+
+  InitTableReordering();
+  document.addEventListener("astro:page-load", InitTableReordering);
 </script>
 
 <style>
-  /* Empty State */
   .empty-state {
     background-color: var(--color-surface);
     border: 1px dashed var(--color-border);
@@ -148,21 +339,50 @@ const { projects } = Astro.props;
     font-weight: 500;
     font-size: 0.9rem;
     text-decoration: none;
-    transition: all var(--transition-fast);
   }
 
-  .btn-secondary:hover {
-    background-color: var(--color-surface-elevated);
-    border-color: var(--color-accent);
-  }
-
-  /* Table Card */
   .table-card {
     background-color: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-xl);
     overflow: hidden;
     box-shadow: var(--shadow-sm);
+  }
+
+  .table-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-sm) var(--space-lg);
+    background-color: color-mix(
+      in srgb,
+      var(--color-surface) 50%,
+      var(--color-bg)
+    );
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .table-help-hint {
+    font-size: 0.775rem;
+    color: var(--color-text-muted);
+  }
+
+  .reorder-status-badge {
+    font-family: var(--font-heading);
+    font-size: 0.775rem;
+    font-weight: 600;
+  }
+
+  .reorder-status-badge.saving {
+    color: var(--color-text-muted);
+  }
+
+  .reorder-status-badge.saved {
+    color: #10b981;
+  }
+
+  .reorder-status-badge.error {
+    color: #ef4444;
   }
 
   .table-container {
@@ -191,6 +411,10 @@ const { projects } = Astro.props;
       var(--color-surface) 70%,
       var(--color-bg)
     );
+  }
+
+  .th-order {
+    width: 100px;
   }
 
   .th-media {

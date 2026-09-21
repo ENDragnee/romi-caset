@@ -4,7 +4,7 @@ import ProjectGrid from "../../features/portfolio/components/project-grid.astro"
 import { prisma } from "@/lib/prisma";
 
 const allProjects = await prisma.project.findMany({
-  orderBy: { createdAt: "desc" },
+  orderBy: [{ order: "asc" }, { title: "desc" }, { createdAt: "desc" }],
 });
 
 const categories = [
@@ -35,7 +35,7 @@ const categories = [
         </nav>
       </div>
 
-      {/* Reactive Project Grid */}
+      {/* Project Grid */}
       <div class="content-rise-up">
         <ProjectGrid projects={allProjects} />
       </div>
@@ -55,7 +55,6 @@ const categories = [
     function filterCategory(targetCategory: string) {
       const normalizedTarget = (targetCategory || "ALL").trim().toUpperCase();
 
-      // 1. Update Tab Buttons
       tabBtns.forEach((btn) => {
         const btnCat = (btn.dataset.category || "").trim().toUpperCase();
         if (btnCat === normalizedTarget) {
@@ -65,7 +64,6 @@ const categories = [
         }
       });
 
-      // 2. Grey out / Spotlight Grid Items
       gridItems.forEach((item) => {
         const itemCat = (item.dataset.category || "").trim().toUpperCase();
         const isMatch =
@@ -79,7 +77,6 @@ const categories = [
       });
     }
 
-    // Attach click events
     tabBtns.forEach((btn) => {
       btn.onclick = (e) => {
         e.preventDefault();
@@ -96,7 +93,6 @@ const categories = [
       };
     });
 
-    // Check URL parameters on initial load / navigation
     const currentParams = new URLSearchParams(window.location.search);
     const initialCategory = currentParams.get("category");
     if (initialCategory) {
@@ -123,7 +119,6 @@ const categories = [
     box-sizing: border-box;
   }
 
-  /* Category Tabs */
   .portfolio-tabs-container {
     display: flex;
     justify-content: center;
@@ -146,7 +141,7 @@ const categories = [
     display: none;
   }
 
-  /* Non-selected tabs are greyed out */
+  /* Non-selected tabs are greyed out in Light theme */
   .tab-btn {
     background: transparent;
     border: none;
@@ -156,7 +151,7 @@ const categories = [
     font-weight: 500;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.35); /* Greyed out default */
+    color: #999999; /* Greyed out in light mode */
     padding: var(--space-2xs) var(--space-xs);
     white-space: nowrap;
     position: relative;
@@ -164,13 +159,13 @@ const categories = [
   }
 
   .tab-btn:hover {
-    color: rgba(255, 255, 255, 0.75);
+    color: #333333;
   }
 
-  /* Active selected tab is highlighted white */
+  /* Active selected tab is pure black */
   .tab-btn.active {
-    color: #ffffff;
-    font-weight: 600;
+    color: #000000;
+    font-weight: 700;
   }
 
   .tab-btn.active::after {
@@ -180,7 +175,7 @@ const categories = [
     left: 0;
     width: 100%;
     height: 1.5px;
-    background-color: var(--color-accent);
+    background-color: #000000;
   }
 
   @media (max-width: 768px) {
@@ -188,11 +183,6 @@ const categories = [
       gap: var(--space-lg);
       justify-content: flex-start;
       padding-inline: var(--space-xs);
-    }
-
-    .tab-btn {
-      font-size: 0.85rem;
-      letter-spacing: 0.08em;
     }
   }
 </style>
