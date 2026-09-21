@@ -4,7 +4,7 @@ import ProjectGrid from "../../features/portfolio/components/project-grid.astro"
 import { prisma } from "@/lib/prisma";
 
 const allProjects = await prisma.project.findMany({
-  orderBy: [{ order: "asc" }, { title: "desc" }, { createdAt: "desc" }],
+  orderBy: [{ order: "asc" }, { createdAt: "desc" }],
 });
 
 const categories = [

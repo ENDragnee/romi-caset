@@ -12,21 +12,25 @@ export const POST: APIRoute = async ({ request, locals }) => {
   try {
     const { items } = await request.json(); // Array of { id: string, order: number }
 
-    if (!Array.isArray(items)) {
+    if (!Array.isArray(items) || items.length === 0) {
       return new Response(JSON.stringify({ message: "items array required" }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    // Execute atomic update transaction
+    // Execute in parallel with increased timeout buffer
     await prisma.$transaction(
       items.map((item) =>
         prisma.project.update({
           where: { id: item.id },
-          data: { order: item.order },
+          data: { order: Number(item.order) },
         }),
       ),
+      {
+        timeout: 15000, // 15 seconds for remote cloud database latency
+        maxWait: 10000,
+      },
     );
 
     return new Response(JSON.stringify({ success: true }), {

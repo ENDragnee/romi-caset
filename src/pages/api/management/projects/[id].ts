@@ -25,7 +25,7 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
         ? body.thumbnailKey
         : body.thumbnail !== undefined
           ? body.thumbnail
-          : null;
+          : undefined;
 
     const gallery = Array.isArray(body.galleryKeys)
       ? body.galleryKeys
@@ -33,21 +33,29 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
         ? body.gallery
         : undefined;
 
+    // Only update order if explicitly passed as a valid number
+    const orderUpdate =
+      body.order !== undefined &&
+      body.order !== null &&
+      !isNaN(Number(body.order))
+        ? { order: Number(body.order) }
+        : {};
+
     const project = await prisma.project.update({
       where: { id },
       data: {
         title: body.title,
         slug: body.slug,
-        client: body.client || "",
+        client: body.client ?? "",
         category: body.category,
         cardType: body.cardType || "WIDE",
-        year: body.year ? parseInt(body.year) : null,
+        year: body.year ? Number(body.year) : null,
         youtubeUrl: body.youtubeUrl || null,
         description: body.description || null,
         featured: Boolean(body.featured),
-        order: body.order !== undefined ? parseInt(body.order) : 0,
-        thumbnail,
-        ...(gallery ? { gallery } : {}),
+        ...(thumbnail !== undefined ? { thumbnail } : {}),
+        ...(gallery !== undefined ? { gallery } : {}),
+        ...orderUpdate, // Preserves original order if not changed
       },
     });
 

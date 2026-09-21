@@ -11,7 +11,7 @@ const project = await prisma.project.findUnique({
 if (!project) return Astro.redirect("/portfolio");
 
 const headerTitle = project.client
-  ? `'${project.title.toLowerCase()}' by ${project.client.toLowerCase()}`
+  ? `'${project.title.toLowerCase()}'`
   : `'${project.title.toLowerCase()}'`;
 ---
 
