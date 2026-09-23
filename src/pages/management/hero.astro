@@ -1,0 +1,653 @@
+---
+import { prisma } from "@/lib/prisma";
+import ManagementLayout from "../../features/management/components/management-layout.astro";
+import MediaPickerModal from "../../features/management/components/media-picker-modal.astro";
+
+const heroVideos = await prisma.heroVideo.findMany({
+  orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+});
+---
+
+<ManagementLayout title="Hero Video Reels" currentPath="/management/hero">
+  <div class="hero-mgmt-wrapper">
+    <div class="mgmt-header-row">
+      <div>
+        <p class="section-subtitle">
+          Upload and sequence background video reels that stream on the homepage
+          carousel. ({heroVideos.length} clips)
+        </p>
+      </div>
+
+      <div class="header-action-group">
+        <span id="reorder-status-badge" class="reorder-status-badge"></span>
+        <button type="button" id="add-hero-video-btn" class="btn-primary">
+          <svg
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            ><line x1="12" y1="5" x2="12" y2="19"></line><line
+              x1="5"
+              y1="12"
+              x2="19"
+              y2="12"></line></svg
+          >
+          <span>Add Hero Video</span>
+        </button>
+      </div>
+    </div>
+
+    {
+      heroVideos.length === 0 ? (
+        <div class="empty-state">
+          <div class="empty-icon-circle">
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <polygon points="5 3 19 12 5 21 5 3" />
+            </svg>
+          </div>
+          <h3>No hero reels attached yet</h3>
+          <p>
+            The homepage is currently playing the local fallback video. Upload
+            or select MP4 reels from your cloud storage.
+          </p>
+          <button type="button" class="btn-secondary" id="empty-add-btn">
+            Select Hero Video
+          </button>
+        </div>
+      ) : (
+        <div class="table-card">
+          <div class="table-container">
+            <table class="hero-table">
+              <thead>
+                <tr>
+                  <th class="th-order">Order</th>
+                  <th class="th-video">Video Preview</th>
+                  <th>Title / S3 Key</th>
+                  <th>Status</th>
+                  <th class="th-actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="hero-tbody">
+                {heroVideos.map((video, index) => (
+                  <tr
+                    class="hero-row"
+                    data-id={video.id}
+                    data-order={video.order}
+                  >
+                    {/* Reorder Buttons */}
+                    <td class="td-order">
+                      <div class="order-control-group">
+                        <span class="order-num">{index + 1}</span>
+                        <div class="order-btn-col">
+                          <button
+                            type="button"
+                            class="btn-order move-up"
+                            data-action="up"
+                            disabled={index === 0}
+                            title="Move Up"
+                          >
+                            ▲
+                          </button>
+                          <button
+                            type="button"
+                            class="btn-order move-down"
+                            data-action="down"
+                            disabled={index === heroVideos.length - 1}
+                            title="Move Down"
+                          >
+                            ▼
+                          </button>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Video Stream Preview */}
+                    <td>
+                      <div class="video-preview-box">
+                        <video
+                          src={`/api/media/${video.key}`}
+                          muted
+                          loop
+                          playsinline
+                          preload="metadata"
+                          onmouseenter="this.play()"
+                          onmouseleave="this.pause()"
+                        />
+                      </div>
+                    </td>
+
+                    {/* Metadata & Inline Rename */}
+                    <td>
+                      <div class="video-meta-cell">
+                        <input
+                          type="text"
+                          class="title-edit-input"
+                          value={video.title || "Hero Clip"}
+                          data-id={video.id}
+                        />
+                        <span class="s3-key-subtext">{video.key}</span>
+                      </div>
+                    </td>
+
+                    {/* Active Toggle Switch */}
+                    <td>
+                      <label class="toggle-switch">
+                        <input
+                          type="checkbox"
+                          class="active-toggle"
+                          data-id={video.id}
+                          checked={video.active}
+                        />
+                        <span class="toggle-slider" />
+                      </label>
+                    </td>
+
+                    {/* Delete */}
+                    <td>
+                      <div class="action-buttons">
+                        <button
+                          type="button"
+                          class="btn-icon-subtle delete-hero-btn"
+                          data-id={video.id}
+                          title="Remove hero clip"
+                        >
+                          <svg
+                            width="15"
+                            height="15"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                          >
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )
+    }
+  </div>
+
+  <MediaPickerModal />
+</ManagementLayout>
+
+<script>
+  function InitHeroManagement() {
+    const addBtn = document.querySelector<HTMLButtonElement>(
+      "#add-hero-video-btn",
+    );
+    const emptyAddBtn =
+      document.querySelector<HTMLButtonElement>("#empty-add-btn");
+    const tbodyEl =
+      document.querySelector<HTMLTableSectionElement>("#hero-tbody");
+    const statusBadge = document.querySelector<HTMLElement>(
+      "#reorder-status-badge",
+    );
+
+    const openPicker = () => {
+      window.dispatchEvent(
+        new CustomEvent("open-media-picker", {
+          detail: { target: "hero-video", multiple: false },
+        }),
+      );
+    };
+
+    addBtn?.addEventListener("click", openPicker);
+    emptyAddBtn?.addEventListener("click", openPicker);
+
+    // When asset selected in modal, create HeroVideo record
+    window.addEventListener("media-picker-selected", async (e: any) => {
+      const { target, items } = e.detail || {};
+      if (target === "hero-video" && items && items.length > 0) {
+        const item = items[0];
+        try {
+          const res = await fetch("/api/management/hero", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ key: item.key, title: item.filename }),
+          });
+          if (res.ok) window.location.reload();
+        } catch (err) {
+          console.error("Failed to add hero video", err);
+        }
+      }
+    });
+
+    if (!tbodyEl) return;
+    const tbody = tbodyEl; // Preserve non-null narrowing across inner closures
+
+    // Toggle Active Checkbox
+    tbody
+      .querySelectorAll<HTMLInputElement>(".active-toggle")
+      .forEach((chk) => {
+        chk.onchange = async () => {
+          const id = chk.dataset.id;
+          if (!id) return;
+          try {
+            await fetch(`/api/management/hero/${id}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ active: chk.checked }),
+            });
+          } catch (err) {
+            console.error("Failed to update status", err);
+          }
+        };
+      });
+
+    // Inline Rename on Blur
+    tbody
+      .querySelectorAll<HTMLInputElement>(".title-edit-input")
+      .forEach((inp) => {
+        inp.onchange = async () => {
+          const id = inp.dataset.id;
+          if (!id) return;
+          try {
+            await fetch(`/api/management/hero/${id}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ title: inp.value }),
+            });
+          } catch (err) {
+            console.error("Failed to rename hero clip", err);
+          }
+        };
+      });
+
+    // Delete Hero Clip
+    tbody
+      .querySelectorAll<HTMLButtonElement>(".delete-hero-btn")
+      .forEach((btn) => {
+        btn.onclick = async () => {
+          const id = btn.dataset.id;
+          if (!id) return;
+          if (confirm("Remove this video from the homepage hero carousel?")) {
+            try {
+              const res = await fetch(`/api/management/hero/${id}`, {
+                method: "DELETE",
+              });
+              if (res.ok) window.location.reload();
+            } catch {
+              alert("Error removing hero video");
+            }
+          }
+        };
+      });
+
+    // Reorder Handlers with Debounce
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+    function triggerReorder() {
+      if (statusBadge) {
+        statusBadge.textContent = "Saving order...";
+        statusBadge.className = "reorder-status-badge saving";
+      }
+
+      if (debounceTimer) clearTimeout(debounceTimer);
+
+      debounceTimer = setTimeout(async () => {
+        const rows = Array.from(
+          tbody.querySelectorAll<HTMLTableRowElement>(".hero-row"),
+        );
+        const items = rows.map((r, i) => ({
+          id: r.dataset.id || "",
+          order: i + 1,
+        }));
+
+        try {
+          const res = await fetch("/api/management/hero/reorder", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ items }),
+          });
+          if (res.ok) {
+            if (statusBadge) {
+              statusBadge.textContent = "✓ Saved";
+              statusBadge.className = "reorder-status-badge saved";
+              setTimeout(() => {
+                if (statusBadge) statusBadge.textContent = "";
+              }, 2000);
+            }
+          }
+        } catch (err) {
+          console.error("Reorder failed", err);
+        }
+      }, 500);
+    }
+
+    tbody.querySelectorAll<HTMLButtonElement>(".btn-order").forEach((btn) => {
+      btn.onclick = () => {
+        const action = btn.dataset.action;
+        const row = btn.closest<HTMLTableRowElement>(".hero-row");
+        if (!row) return;
+
+        if (action === "up") {
+          const prev = row.previousElementSibling as HTMLTableRowElement | null;
+          if (prev) {
+            tbody.insertBefore(row, prev);
+            triggerReorder();
+          }
+        } else if (action === "down") {
+          const next = row.nextElementSibling as HTMLTableRowElement | null;
+          if (next) {
+            tbody.insertBefore(next, row);
+            triggerReorder();
+          }
+        }
+      };
+    });
+  }
+
+  InitHeroManagement();
+  document.addEventListener("astro:page-load", InitHeroManagement);
+</script>
+
+<style>
+  .hero-mgmt-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+  }
+
+  .mgmt-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .section-subtitle {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    margin: 0;
+  }
+
+  .header-action-group {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+  }
+
+  .reorder-status-badge {
+    font-family: var(--font-heading);
+    font-size: 0.775rem;
+    font-weight: 600;
+  }
+  .reorder-status-badge.saving {
+    color: var(--color-text-muted);
+  }
+  .reorder-status-badge.saved {
+    color: #10b981;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    background-color: var(--color-accent);
+    color: var(--color-bg);
+    padding: 0.65rem 1.25rem;
+    border-radius: var(--radius-md);
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 0.9rem;
+    border: none;
+    cursor: pointer;
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    background-color: transparent;
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    padding: 0.65rem 1.25rem;
+    border-radius: var(--radius-md);
+    font-family: var(--font-heading);
+    font-weight: 500;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+
+  .empty-state {
+    background-color: var(--color-surface);
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-xl);
+    padding: var(--space-5xl) var(--space-xl);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .empty-icon-circle {
+    width: 64px;
+    height: 64px;
+    border-radius: var(--radius-full);
+    background-color: var(--color-surface-elevated);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-muted);
+  }
+
+  .empty-state h3 {
+    font-size: 1.25rem;
+    margin: 0;
+  }
+  .empty-state p {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    max-width: 500px;
+  }
+
+  .table-card {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+  }
+
+  .table-container {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .hero-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+  }
+
+  .hero-table th {
+    padding: var(--space-md) var(--space-lg);
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    font-family: var(--font-heading);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background-color: color-mix(
+      in srgb,
+      var(--color-surface) 70%,
+      var(--color-bg)
+    );
+  }
+
+  .hero-table td {
+    padding: var(--space-md) var(--space-lg);
+    border-bottom: 1px solid var(--color-border);
+    vertical-align: middle;
+  }
+
+  .th-order {
+    width: 80px;
+  }
+  .th-video {
+    width: 140px;
+  }
+  .th-actions {
+    text-align: right;
+    width: 80px;
+  }
+
+  .td-order {
+    width: 80px;
+  }
+
+  .order-control-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .order-num {
+    font-family: var(--font-heading);
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    min-width: 18px;
+    text-align: right;
+  }
+
+  .order-btn-col {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .btn-order {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 7px;
+    color: var(--color-text-muted);
+    padding: 2px 4px;
+    border-radius: 2px;
+  }
+  .btn-order:hover:not(:disabled) {
+    background-color: var(--color-accent);
+    color: var(--color-bg);
+  }
+
+  .video-preview-box {
+    width: 120px;
+    aspect-ratio: 16 / 9;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background-color: #000;
+    border: 1px solid var(--color-border);
+  }
+
+  .video-preview-box video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    cursor: pointer;
+  }
+
+  .video-meta-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .title-edit-input {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--color-text);
+    font-family: var(--font-heading);
+    font-size: 0.95rem;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    max-width: 320px;
+  }
+  .title-edit-input:hover {
+    border-color: var(--color-border);
+  }
+  .title-edit-input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    background: var(--color-bg);
+  }
+
+  .s3-key-subtext {
+    font-size: 0.725rem;
+    color: var(--color-text-muted);
+    font-family: monospace;
+  }
+
+  .toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 22px;
+  }
+  .toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  .toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background-color: var(--color-border);
+    transition: 0.3s;
+    border-radius: 34px;
+  }
+  .toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+  }
+  .toggle-switch input:checked + .toggle-slider {
+    background-color: var(--color-accent);
+  }
+  .toggle-switch input:checked + .toggle-slider:before {
+    transform: translateX(18px);
+  }
+
+  .btn-icon-subtle {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--color-text-muted);
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+  }
+  .btn-icon-subtle:hover {
+    color: #ef4444;
+    border-color: #ef4444;
+  }
+</style>

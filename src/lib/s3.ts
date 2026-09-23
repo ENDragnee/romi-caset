@@ -36,7 +36,6 @@ export const GetS3Client = (): S3Client => {
       secretAccessKey: secretKey.trim(),
     },
     forcePathStyle: true,
-    // CRITICAL for Backblaze B2: Disables auto-appended CRC32 checksums
     requestChecksumCalculation: "WHEN_REQUIRED",
     responseChecksumValidation: "WHEN_REQUIRED",
   });
@@ -69,11 +68,12 @@ export async function GetPresignedUploadUrl(
   });
 }
 
-/** Fetch an object from the private bucket */
-export async function GetObject(key: string) {
+/** Fetch an object from the bucket with optional HTTP Byte-Range support */
+export async function GetObject(key: string, range?: string) {
   const command = new GetObjectCommand({
     Bucket: bucket,
     Key: key,
+    ...(range ? { Range: range } : {}),
   });
   return s3.send(command);
 }

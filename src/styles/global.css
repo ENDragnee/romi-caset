@@ -30,6 +30,13 @@ body {
   line-height: 1.6;
   min-height: 100vh;
   overflow-x: hidden;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
 }
 
 /* ---------- Typography ---------- */

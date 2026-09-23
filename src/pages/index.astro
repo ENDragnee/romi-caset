@@ -5,6 +5,18 @@ import Preloader from "../features/hero/components/preloader.astro";
 import ProjectGrid from "../features/portfolio/components/project-grid.astro";
 import { prisma } from "@/lib/prisma";
 
+// 1. Fetch active hero video reels from cloud storage in custom order
+const heroVideoRecords = await prisma.heroVideo.findMany({
+  where: { active: true },
+  orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+});
+
+const heroVideoUrls =
+  heroVideoRecords.length > 0
+    ? heroVideoRecords.map((v) => `/api/media/${v.key}`)
+    : ["/videos/hero-video.mp4"]; // Local fallback if no cloud reels are active
+
+// 2. Fetch featured portfolio projects in custom order
 const featuredProjects = await prisma.project.findMany({
   where: { featured: true },
   take: 6,
@@ -13,16 +25,16 @@ const featuredProjects = await prisma.project.findMany({
 ---
 
 <BaseLayout title="Kaset Production" transparentNav={true}>
-  {/* 5-Second Buffer Preloader */}
+  {/* 5-Second 3D ROMI Buffer Preloader */}
   <Preloader />
 
   <div class="homepage-curtain-wrapper">
-    {/* Pinned Hero Section */}
+    {/* Pinned Sticky Hero Section */}
     <div class="sticky-hero-container" id="hero-wrapper">
-      <HeroVideo />
+      <HeroVideo videos={heroVideoUrls} />
     </div>
 
-    {/* Rising Featured Section */}
+    {/* Rising Featured Section (Smoothly overlaps hero on scroll) */}
     <section class="section featured-section" id="featured-section">
       <div class="content-wrapper">
         <div class="divider hero-title-drop">
@@ -37,7 +49,7 @@ const featuredProjects = await prisma.project.findMany({
           <a href="/portfolio" class="view-all-link">View All Work →</a>
         </div>
 
-        {/* Reverted Minimal Up-Navigation Cue */}
+        {/* Minimalist Return-to-Hero Cue */}
         <div class="return-hero-wrapper">
           <button
             id="scroll-to-hero-btn"
@@ -158,7 +170,7 @@ const featuredProjects = await prisma.project.findMany({
     width: 100%;
   }
 
-  /* ---------- Minimal Up-Navigation to Hero ---------- */
+  /* Minimal Up-Navigation to Hero */
   .return-hero-wrapper {
     display: flex;
     justify-content: center;

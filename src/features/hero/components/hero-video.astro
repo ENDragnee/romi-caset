@@ -10,7 +10,7 @@ const hasMultiple = videos.length > 1;
 ---
 
 <section class="hero-section" id="hero-section" data-videos={initialVideosJson}>
-  {/* Dual video elements for seamless zero-flicker cross-fades */}
+  {/* Dual video buffers for seamless zero-flicker cross-fades */}
   <div class="video-crossfade-stage">
     <video
       id="hero-video-a"
@@ -39,9 +39,10 @@ const hasMultiple = videos.length > 1;
     }
   </div>
 
-  {/* Clean, subtle uniform overlay — NO bottom fade to black */}
+  {/* Clean, subtle uniform film overlay without bottom fade */}
   <div class="hero-overlay"></div>
 
+  {/* Multi-video carousel index badge */}
   {
     hasMultiple && (
       <div id="video-carousel-indicator" class="video-carousel-indicator">
