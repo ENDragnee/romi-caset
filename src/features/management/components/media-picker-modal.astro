@@ -4,7 +4,6 @@
 
 <dialog id="media-picker-modal" class="modal">
   <div class="modal-content">
-    <!-- Modal Header -->
     <div class="modal-header">
       <div>
         <h2 id="picker-title">Select Assets for Project</h2>
@@ -19,9 +18,7 @@
       >
     </div>
 
-    <!-- Modal Body -->
     <div class="modal-body">
-      <!-- Toolbar & Upload Progress -->
       <div class="media-picker-toolbar">
         <button type="button" id="upload-new-btn" class="btn-secondary btn-sm">
           <svg
@@ -31,11 +28,13 @@
             fill="none"
             stroke="currentColor"
             stroke-width="2"
+            ><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+            ></path><polyline points="17 8 12 3 7 8"></polyline><line
+              x1="12"
+              y1="3"
+              x2="12"
+              y2="15"></line></svg
           >
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="17 8 12 3 7 8"></polyline>
-            <line x1="12" y1="3" x2="12" y2="15"></line>
-          </svg>
           <span>Upload New Asset</span>
         </button>
 
@@ -48,24 +47,17 @@
         />
 
         <div id="picker-multi-actions" class="toolbar-actions">
-          <button
-            type="button"
-            id="select-all-page-btn"
-            class="btn-text btn-xs"
+          <button type="button" id="select-all-page-btn" class="btn-text btn-xs"
+            >Select All on Page</button
           >
-            Select All on Page
-          </button>
           <button
             type="button"
             id="clear-selection-btn"
-            class="btn-text btn-xs text-muted"
+            class="btn-text btn-xs text-muted">Clear Selection</button
           >
-            Clear Selection
-          </button>
         </div>
       </div>
 
-      <!-- Live Upload & Compression Progress -->
       <div
         id="picker-upload-progress"
         class="picker-upload-progress"
@@ -89,26 +81,22 @@
         </div>
       </div>
 
-      <!-- Media Grid -->
       <div id="media-grid" class="media-selector-grid">
         <div class="loading-state">Loading asset library...</div>
       </div>
     </div>
 
-    <!-- Modal Footer with Pagination & Confirm Actions -->
     <div class="modal-footer">
-      <!-- Pagination Controls -->
       <div class="pagination-controls">
-        <button type="button" id="picker-prev-btn" class="btn-page" disabled>
-          &larr; Prev
-        </button>
+        <button type="button" id="picker-prev-btn" class="btn-page" disabled
+          >&larr; Prev</button
+        >
         <span id="picker-page-info" class="page-indicator">Page 1 of 1</span>
-        <button type="button" id="picker-next-btn" class="btn-page" disabled>
-          Next &rarr;
-        </button>
+        <button type="button" id="picker-next-btn" class="btn-page" disabled
+          >Next &rarr;</button
+        >
       </div>
 
-      <!-- Selection Action -->
       <div class="selection-actions">
         <span id="selected-summary-count" class="selected-badge"
           >0 selected</span
@@ -117,16 +105,16 @@
           type="button"
           id="confirm-selection-btn"
           class="btn-primary btn-sm"
-          disabled
+          disabled>Insert Selected Assets</button
         >
-          Insert Selected Assets
-        </button>
       </div>
     </div>
   </div>
 </dialog>
 
 <script>
+  import { compressVideo } from "@/lib/video-compressor";
+
   interface MediaItem {
     id: string;
     key: string;
@@ -147,14 +135,12 @@
   );
   const grid = modal?.querySelector<HTMLElement>("#media-grid");
 
-  // Title elements
   const titleEl = modal?.querySelector<HTMLElement>("#picker-title");
   const subtitleEl = modal?.querySelector<HTMLElement>("#picker-subtitle");
   const multiActions = modal?.querySelector<HTMLElement>(
     "#picker-multi-actions",
   );
 
-  // Progress Elements
   const progressBox = modal?.querySelector<HTMLElement>(
     "#picker-upload-progress",
   );
@@ -166,12 +152,10 @@
   );
   const progressBar = modal?.querySelector<HTMLElement>("#picker-progress-bar");
 
-  // Pagination Elements
   const prevBtn = modal?.querySelector<HTMLButtonElement>("#picker-prev-btn");
   const nextBtn = modal?.querySelector<HTMLButtonElement>("#picker-next-btn");
   const pageInfo = modal?.querySelector<HTMLElement>("#picker-page-info");
 
-  // Selection Elements
   const selectAllBtn = modal?.querySelector<HTMLButtonElement>(
     "#select-all-page-btn",
   );
@@ -185,36 +169,32 @@
     "#confirm-selection-btn",
   );
 
-  // State
   let currentPage = 1;
   const pageSize = 18;
   let totalPages = 1;
   let currentTarget = "thumbnail";
   let isMultiple = false;
-  let rawAllItems: MediaItem[] = []; // Used if backend returns all items
-  let currentItems: MediaItem[] = []; // Current page items
+  let rawAllItems: MediaItem[] = [];
+  let currentItems: MediaItem[] = [];
   const selectedAssets = new Map<string, MediaItem>();
 
-  // Open / Close Handlers
   closeBtn?.addEventListener("click", () => modal?.close());
   uploadBtn?.addEventListener("click", () => uploadInput?.click());
 
-  // Listen for open event from project form or other callers
   window.addEventListener("open-media-picker", (e: any) => {
     const detail = e.detail || {};
     currentTarget = detail.target || "thumbnail";
     isMultiple = detail.multiple ?? currentTarget === "gallery";
 
-    // Configure UI for single vs multiple mode
     if (titleEl) {
       titleEl.textContent = isMultiple
         ? "Select Project Stills (Gallery)"
-        : "Select Cover Thumbnail";
+        : "Select Asset";
     }
     if (subtitleEl) {
       subtitleEl.textContent = isMultiple
-        ? "Click to check/uncheck multiple assets for the gallery"
-        : "Click an image to select it as the project thumbnail";
+        ? "Click to check/uncheck multiple assets"
+        : "Click an asset to select it";
     }
     if (multiActions) {
       multiActions.style.display = isMultiple ? "flex" : "none";
@@ -225,7 +205,6 @@
         : "Use Selected Asset";
     }
 
-    // Load preselected keys
     selectedAssets.clear();
     if (detail.preselectedKeys && Array.isArray(detail.preselectedKeys)) {
       detail.preselectedKeys.forEach((key: string) => {
@@ -247,7 +226,6 @@
     loadMedia(1);
   });
 
-  // Fetch Media with Server or Client Pagination
   async function loadMedia(page = 1) {
     if (!grid) return;
     grid.innerHTML = `<div class="loading-state">Loading assets (Page ${page})...</div>`;
@@ -261,13 +239,11 @@
       const data = await res.json();
 
       if (Array.isArray(data)) {
-        // Backend returned full flat array; handle client-side pagination slicing
         rawAllItems = data;
         totalPages = Math.max(1, Math.ceil(rawAllItems.length / pageSize));
         const start = (currentPage - 1) * pageSize;
         currentItems = rawAllItems.slice(start, start + pageSize);
       } else {
-        // Backend returned paginated object
         currentItems = data.items || [];
         totalPages =
           data.totalPages ||
@@ -295,7 +271,9 @@
       const isSelected =
         selectedAssets.has(item.key) || selectedAssets.has(item.id);
       const isVideo =
-        item.mimeType?.startsWith("video/") || item.key.endsWith(".mp4");
+        item.mimeType?.startsWith("video/") ||
+        item.key.endsWith(".mp4") ||
+        item.key.endsWith(".mov");
       const card = document.createElement("div");
       card.className = `media-select-card ${isSelected ? "selected" : ""}`;
       card.dataset.key = item.key;
@@ -322,7 +300,6 @@
 
   function handleCardClick(item: MediaItem, cardEl: HTMLElement) {
     if (isMultiple) {
-      // Multiple Selection mode (for Gallery)
       if (selectedAssets.has(item.key)) {
         selectedAssets.delete(item.key);
         cardEl.classList.remove("selected");
@@ -336,11 +313,9 @@
       }
       updateSelectionUI();
     } else {
-      // Single Selection mode (for Thumbnail)
       selectedAssets.clear();
       selectedAssets.set(item.key, item);
 
-      // Update UI selection on active page
       grid?.querySelectorAll(".media-select-card").forEach((c) => {
         c.classList.remove("selected");
         c.querySelector(".selection-checkbox")?.classList.remove("checked");
@@ -349,7 +324,6 @@
       cardEl.querySelector(".selection-checkbox")?.classList.add("checked");
 
       updateSelectionUI();
-      // Directly confirm on single click
       confirmSelection();
     }
   }
@@ -405,16 +379,12 @@
     }
   });
 
-  // Select all on current page
   selectAllBtn?.addEventListener("click", () => {
-    currentItems.forEach((item) => {
-      selectedAssets.set(item.key, item);
-    });
+    currentItems.forEach((item) => selectedAssets.set(item.key, item));
     renderGrid();
     updateSelectionUI();
   });
 
-  // Clear selection
   clearSelectionBtn?.addEventListener("click", () => {
     selectedAssets.clear();
     renderGrid();
@@ -437,7 +407,6 @@
 
   confirmBtn?.addEventListener("click", confirmSelection);
 
-  // Upload Input with Compression Progress
   uploadInput?.addEventListener("change", async () => {
     if (!uploadInput.files?.length) return;
     const files = Array.from(uploadInput.files);
@@ -476,7 +445,7 @@
       let mimeType = file.type || "application/octet-stream";
 
       if (file.type.startsWith("image/")) {
-        setStatus(`Compressing ${file.name}...`, 25);
+        setStatus(`Compressing image ${file.name}...`, 25);
         const imageCompression = (await import("browser-image-compression"))
           .default;
         fileToUpload = await imageCompression(file, {
@@ -485,13 +454,28 @@
           useWebWorker: true,
         });
         mimeType = fileToUpload.type || file.type || "image/jpeg";
+      } else if (
+        file.type.startsWith("video/") ||
+        file.name.endsWith(".mp4") ||
+        file.name.endsWith(".mov")
+      ) {
+        setStatus(`Optimizing video ${file.name}...`, 20);
+        fileToUpload = await compressVideo(file, {
+          maxBitrate: 2500000,
+          onProgress: (pct) =>
+            setStatus(`Compressing video (${pct}%)...`, Math.round(pct * 0.4)),
+        });
+        mimeType = fileToUpload.type || "video/mp4";
       }
 
       setStatus("Getting presigned URL...", 50);
       const urlRes = await fetch("/api/management/upload-url", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ filename: file.name, contentType: mimeType }),
+        body: JSON.stringify({
+          filename: fileToUpload.name || file.name,
+          contentType: mimeType,
+        }),
       });
       if (!urlRes.ok) throw new Error("Failed to get presigned upload URL");
       const { url, key } = await urlRes.json();
@@ -504,7 +488,7 @@
       });
       if (!uploadRes.ok) throw new Error("Upload to storage failed");
 
-      const dimensions = await getImageDimensions(fileToUpload);
+      const dimensions = await getMediaDimensions(fileToUpload);
 
       setStatus("Registering in database...", 90);
       const registerRes = await fetch("/api/management/media", {
@@ -512,7 +496,7 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           key,
-          filename: file.name,
+          filename: fileToUpload.name || file.name,
           mimeType,
           size: fileToUpload.size,
           ...dimensions,
@@ -535,16 +519,25 @@
     }
   }
 
-  function getImageDimensions(
+  function getMediaDimensions(
     file: File,
   ): Promise<{ width?: number; height?: number }> {
     return new Promise((resolve) => {
-      if (!file.type.startsWith("image/")) return resolve({});
-      const img = new Image();
-      img.onload = () =>
-        resolve({ width: img.naturalWidth, height: img.naturalHeight });
-      img.onerror = () => resolve({});
-      img.src = URL.createObjectURL(file);
+      if (file.type.startsWith("image/")) {
+        const img = new Image();
+        img.onload = () =>
+          resolve({ width: img.naturalWidth, height: img.naturalHeight });
+        img.onerror = () => resolve({});
+        img.src = URL.createObjectURL(file);
+      } else if (file.type.startsWith("video/")) {
+        const v = document.createElement("video");
+        v.onloadedmetadata = () =>
+          resolve({ width: v.videoWidth, height: v.videoHeight });
+        v.onerror = () => resolve({});
+        v.src = URL.createObjectURL(file);
+      } else {
+        resolve({});
+      }
     });
   }
 </script>
@@ -642,12 +635,10 @@
     cursor: pointer;
     text-decoration: underline;
   }
-
   .btn-text.text-muted {
     color: var(--color-text-muted);
   }
 
-  /* Progress Bar */
   .picker-upload-progress {
     background: var(--color-bg);
     border: 1px solid var(--color-border);
@@ -684,7 +675,6 @@
     transition: width 0.25s ease;
   }
 
-  /* Grid */
   .media-selector-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(125px, 1fr));
@@ -768,7 +758,6 @@
     color: var(--color-text-muted);
   }
 
-  /* Modal Footer */
   .modal-footer {
     padding: var(--space-md) var(--space-xl);
     border-top: 1px solid var(--color-border);
@@ -813,7 +802,6 @@
     font-size: 0.8rem;
     color: var(--color-text-muted);
   }
-
   .selected-badge.has-selection {
     color: var(--color-accent);
     font-weight: 600;
