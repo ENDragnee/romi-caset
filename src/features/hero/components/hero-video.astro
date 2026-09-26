@@ -10,9 +10,7 @@ const hasMultiple = videos.length > 1;
 ---
 
 <section class="hero-section" id="hero-section" data-videos={initialVideosJson}>
-  {
-    /* Dual video elements for seamless cross-fades without black screen flickers */
-  }
+  {/* Dual video elements for seamless cross-fades */}
   <div class="video-crossfade-stage">
     <video
       id="hero-video-a"
@@ -40,10 +38,15 @@ const hasMultiple = videos.length > 1;
     }
   </div>
 
-  {/* Clean, uniform film overlay (NO bottom fade-to-black) */}
+  {/* Discrete Buffer Loader while video is fetching/caching */}
+  <div class="hero-video-loader" aria-hidden="true">
+    <div class="loader-spinner"></div>
+  </div>
+
+  {/* Clean, uniform film overlay */}
   <div class="hero-overlay"></div>
 
-  {/* Multi-video carousel index badge (Shows only if multiple videos exist) */}
+  {/* Multi-video carousel index badge */}
   {
     hasMultiple && (
       <div id="video-carousel-indicator" class="video-carousel-indicator">
@@ -99,7 +102,6 @@ const hasMultiple = videos.length > 1;
     });
   }
 
-  // Auto-purges old/deleted hero videos from the user's browser storage
   async function cleanStaleVideoCache(activeUrls: string[]) {
     try {
       const db = await openVideoDB();
@@ -133,7 +135,6 @@ const hasMultiple = videos.length > 1;
         return URL.createObjectURL(cachedBlob);
       }
 
-      // Download once, save in IndexedDB, and stream directly from local Blob
       const response = await fetch(videoUrl);
       if (!response.ok) return videoUrl;
 
@@ -143,7 +144,7 @@ const hasMultiple = videos.length > 1;
 
       return URL.createObjectURL(blob);
     } catch {
-      return videoUrl; // Fallback to network stream if IndexedDB fails
+      return videoUrl;
     }
   }
 
@@ -169,7 +170,6 @@ const hasMultiple = videos.length > 1;
       videoList = ["/videos/hero-video.mp4"];
     }
 
-    // Clean up stale video blobs from user device
     cleanStaleVideoCache(videoList);
 
     let currentIndex = 0;
@@ -188,7 +188,6 @@ const hasMultiple = videos.length > 1;
       videoB.defaultMuted = true;
     }
 
-    // Load initial video from IndexedDB Blob Cache (0ms latency, zero repeated hits)
     const initialSource = await getCachedVideoBlobUrl(videoList[0]);
     videoA.src = initialSource;
 
@@ -199,10 +198,9 @@ const hasMultiple = videos.length > 1;
       videoA.addEventListener("playing", renderHero, { once: true });
       videoA.addEventListener("canplay", renderHero, { once: true });
       videoA.play().catch(() => renderHero());
-      setTimeout(renderHero, 600);
+      setTimeout(renderHero, 800);
     }
 
-    // Multi-video sequence with seamless cross-fading
     if (videoList.length > 1 && videoB) {
       let activeVideo = videoA;
       let standbyVideo = videoB;
@@ -302,7 +300,39 @@ const hasMultiple = videos.length > 1;
     z-index: 0;
   }
 
-  /* Clean uniform film overlay without bottom fade */
+  /* Buffer spinner while video is caching */
+  .hero-video-loader {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 1;
+    transition: opacity 0.6s ease;
+  }
+
+  .hero-section.is-ready .hero-video-loader {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  .loader-spinner {
+    width: 32px;
+    height: 32px;
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    border-top-color: rgba(255, 255, 255, 0.85);
+    border-radius: 50%;
+    animation: spinLoader 0.8s linear infinite;
+  }
+
+  @keyframes spinLoader {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
   .hero-overlay {
     position: absolute;
     inset: 0;
@@ -383,7 +413,6 @@ const hasMultiple = videos.length > 1;
     line-height: 1.5;
   }
 
-  /* Multi-video carousel index badge */
   .video-carousel-indicator {
     position: absolute;
     bottom: var(--space-xl);
@@ -408,7 +437,6 @@ const hasMultiple = videos.length > 1;
     opacity: 0.4;
   }
 
-  /* Centered FEATURED ∨ cue */
   .featured-scroll-cue {
     position: absolute;
     bottom: var(--space-xl);
