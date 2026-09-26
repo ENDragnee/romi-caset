@@ -8,8 +8,7 @@
       <div>
         <h2 class="modal-title">Upload Media Assets</h2>
         <p class="modal-subtitle">
-          Images & videos are automatically compressed on-the-fly before cloud
-          storage upload.
+          Images are automatically optimized before cloud storage upload.
         </p>
       </div>
       <button type="button" class="close-btn" aria-label="Close dialog"
@@ -51,10 +50,10 @@
         />
       </div>
 
-      <!-- Uploading / Compression Progress View -->
+      <!-- Uploading Progress View -->
       <div id="progress-view" class="progress-view" style="display: none;">
         <div class="progress-header">
-          <span class="progress-title">Optimizing & Uploading Assets</span>
+          <span class="progress-title">Uploading Assets to Storage</span>
           <span id="progress-count" class="progress-count">0 items</span>
         </div>
         <div id="upload-items-list" class="upload-items-list"></div>
@@ -77,8 +76,6 @@
 </dialog>
 
 <script>
-  import { compressVideo } from "@/lib/video-compressor";
-
   const uploadModal =
     document.querySelector<HTMLDialogElement>("#upload-modal");
   const closeBtn = uploadModal?.querySelector<HTMLButtonElement>(".close-btn");
@@ -176,10 +173,10 @@
         let fileToUpload = file;
         let mimeType = file.type || "application/octet-stream";
 
-        // 1. Client-Side Video & Image Compression Step
+        // Client-side image compression (video compression removed)
         if (file.type.startsWith("image/")) {
           statusEl.textContent = "Compressing Image...";
-          progressFill.style.width = "20%";
+          progressFill.style.width = "25%";
 
           const imageCompression = (await import("browser-image-compression"))
             .default;
@@ -193,31 +190,9 @@
           if (sizeInfoEl) {
             sizeInfoEl.textContent = `${formatSize(file.size)} → ${formatSize(fileToUpload.size)}`;
           }
-        } else if (
-          file.type.startsWith("video/") ||
-          file.name.endsWith(".mp4") ||
-          file.name.endsWith(".mov")
-        ) {
-          statusEl.textContent = "Compressing Video...";
-          progressFill.style.width = "20%";
-
-          fileToUpload = await compressVideo(file, {
-            maxBitrate: 2500000, // 2.5 Mbps Web Bitrate
-            maxWidth: 1920,
-            maxHeight: 1080,
-            onProgress: (pct) => {
-              statusEl.textContent = `Optimizing Video (${pct}%)...`;
-              progressFill.style.width = `${Math.min(pct * 0.4, 40)}%`;
-            },
-          });
-
-          mimeType = fileToUpload.type || "video/mp4";
-          if (sizeInfoEl) {
-            sizeInfoEl.textContent = `${formatSize(file.size)} → ${formatSize(fileToUpload.size)}`;
-          }
         }
 
-        // 2. Presigned Upload URL Step
+        // Get Presigned URL
         statusEl.textContent = "Getting Signed URL...";
         progressFill.style.width = "50%";
         const urlRes = await fetch("/api/management/upload-url", {
@@ -232,8 +207,8 @@
         if (!urlRes.ok) throw new Error("Could not get presigned upload URL");
         const { url, key } = await urlRes.json();
 
-        // 3. Direct Storage Upload
-        statusEl.textContent = "Uploading to Cloud...";
+        // Direct Cloud Storage Upload
+        statusEl.textContent = "Uploading to Storage...";
         progressFill.style.width = "75%";
 
         const uploadRes = await fetch(url, {
@@ -248,10 +223,9 @@
           );
         }
 
-        // 4. Calculate Dimensions
         const dimensions = await getMediaDimensions(fileToUpload);
 
-        // 5. Database Asset Registration
+        // Database Registration
         statusEl.textContent = "Saving to Database...";
         progressFill.style.width = "90%";
 

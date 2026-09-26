@@ -4,18 +4,40 @@ import { prisma } from "./prisma";
 
 /* ---------- Navigation ---------- */
 export const navigation: NavLink[] = [
-  { label: "Home", href: "/" },
+  {
+    label: "Home",
+    href: "/",
+  },
   {
     label: "Work",
     href: "/portfolio",
     children: [
-      { label: "MUSIC VIDEOS", href: "/portfolio/music-videos" },
-      { label: "COMMERCIALS", href: "/portfolio/commercials" },
-      { label: "FILMS", href: "/portfolio/films" },
+      {
+        label: "All Work",
+        href: "/portfolio",
+      },
+      {
+        label: "Music Videos",
+        href: "/portfolio?category=MUSICVIDEO",
+      },
+      {
+        label: "Commercials",
+        href: "/portfolio?category=COMMERCIAL",
+      },
+      {
+        label: "Films",
+        href: "/portfolio?category=FILM",
+      },
     ],
   },
-  { label: "About", href: "/about" },
-  { label: "Contact", href: "/contact" },
+  {
+    label: "About",
+    href: "/about",
+  },
+  {
+    label: "Contact",
+    href: "/contact",
+  },
 ];
 
 /* ---------- Projects ---------- */

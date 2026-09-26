@@ -79,7 +79,10 @@ const { transparent = false } = Astro.props;
               class={`mobile-nav-item ${item.children ? "has-children" : ""}`}
             >
               <div class="mobile-nav-row">
-                <a href={item.href} class="mobile-nav-link">
+                <a
+                  href={item.children ? "javascript:void(0)" : item.href}
+                  class="mobile-nav-link"
+                >
                   {item.label}
                 </a>
                 {item.children && (
@@ -139,6 +142,32 @@ const { transparent = false } = Astro.props;
       handleScroll();
     }
 
+    // Intercept dropdown clicks when already on /portfolio for instant smooth filtering
+    document
+      .querySelectorAll<HTMLAnchorElement>(
+        ".dropdown-link, .mobile-dropdown-link",
+      )
+      .forEach((link) => {
+        link.onclick = (e) => {
+          const href = link.getAttribute("href") || "";
+          const url = new URL(href, window.location.origin);
+
+          if (
+            window.location.pathname === "/portfolio" &&
+            url.pathname === "/portfolio"
+          ) {
+            e.preventDefault();
+            const category = url.searchParams.get("category") || "ALL";
+            window.dispatchEvent(
+              new CustomEvent("apply-portfolio-filter", {
+                detail: { category },
+              }),
+            );
+            window.history.replaceState({}, "", href);
+          }
+        };
+      });
+
     const mobileMenuToggle = document.querySelector<HTMLButtonElement>(
       "#mobile-menu-toggle",
     );
@@ -160,21 +189,34 @@ const { transparent = false } = Astro.props;
       mobileMenuToggle.onclick = openMenu;
       mobileMenuClose.onclick = closeMenu;
 
-      mobileMenu.querySelectorAll<HTMLAnchorElement>("a").forEach((link) => {
-        link.onclick = closeMenu;
-      });
+      // Handle items with and without children
+      const mobileNavItems =
+        mobileMenu.querySelectorAll<HTMLElement>(".mobile-nav-item");
 
-      mobileMenu
-        .querySelectorAll<HTMLButtonElement>(".mobile-expand-btn")
-        .forEach((btn) => {
-          btn.onclick = (e: MouseEvent) => {
+      mobileNavItems.forEach((item) => {
+        const hasChildren = item.classList.contains("has-children");
+        const row = item.querySelector<HTMLElement>(".mobile-nav-row");
+        const link = item.querySelector<HTMLAnchorElement>(".mobile-nav-link");
+
+        if (hasChildren && row) {
+          // Clicking ANYWHERE on the Work row toggles the collapsible submenu
+          row.onclick = (e: MouseEvent) => {
+            e.preventDefault();
             e.stopPropagation();
-            const parentItem = (e.currentTarget as HTMLElement).closest(
-              ".mobile-nav-item",
-            );
-            parentItem?.classList.toggle("expanded");
+            item.classList.toggle("expanded");
           };
-        });
+        } else if (link) {
+          // Items without children navigate and close the drawer
+          link.onclick = () => closeMenu();
+        }
+
+        // Sub-links inside the dropdown close the menu and navigate
+        item
+          .querySelectorAll<HTMLAnchorElement>(".mobile-dropdown-link")
+          .forEach((subLink) => {
+            subLink.addEventListener("click", () => closeMenu());
+          });
+      });
     }
   }
 
@@ -199,13 +241,11 @@ const { transparent = false } = Astro.props;
     border-bottom: 1px solid var(--color-border);
   }
 
-  /* Transparent Mode (Over the dark hero video) */
   .nav-header.transparent {
     background-color: transparent;
     border-bottom: 1px solid transparent;
   }
 
-  /* High-Contrast White Text over Video */
   .nav-header.transparent .nav-link,
   .nav-header.transparent .mobile-toggle {
     color: #ffffff !important;
@@ -216,7 +256,6 @@ const { transparent = false } = Astro.props;
     color: rgba(255, 255, 255, 0.75) !important;
   }
 
-  /* Scrolled State (Over white content sections) */
   .nav-header.scrolled {
     background-color: rgba(255, 255, 255, 0.94);
     backdrop-filter: blur(14px);
@@ -317,7 +356,7 @@ const { transparent = false } = Astro.props;
     transform: rotate(180deg);
   }
 
-  /* Dropdown (Always clean white card with dark text) */
+  /* Dropdown */
   .dropdown {
     position: absolute;
     top: calc(100% + 4px);
@@ -415,6 +454,7 @@ const { transparent = false } = Astro.props;
     bottom: -6px;
   }
 
+  /* Mobile Drawer */
   .mobile-menu {
     position: fixed;
     inset: 0;
@@ -463,6 +503,10 @@ const { transparent = false } = Astro.props;
     padding: var(--space-2xs);
   }
 
+  .mobile-close:hover {
+    color: var(--color-accent);
+  }
+
   .mobile-nav-list {
     list-style: none;
     padding: 0;
@@ -477,10 +521,17 @@ const { transparent = false } = Astro.props;
     padding-bottom: var(--space-md);
   }
 
+  /* Clickable row container */
   .mobile-nav-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    width: 100%;
+    cursor: default;
+  }
+
+  .has-children .mobile-nav-row {
+    cursor: pointer; /* Whole row indicates clickability */
   }
 
   .mobile-nav-link {
@@ -491,6 +542,7 @@ const { transparent = false } = Astro.props;
     letter-spacing: 0.04em;
     color: #000000;
     text-decoration: none;
+    flex: 1;
   }
 
   .mobile-expand-btn {
@@ -498,12 +550,13 @@ const { transparent = false } = Astro.props;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     color: var(--color-text-muted);
-    width: 36px;
-    height: 36px;
+    width: 38px;
+    height: 38px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    pointer-events: none; /* Mouse/touch events bubble to the whole row */
   }
 
   .mobile-nav-item.expanded .mobile-expand-btn svg {

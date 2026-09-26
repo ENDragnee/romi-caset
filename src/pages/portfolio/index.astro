@@ -8,34 +8,47 @@ const allProjects = await prisma.project.findMany({
 });
 
 const categories = [
-  { label: "All Work", value: "ALL" },
-  { label: "Music Videos", value: "MUSICVIDEO" },
-  { label: "Commercials", value: "COMMERCIAL" },
-  { label: "Films", value: "FILM" },
+  { label: "ALL", value: "ALL" },
+  { label: "MUSIC", value: "MUSICVIDEO" },
+  { label: "COMMERCIAL", value: "COMMERCIAL" },
+  { label: "FILM", value: "FILM" },
 ];
 ---
 
-<BaseLayout title="Portfolio — Kaset Production">
+<BaseLayout title="Projects — Kaset Production">
   <section class="section portfolio-page">
     <div class="content-wrapper">
-      {/* Category Tabs */}
-      <div class="portfolio-tabs-container hero-title-drop">
-        <nav class="category-tabs" aria-label="Filter portfolio categories">
-          {
-            categories.map((cat, index) => (
-              <button
-                type="button"
-                class={`tab-btn ${index === 0 ? "active" : ""}`}
-                data-category={cat.value}
-              >
-                <span>{cat.label}</span>
-              </button>
-            ))
-          }
-        </nav>
-      </div>
+      {/* Massive Header + Refined Category Selector */}
+      <header class="portfolio-header-block hero-title-drop">
+        <div class="title-with-count">
+          <h1 class="portfolio-huge-title">PROJECTS</h1>
+          <span id="projects-count-badge" class="projects-count-badge"
+            >[{allProjects.length}]</span
+          >
+        </div>
 
-      {/* Project Grid */}
+        {/* Compact, Mobile-Responsive Category Ribbon */}
+        <div class="category-nav-wrapper">
+          <nav
+            class="category-tabs-left"
+            aria-label="Filter portfolio categories"
+          >
+            {
+              categories.map((cat, index) => (
+                <button
+                  type="button"
+                  class={`tab-btn ${index === 0 ? "active" : ""}`}
+                  data-category={cat.value}
+                >
+                  <span>{cat.label}</span>
+                </button>
+              ))
+            }
+          </nav>
+        </div>
+      </header>
+
+      {/* Project Grid with Spotlight Grey-Out Transitions */}
       <div class="content-rise-up">
         <ProjectGrid projects={allProjects} />
       </div>
@@ -46,6 +59,9 @@ const categories = [
 <script>
   function InitPortfolioFilters() {
     const tabBtns = document.querySelectorAll<HTMLButtonElement>(".tab-btn");
+    const countBadge = document.querySelector<HTMLElement>(
+      "#projects-count-badge",
+    );
     const gridItems = document.querySelectorAll<HTMLElement>(
       ".portfolio-grid-container .grid-item",
     );
@@ -54,16 +70,25 @@ const categories = [
 
     function filterCategory(targetCategory: string) {
       const normalizedTarget = (targetCategory || "ALL").trim().toUpperCase();
+      let matchCount = 0;
 
+      // 1. Update Tab Buttons (Active is pure black, others greyed out)
       tabBtns.forEach((btn) => {
         const btnCat = (btn.dataset.category || "").trim().toUpperCase();
         if (btnCat === normalizedTarget) {
           btn.classList.add("active");
+          // Smoothly scroll active tab into view on small touch screens
+          btn.scrollIntoView({
+            behavior: "smooth",
+            block: "nearest",
+            inline: "nearest",
+          });
         } else {
           btn.classList.remove("active");
         }
       });
 
+      // 2. Spotlight matching projects & count matches
       gridItems.forEach((item) => {
         const itemCat = (item.dataset.category || "").trim().toUpperCase();
         const isMatch =
@@ -71,10 +96,19 @@ const categories = [
 
         if (isMatch) {
           item.classList.remove("is-dimmed");
+          matchCount++;
         } else {
           item.classList.add("is-dimmed");
         }
       });
+
+      // 3. Dynamically update the [count] badge with kinetic pop
+      if (countBadge) {
+        countBadge.classList.remove("count-pop");
+        void countBadge.offsetWidth;
+        countBadge.textContent = `[${matchCount}]`;
+        countBadge.classList.add("count-pop");
+      }
     }
 
     tabBtns.forEach((btn) => {
@@ -91,6 +125,11 @@ const categories = [
         }
         window.history.replaceState({}, "", url.toString());
       };
+    });
+
+    window.addEventListener("apply-portfolio-filter", (e: any) => {
+      const category = e.detail?.category || "ALL";
+      filterCategory(category);
     });
 
     const currentParams = new URLSearchParams(window.location.search);
@@ -119,70 +158,140 @@ const categories = [
     box-sizing: border-box;
   }
 
-  .portfolio-tabs-container {
+  /* ---------- Header Block ---------- */
+  .portfolio-header-block {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    align-items: flex-start;
     margin-bottom: var(--space-2xl);
     width: 100%;
   }
 
-  .category-tabs {
+  .title-with-count {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-xl);
-    padding: var(--space-2xs) 0;
-    overflow-x: auto;
-    max-width: 100%;
-    scrollbar-width: none;
+    align-items: flex-start;
+    gap: 8px;
+    line-height: 0.9;
   }
 
-  .category-tabs::-webkit-scrollbar {
+  .portfolio-huge-title {
+    font-family: var(--font-heading);
+    font-size: clamp(3rem, 12vw, 7.5rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 0.88;
+    text-transform: uppercase;
+    color: var(--color-text);
+    margin: 0;
+  }
+
+  .projects-count-badge {
+    font-family: var(--font-heading);
+    font-size: clamp(0.9rem, 3vw, 1.85rem);
+    font-weight: 700;
+    color: var(--color-text);
+    letter-spacing: -0.02em;
+    margin-top: 4px;
+    display: inline-block;
+    will-change: transform, opacity;
+  }
+
+  @keyframes countPop {
+    0% {
+      opacity: 0.3;
+      transform: scale(0.9);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .count-pop {
+    animation: countPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  /* ---------- Refined Category Ribbon ---------- */
+  .category-nav-wrapper {
+    width: 100%;
+    max-width: 100%;
+    margin-top: var(--space-lg);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .category-tabs-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-lg);
+    padding: 4px 0 8px 0;
+    overflow-x: auto;
+    width: 100%;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .category-tabs-left::-webkit-scrollbar {
     display: none;
   }
 
-  /* Non-selected tabs are greyed out in Light theme */
+  /* Compact Editorial Typography */
   .tab-btn {
     background: transparent;
     border: none;
     cursor: pointer;
     font-family: var(--font-heading);
-    font-size: 0.95rem;
-    font-weight: 500;
+    font-size: 0.78rem; /* Slightly smaller & more refined */
+    font-weight: 600;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: #999999; /* Greyed out in light mode */
-    padding: var(--space-2xs) var(--space-xs);
+    color: #8c8c8c;
+    padding: 2px 0;
     white-space: nowrap;
     position: relative;
     transition: color var(--transition-fast);
+    flex-shrink: 0;
   }
 
   .tab-btn:hover {
     color: #333333;
   }
 
-  /* Active selected tab is pure black */
+  /* Active Tab */
   .tab-btn.active {
     color: #000000;
-    font-weight: 700;
+    font-weight: 800;
   }
 
-  .tab-btn.active::after {
-    content: "";
-    position: absolute;
-    bottom: -4px;
-    left: 0;
-    width: 100%;
-    height: 1.5px;
-    background-color: #000000;
-  }
-
+  /* Mobile screen optimization (< 768px & < 480px) */
   @media (max-width: 768px) {
-    .category-tabs {
-      gap: var(--space-lg);
-      justify-content: flex-start;
-      padding-inline: var(--space-xs);
+    .portfolio-header-block {
+      margin-bottom: var(--space-xl);
+    }
+
+    .category-nav-wrapper {
+      margin-top: var(--space-md);
+      /* Subtle right fade mask if viewport is under 360px */
+      mask-image: linear-gradient(
+        to right,
+        black calc(100% - 24px),
+        transparent 100%
+      );
+      -webkit-mask-image: linear-gradient(
+        to right,
+        black calc(100% - 24px),
+        transparent 100%
+      );
+    }
+
+    .category-tabs-left {
+      gap: 14px;
+      padding-bottom: 4px;
+    }
+
+    .tab-btn {
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
     }
   }
 </style>

@@ -3,31 +3,50 @@
 ---
 
 <div id="preloader" class="preloader-screen" aria-hidden="false">
-  {/* Top metadata bar */}
+  {/* Top metadata bar (Reference 00:00) */}
   <div class="preloader-top-bar">
     <span class="meta-tag">ROMI</span>
     <span class="meta-tag">KASET PRODUCTION</span>
   </div>
 
-  {/* Center 3D Pure Single-Axis Text Cube */}
+  {/* Center Vertical Kinetic Drum Reel (Matches Reference 00:01 - 00:03) */}
   <div class="preloader-center-content">
-    <div class="tumbler-scene">
-      <div class="text-cube-3d">
-        <div class="text-cube-face face-front">R</div>
-        <div class="text-cube-face face-bottom">O</div>
-        <div class="text-cube-face face-back">M</div>
-        <div class="text-cube-face face-left">I</div>
-        <div class="text-cube-face face-top">R</div>
-        <div class="text-cube-face face-right">O</div>
+    <div class="reel-window">
+      <div id="reel-cylinder" class="reel-cylinder">
+        {/* Frame 0: 'R' */}
+        <div class="reel-cell">
+          <span class="block-glyph">R</span>
+        </div>
+
+        {/* Frame 1: 'O' (Geometric block match) */}
+        <div class="reel-cell">
+          <span class="block-glyph">O</span>
+        </div>
+
+        {/* Frame 2: 'M' */}
+        <div class="reel-cell">
+          <span class="block-glyph">M</span>
+        </div>
+
+        {/* Frame 3: 'I' */}
+        <div class="reel-cell">
+          <span class="block-glyph">I</span>
+        </div>
       </div>
     </div>
 
-    <div id="preloader-percentage" class="percentage-counter">0%</div>
+    {/* Percentage Counter & Subtitle Status */}
+    <div class="preloader-meta-group">
+      <div id="preloader-percentage" class="percentage-counter">0%</div>
+      <div id="preloader-status-text" class="status-stage-text">
+        CONNECTING TO ARCHIVE...
+      </div>
+    </div>
   </div>
 
-  {/* Bottom metadata bar */}
+  {/* Bottom metadata bar (Reference 00:00) */}
   <div class="preloader-bottom-bar">
-    <span class="meta-tag">VISUAL ARCHIVE</span>
+    <span class="meta-tag">BORN RISK TAKERS</span>
     <span class="meta-tag">@ROMI</span>
   </div>
 </div>
@@ -36,14 +55,24 @@
   let preloaderRaf: number | null = null;
 
   function RunPreloader() {
-    const preloader = document.querySelector<HTMLElement>("#preloader");
+    const preloaderEl = document.querySelector<HTMLElement>("#preloader");
+    const cylinderEl = document.querySelector<HTMLElement>("#reel-cylinder");
     const percentEl = document.querySelector<HTMLElement>(
       "#preloader-percentage",
     );
+    const statusEl = document.querySelector<HTMLElement>(
+      "#preloader-status-text",
+    );
     const heroSection = document.querySelector<HTMLElement>("#hero-section");
-    const video = document.querySelector<HTMLVideoElement>("#hero-video");
+    const video =
+      document.querySelector<HTMLVideoElement>("#hero-video-a") ||
+      document.querySelector<HTMLVideoElement>("#hero-video");
 
-    if (!preloader || !percentEl) return;
+    if (!preloaderEl || !cylinderEl || !percentEl) return;
+
+    const preloader = preloaderEl;
+    const cylinder = cylinderEl;
+    const percent = percentEl;
 
     if (preloaderRaf) {
       cancelAnimationFrame(preloaderRaf);
@@ -52,8 +81,15 @@
 
     preloader.style.display = "flex";
     preloader.classList.remove("fade-out");
-    percentEl.textContent = "0%";
+    percent.textContent = "0%";
+    if (statusEl) statusEl.textContent = "CONNECTING TO ARCHIVE...";
     document.body.style.overflow = "hidden";
+
+    // Frame height in pixels (120px on desktop, 90px on mobile)
+    const isMobile = window.innerWidth <= 768;
+    const frameHeight = isMobile ? 90 : 120;
+
+    cylinder.style.transform = "translateY(0px)";
 
     let progress = 0;
     let videoReady = false;
@@ -76,25 +112,55 @@
     const startTime = performance.now();
     const minDuration = 5000; // 5-second buffer
 
+    // Steps: 0 = 'R', 1 = 'O', 2 = 'M', 3 = 'I'
+    function getReelStep(pct: number): number {
+      if (pct < 28) return 0; // 'R' (0% - 28%)
+      if (pct < 62) return 1; // 'O' (28% - 62%)
+      if (pct < 88) return 2; // 'M' (62% - 88%)
+      return 3; // 'I' (88% - 100%)
+    }
+
+    let currentStep = 0;
+
     function updateProgress(now: number) {
       const elapsed = now - startTime;
       const timeRatio = Math.min(elapsed / minDuration, 1);
 
-      if (timeRatio < 0.88) {
+      if (timeRatio < 0.86) {
         progress = Math.floor(timeRatio * 94);
-      } else if (timeRatio >= 1 && (videoReady || elapsed > 5300)) {
+      } else if (timeRatio >= 1 && (videoReady || elapsed > 5500)) {
         progress = 100;
       } else {
-        progress = 95 + Math.floor((Math.sin(elapsed / 100) + 1) * 1.5);
+        progress = 95 + Math.floor((Math.sin(elapsed / 80) + 1) * 2);
       }
 
-      if (percentEl) {
-        percentEl.textContent = `${progress}%`;
+      // Vertical Drum Roll Transition (Reference 00:02)
+      const targetStep = getReelStep(progress);
+      if (targetStep !== currentStep) {
+        currentStep = targetStep;
+        cylinder.style.transform = `translateY(-${currentStep * frameHeight}px)`;
       }
+
+      if (statusEl) {
+        if (progress < 25) {
+          statusEl.textContent = "CONNECTING TO ARCHIVE...";
+        } else if (progress < 60) {
+          statusEl.textContent = "STREAMING HERO REEL...";
+        } else if (progress < 90) {
+          statusEl.textContent = "CACHING MEDIA LOCALLY...";
+        } else if (progress < 100) {
+          statusEl.textContent = "PREPARING CINEMA STAGE...";
+        } else {
+          statusEl.textContent = "READY";
+        }
+      }
+
+      percent.textContent = `${progress}%`;
 
       if (progress >= 100) {
-        if (percentEl) percentEl.textContent = "100%";
-        setTimeout(finishPreloader, 320);
+        percent.textContent = "100%";
+        if (statusEl) statusEl.textContent = "READY";
+        setTimeout(finishPreloader, 350);
       } else {
         preloaderRaf = requestAnimationFrame(updateProgress);
       }
@@ -103,7 +169,6 @@
     preloaderRaf = requestAnimationFrame(updateProgress);
 
     function finishPreloader() {
-      if (!preloader) return;
       preloader.classList.add("fade-out");
       document.body.style.overflow = "";
 
@@ -143,10 +208,11 @@
 
   .preloader-screen.fade-out {
     opacity: 0;
-    transform: translateY(-30px);
+    transform: translateY(-40px);
     pointer-events: none;
   }
 
+  /* Top & Bottom metadata rows (Reference 00:00) */
   .preloader-top-bar,
   .preloader-bottom-bar {
     width: 100%;
@@ -158,159 +224,118 @@
   .meta-tag {
     font-family: var(--font-heading);
     font-size: 0.75rem;
-    font-weight: 600;
+    font-weight: 700;
     letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.55);
+    color: rgba(255, 255, 255, 0.6);
   }
 
+  /* Center Content Stage */
   .preloader-center-content {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: var(--space-2xl);
+    gap: var(--space-xl);
     margin: auto 0;
   }
 
-  /* ---------- 3D Cube Scene ---------- */
-  .tumbler-scene {
-    width: 140px;
-    height: 140px;
-    perspective: 1000px;
+  /* ---------- Vertical Drum Slot Viewport (Reference 00:02) ---------- */
+  .reel-window {
+    width: 160px;
+    height: 120px; /* Fixed frame aperture */
+    overflow: hidden;
+    position: relative;
     display: flex;
-    align-items: center;
     justify-content: center;
+    mask-image: linear-gradient(
+      to bottom,
+      transparent 0%,
+      black 15%,
+      black 85%,
+      transparent 100%
+    );
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      transparent 0%,
+      black 15%,
+      black 85%,
+      transparent 100%
+    );
   }
 
-  .text-cube-3d {
-    width: 120px;
-    height: 120px;
-    position: relative;
-    transform-style: preserve-3d;
-    animation: cleanSingleAxisTumble 4.6s cubic-bezier(0.85, 0, 0.15, 1)
-      infinite;
+  .reel-cylinder {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    /* Snappy kinetic roll matching reference 00:02 */
+    transition: transform 0.45s cubic-bezier(0.85, 0, 0.15, 1);
     will-change: transform;
   }
 
-  /*
-    Pure 1-Axis Snaps (X moves for vertical, then Y moves for horizontal):
-    1. Holds Front ('R')           [X: 0,    Y: 0]
-    2. Snap Vertical Down -> ('O') [X: 90,   Y: 0]     (Only X changes)
-    3. Snap Vertical Down -> ('M') [X: 180,  Y: 0]     (Only X changes)
-    4. Snap Horizontal Right -> ('I') [X: 180, Y: -90] (Only Y changes)
-    5. Snap Horizontal Right -> ('R') [X: 180, Y: -180] (Only Y changes)
-  */
-  @keyframes cleanSingleAxisTumble {
-    /* 1. FRONT: 'R' */
-    0%,
-    18% {
-      transform: rotateX(0deg) rotateY(0deg);
-    }
-    /* 2. PURE VERTICAL SNAP -> BOTTOM: 'O' */
-    25%,
-    43% {
-      transform: rotateX(90deg) rotateY(0deg);
-    }
-    /* 3. PURE VERTICAL SNAP -> BACK: 'M' */
-    50%,
-    68% {
-      transform: rotateX(180deg) rotateY(0deg);
-    }
-    /* 4. PURE HORIZONTAL SNAP -> LEFT FACE: 'I' */
-    75%,
-    93% {
-      transform: rotateX(180deg) rotateY(-90deg);
-    }
-    /* 5. PURE HORIZONTAL SNAP BACK -> FRONT: 'R' */
-    100% {
-      transform: rotateX(180deg) rotateY(-180deg);
-    }
-  }
-
-  .text-cube-face {
-    position: absolute;
-    inset: 0;
-    width: 120px;
+  .reel-cell {
+    width: 100%;
     height: 120px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: var(--font-heading);
-    font-size: clamp(5.5rem, 15vw, 7.5rem);
+    flex-shrink: 0;
+  }
+
+  /* Ultra-Heavy Block Typography (Consistent Across All Glyphs) */
+  .block-glyph {
+    font-family: "Space Grotesk", Impact, "Arial Black", sans-serif;
+    font-size: clamp(5.5rem, 14vw, 7.5rem);
     font-weight: 900;
     line-height: 1;
     color: #ffffff;
     text-transform: uppercase;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
+    letter-spacing: -0.04em;
     text-shadow: 0 0 35px rgba(255, 255, 255, 0.45);
+    display: block;
     user-select: none;
+    text-align: center;
   }
 
-  /* All 6 3D Face Positions (60px = half of 120px cube) */
-  .face-front {
-    transform: rotateY(0deg) translateZ(60px);
-  }
-  .face-bottom {
-    transform: rotateX(-90deg) translateZ(60px);
-  }
-  .face-back {
-    transform: rotateX(180deg) translateZ(60px);
-  }
-  .face-left {
-    transform: rotateX(180deg) rotateY(-90deg) translateZ(60px);
-  }
-  .face-top {
-    transform: rotateX(90deg) translateZ(60px);
-  }
-  .face-right {
-    transform: rotateX(180deg) rotateY(90deg) translateZ(60px);
+  /* Percentage & Subtitle Status */
+  .preloader-meta-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
   }
 
   .percentage-counter {
     font-family: var(--font-heading);
-    font-size: 0.95rem;
-    font-weight: 500;
+    font-size: 1.1rem;
+    font-weight: 700;
     letter-spacing: 0.18em;
-    color: rgba(255, 255, 255, 0.75);
+    color: #ffffff;
     font-variant-numeric: tabular-nums;
+  }
+
+  .status-stage-text {
+    font-family: var(--font-heading);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.45);
   }
 
   @media (max-width: 768px) {
     .preloader-screen {
       padding: var(--space-lg);
     }
-    .tumbler-scene {
-      width: 100px;
-      height: 100px;
-    }
-    .text-cube-3d {
-      width: 90px;
+    .reel-window {
+      width: 120px;
       height: 90px;
     }
-    .text-cube-face {
-      width: 90px;
+    .reel-cell {
       height: 90px;
-      font-size: 4.5rem;
     }
-    .face-front {
-      transform: rotateY(0deg) translateZ(45px);
-    }
-    .face-bottom {
-      transform: rotateX(-90deg) translateZ(45px);
-    }
-    .face-back {
-      transform: rotateX(180deg) translateZ(45px);
-    }
-    .face-left {
-      transform: rotateX(180deg) rotateY(-90deg) translateZ(45px);
-    }
-    .face-top {
-      transform: rotateX(90deg) translateZ(45px);
-    }
-    .face-right {
-      transform: rotateX(180deg) rotateY(90deg) translateZ(45px);
+    .block-glyph {
+      font-size: 4.8rem;
     }
   }
 </style>

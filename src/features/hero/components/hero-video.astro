@@ -10,14 +10,16 @@ const hasMultiple = videos.length > 1;
 ---
 
 <section class="hero-section" id="hero-section" data-videos={initialVideosJson}>
-  {/* Dual video buffers for seamless zero-flicker cross-fades */}
+  {
+    /* Dual video elements for seamless cross-fades without black screen flickers */
+  }
   <div class="video-crossfade-stage">
     <video
       id="hero-video-a"
       class="hero-video active"
-      src={videos[0]}
       autoplay
       muted
+      loop={!hasMultiple}
       playsinline
       preload="auto"
       disablepictureinpicture
@@ -28,10 +30,9 @@ const hasMultiple = videos.length > 1;
         <video
           id="hero-video-b"
           class="hero-video inactive"
-          src={videos[1] || videos[0]}
           muted
           playsinline
-          preload="auto"
+          preload="none"
           disablepictureinpicture
           disableRemotePlayback
         />
@@ -39,10 +40,10 @@ const hasMultiple = videos.length > 1;
     }
   </div>
 
-  {/* Clean, subtle uniform film overlay without bottom fade */}
+  {/* Clean, uniform film overlay (NO bottom fade-to-black) */}
   <div class="hero-overlay"></div>
 
-  {/* Multi-video carousel index badge */}
+  {/* Multi-video carousel index badge (Shows only if multiple videos exist) */}
   {
     hasMultiple && (
       <div id="video-carousel-indicator" class="video-carousel-indicator">
@@ -80,7 +81,73 @@ const hasMultiple = videos.length > 1;
 </section>
 
 <script>
-  function InitHeroVideoCarousel() {
+  // ---------- IndexedDB High-Performance Video Blob Cache ----------
+  const DB_NAME = "kaset_video_cache_v1";
+  const STORE_NAME = "videos";
+
+  function openVideoDB(): Promise<IDBDatabase> {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(DB_NAME, 1);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME);
+        }
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  // Auto-purges old/deleted hero videos from the user's browser storage
+  async function cleanStaleVideoCache(activeUrls: string[]) {
+    try {
+      const db = await openVideoDB();
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.getAllKeys();
+
+      req.onsuccess = () => {
+        const cachedKeys = req.result as string[];
+        cachedKeys.forEach((key) => {
+          if (!activeUrls.includes(key)) {
+            store.delete(key);
+          }
+        });
+      };
+    } catch {}
+  }
+
+  async function getCachedVideoBlobUrl(videoUrl: string): Promise<string> {
+    try {
+      const db = await openVideoDB();
+      const cachedBlob = await new Promise<Blob | null>((resolve) => {
+        const tx = db.transaction(STORE_NAME, "readonly");
+        const store = tx.objectStore(STORE_NAME);
+        const req = store.get(videoUrl);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => resolve(null);
+      });
+
+      if (cachedBlob instanceof Blob) {
+        return URL.createObjectURL(cachedBlob);
+      }
+
+      // Download once, save in IndexedDB, and stream directly from local Blob
+      const response = await fetch(videoUrl);
+      if (!response.ok) return videoUrl;
+
+      const blob = await response.blob();
+      const saveTx = db.transaction(STORE_NAME, "readwrite");
+      saveTx.objectStore(STORE_NAME).put(blob, videoUrl);
+
+      return URL.createObjectURL(blob);
+    } catch {
+      return videoUrl; // Fallback to network stream if IndexedDB fails
+    }
+  }
+
+  async function InitHeroVideoCarousel() {
     const heroSection = document.querySelector<HTMLElement>("#hero-section");
     const videoA = document.querySelector<HTMLVideoElement>("#hero-video-a");
     const videoB = document.querySelector<HTMLVideoElement>("#hero-video-b");
@@ -102,6 +169,9 @@ const hasMultiple = videos.length > 1;
       videoList = ["/videos/hero-video.mp4"];
     }
 
+    // Clean up stale video blobs from user device
+    cleanStaleVideoCache(videoList);
+
     let currentIndex = 0;
     let isVideoReady = false;
 
@@ -118,7 +188,10 @@ const hasMultiple = videos.length > 1;
       videoB.defaultMuted = true;
     }
 
-    // Initial readiness trigger
+    // Load initial video from IndexedDB Blob Cache (0ms latency, zero repeated hits)
+    const initialSource = await getCachedVideoBlobUrl(videoList[0]);
+    videoA.src = initialSource;
+
     if (videoA.readyState >= 2 && !videoA.paused) {
       renderHero();
     } else {
@@ -129,56 +202,47 @@ const hasMultiple = videos.length > 1;
       setTimeout(renderHero, 600);
     }
 
-    // Sequential multi-video carousel logic
+    // Multi-video sequence with seamless cross-fading
     if (videoList.length > 1 && videoB) {
       let activeVideo = videoA;
       let standbyVideo = videoB;
 
-      const playNextVideo = () => {
+      const playNextVideo = async () => {
         const nextIndex = (currentIndex + 1) % videoList.length;
         currentIndex = nextIndex;
 
-        // Prepare standby video with the next source
-        standbyVideo.src = videoList[nextIndex];
-        standbyVideo.currentTime = 0;
+        const nextSource = await getCachedVideoBlobUrl(videoList[nextIndex]);
+        standbyVideo.src = nextSource;
 
         standbyVideo
           .play()
           .then(() => {
-            // Cross-fade: Bring standby to front, fade active to back
             standbyVideo.classList.remove("inactive");
             standbyVideo.classList.add("active");
             activeVideo.classList.remove("active");
             activeVideo.classList.add("inactive");
 
-            // Update counter (e.g. "02")
             if (indicatorEl) {
               indicatorEl.textContent = String(nextIndex + 1).padStart(2, "0");
             }
 
-            // Swap references
             const temp = activeVideo;
             activeVideo = standbyVideo;
             standbyVideo = temp;
 
-            // Attach listener for the new active video
             activeVideo.addEventListener("ended", playNextVideo, {
               once: true,
             });
           })
           .catch((err) => {
-            console.error("Video crossfade error:", err);
+            console.warn("Video crossfade error:", err);
             setTimeout(playNextVideo, 2000);
           });
       };
 
       activeVideo.addEventListener("ended", playNextVideo, { once: true });
-    } else {
-      // Single video: standard seamless loop
-      videoA.loop = true;
     }
 
-    // Smooth scroll down when cue clicked
     if (scrollBtn) {
       scrollBtn.onclick = (e) => {
         e.preventDefault();
@@ -225,7 +289,7 @@ const hasMultiple = videos.length > 1;
     opacity: 0;
     transform: translateZ(0);
     will-change: opacity;
-    transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .hero-video.active {
@@ -238,7 +302,7 @@ const hasMultiple = videos.length > 1;
     z-index: 0;
   }
 
-  /* Clean subtle uniform film overlay without bottom fade */
+  /* Clean uniform film overlay without bottom fade */
   .hero-overlay {
     position: absolute;
     inset: 0;

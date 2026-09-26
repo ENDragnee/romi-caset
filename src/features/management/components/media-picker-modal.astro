@@ -113,8 +113,6 @@
 </dialog>
 
 <script>
-  import { compressVideo } from "@/lib/video-compressor";
-
   interface MediaItem {
     id: string;
     key: string;
@@ -444,6 +442,7 @@
       let fileToUpload = file;
       let mimeType = file.type || "application/octet-stream";
 
+      // Image compression
       if (file.type.startsWith("image/")) {
         setStatus(`Compressing image ${file.name}...`, 25);
         const imageCompression = (await import("browser-image-compression"))
@@ -454,18 +453,6 @@
           useWebWorker: true,
         });
         mimeType = fileToUpload.type || file.type || "image/jpeg";
-      } else if (
-        file.type.startsWith("video/") ||
-        file.name.endsWith(".mp4") ||
-        file.name.endsWith(".mov")
-      ) {
-        setStatus(`Optimizing video ${file.name}...`, 20);
-        fileToUpload = await compressVideo(file, {
-          maxBitrate: 2500000,
-          onProgress: (pct) =>
-            setStatus(`Compressing video (${pct}%)...`, Math.round(pct * 0.4)),
-        });
-        mimeType = fileToUpload.type || "video/mp4";
       }
 
       setStatus("Getting presigned URL...", 50);
