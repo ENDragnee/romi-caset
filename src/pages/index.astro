@@ -39,20 +39,6 @@ const tickerText =
 
     {/* Rising Featured Section */}
     <section class="section featured-section" id="featured-section">
-      <div class="content-wrapper">
-        <div class="divider hero-title-drop">
-          <span class="divider__label">Selected Work</span>
-        </div>
-
-        <div class="content-rise-up">
-          <ProjectGrid projects={featuredProjects} />
-        </div>
-
-        <div class="view-all-wrapper">
-          <a href="/portfolio" class="view-all-link">View All Work →</a>
-        </div>
-      </div>
-
       {/* Infinite Horizontal Marquee Ticker */}
       <div class="marquee-container" aria-label={tickerText}>
         <div class="marquee-track">
@@ -68,6 +54,18 @@ const tickerText =
           </div>
         </div>
       </div>
+      <div class="content-wrapper">
+        <div class="divider hero-title-drop"></div>
+
+        <div class="content-rise-up">
+          <ProjectGrid projects={featuredProjects} />
+        </div>
+
+        <div class="view-all-wrapper">
+          <a href="/portfolio" class="view-all-link">View All Work →</a>
+        </div>
+      </div>
+
       {/* Minimal Up-Navigation to Hero */}
 
       <div class="return-hero-wrapper">
