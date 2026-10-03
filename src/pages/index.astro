@@ -39,7 +39,7 @@ const tickerText =
 
     {/* Rising Featured Section */}
     <section class="section featured-section" id="featured-section">
-      {/* Infinite Horizontal Marquee Ticker */}
+      {/* Seamless Continuous Large Marquee */}
       <div class="marquee-container" aria-label={tickerText}>
         <div class="marquee-track">
           <div class="marquee-item">
@@ -58,6 +58,12 @@ const tickerText =
       </div>
 
       <div class="content-wrapper">
+        {/* Selected Work Editorial Divider */}
+        <div class="divider section-divider hero-title-drop">
+          <span class="divider__label">Selected Work</span>
+        </div>
+
+        {/* Project Grid */}
         <div class="content-rise-up">
           <ProjectGrid projects={featuredProjects} />
         </div>
@@ -113,8 +119,8 @@ const tickerText =
     width: 100%;
     min-height: 100vh;
     padding-top: var(--space-xl);
-    padding-bottom: var(--space-4xl);
-    box-shadow: 0 -25px 60px rgba(0, 0, 0, 0.15); /* Soft, clean elevation on light theme */
+    padding-bottom: var(--space-5xl);
+    box-shadow: 0 -25px 60px rgba(0, 0, 0, 0.15);
     box-sizing: border-box;
     overflow-x: hidden;
   }
@@ -125,6 +131,12 @@ const tickerText =
     margin: 0 auto;
     padding-inline: var(--space-xl);
     box-sizing: border-box;
+  }
+
+  /* Section Divider */
+  .section-divider {
+    margin-top: var(--space-md);
+    margin-bottom: var(--space-3xl);
   }
 
   .view-all-wrapper {
@@ -216,22 +228,21 @@ const tickerText =
     animation: cuePulseUp 2s infinite ease-in-out;
   }
 
-  /* ---------- Full-Width Continuous Marquee ---------- */
+  /* ---------- Larger Continuous Marquee ---------- */
   .marquee-container {
     width: 100%;
     overflow: hidden;
     user-select: none;
-    margin-bottom: var(--space-4xl);
-    padding-block: var(--space-md);
+    margin-bottom: var(--space-2xl);
+    padding-block: var(--space-xl);
     display: flex;
     white-space: nowrap;
-    border-bottom: 1px solid var(--color-border);
   }
 
   .marquee-track {
     display: flex;
     width: max-content;
-    animation: marqueeScroll 35s linear infinite;
+    animation: marqueeScroll 40s linear infinite;
   }
 
   .marquee-container:hover .marquee-track {
@@ -243,17 +254,17 @@ const tickerText =
     align-items: center;
     flex-shrink: 0;
     font-family: var(--font-heading);
-    font-size: clamp(0.9rem, 1.8vw, 1.15rem);
-    font-weight: 600;
-    letter-spacing: 0.12em;
+    font-size: clamp(1.2rem, 2.6vw, 1.75rem);
+    font-weight: 700;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--color-text);
   }
 
   .marquee-spacer {
     display: inline-block;
-    margin-inline: var(--space-xl);
-    opacity: 0.35;
+    margin-inline: var(--space-2xl);
+    opacity: 0.3;
   }
 
   @keyframes marqueeScroll {
@@ -268,6 +279,16 @@ const tickerText =
   @media (max-width: 768px) {
     .content-wrapper {
       padding-inline: var(--space-md);
+    }
+    .marquee-container {
+      margin-bottom: var(--space-xl);
+      padding-block: var(--space-md);
+    }
+    .marquee-item {
+      font-size: 1.1rem;
+    }
+    .section-divider {
+      margin-bottom: var(--space-2xl);
     }
   }
 </style>
