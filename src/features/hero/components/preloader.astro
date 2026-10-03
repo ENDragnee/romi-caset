@@ -3,12 +3,6 @@
 ---
 
 <div id="preloader" class="preloader-screen" aria-hidden="false">
-  {/* Top metadata bar */}
-  <div class="preloader-top-bar">
-    <span class="meta-tag">ROMI</span>
-    <span class="meta-tag">KASET PRODUCTION</span>
-  </div>
-
   {/* Center logo stage */}
   <div class="preloader-center-content">
     <div class="preloader-logo-wrap" id="preloader-logo-wrap">
@@ -29,12 +23,6 @@
       </div>
     </div>
   </div>
-
-  {/* Bottom metadata bar */}
-  <div class="preloader-bottom-bar">
-    <span class="meta-tag">BORN RISK TAKERS</span>
-    <span class="meta-tag">@ROMI</span>
-  </div>
 </div>
 
 <script>
@@ -42,7 +30,9 @@
 
   function RunPreloader() {
     const preloaderEl = document.querySelector<HTMLElement>("#preloader");
-    const logoWrapEl = document.querySelector<HTMLElement>("#preloader-logo-wrap");
+    const logoWrapEl = document.querySelector<HTMLElement>(
+      "#preloader-logo-wrap",
+    );
     const percentEl = document.querySelector<HTMLElement>(
       "#preloader-percentage",
     );
@@ -151,7 +141,9 @@
         metaGroupEl.style.opacity = "0";
       }
       const topBar = preloader.querySelector<HTMLElement>(".preloader-top-bar");
-      const bottomBar = preloader.querySelector<HTMLElement>(".preloader-bottom-bar");
+      const bottomBar = preloader.querySelector<HTMLElement>(
+        ".preloader-bottom-bar",
+      );
       if (topBar) {
         topBar.style.transition = "opacity 0.3s ease";
         topBar.style.opacity = "0";
@@ -343,7 +335,8 @@
   }
 
   @keyframes logo-glow {
-    0%, 100% {
+    0%,
+    100% {
       filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.28));
     }
     50% {
