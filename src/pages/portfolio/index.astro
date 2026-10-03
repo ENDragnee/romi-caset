@@ -9,9 +9,9 @@ const allProjects = await prisma.project.findMany({
 
 const categories = [
   { label: "ALL", value: "ALL" },
-  { label: "COMMERCIALS", value: "COMMERCIAL" },
-  { label: "MUSIC VIDEOS", value: "MUSICVIDEO" },
-  { label: "FILMS", value: "FILM" },
+  { label: "MUSIC", value: "MUSICVIDEO" },
+  { label: "COMMERCIAL", value: "COMMERCIAL" },
+  { label: "FILM", value: "FILM" },
 ];
 ---
 
@@ -188,12 +188,13 @@ const categories = [
     display: inline-block;
   }
 
+  /* Left-Aligned Category Tabs */
   .category-tabs-left {
     display: flex;
     align-items: center;
     gap: var(--space-xl);
-    margin-top: var(--space-lg);
-    padding: 4px 0;
+    margin-top: var(--space-md);
+    padding: 2px 0;
     overflow-x: auto;
     max-width: 100%;
     scrollbar-width: none;
@@ -208,7 +209,7 @@ const categories = [
     border: none;
     cursor: pointer;
     font-family: var(--font-heading);
-    font-size: 0.825rem;
+    font-size: 0.775rem;
     font-weight: 600;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -238,12 +239,24 @@ const categories = [
     background-color: #000000;
   }
 
+  /* Compact Mobile Proportions (Reference Match) */
   @media (max-width: 768px) {
     .content-wrapper {
       padding-inline: var(--space-md);
     }
+
+    .portfolio-header-block {
+      margin-bottom: var(--space-xl);
+    }
+
     .category-tabs-left {
-      gap: 16px;
+      gap: 12px;
+      margin-top: 6px; /* Sits tight under PROJECTS */
+    }
+
+    .tab-btn {
+      font-size: 0.68rem; /* Small & sharp like reference */
+      letter-spacing: 0.08em;
     }
   }
 </style>
