@@ -3,40 +3,26 @@
 ---
 
 <div id="preloader" class="preloader-screen" aria-hidden="false">
-  {/* Top metadata bar (Reference 00:00) */}
+  {/* Top metadata bar */}
   <div class="preloader-top-bar">
     <span class="meta-tag">ROMI</span>
     <span class="meta-tag">KASET PRODUCTION</span>
   </div>
 
-  {/* Center Vertical Kinetic Drum Reel (Matches Reference 00:01 - 00:03) */}
+  {/* Center logo stage */}
   <div class="preloader-center-content">
-    <div class="reel-window">
-      <div id="reel-cylinder" class="reel-cylinder">
-        {/* Frame 0: 'R' */}
-        <div class="reel-cell">
-          <span class="block-glyph">R</span>
-        </div>
-
-        {/* Frame 1: 'O' (Geometric block match) */}
-        <div class="reel-cell">
-          <span class="block-glyph">O</span>
-        </div>
-
-        {/* Frame 2: 'M' */}
-        <div class="reel-cell">
-          <span class="block-glyph">M</span>
-        </div>
-
-        {/* Frame 3: 'I' */}
-        <div class="reel-cell">
-          <span class="block-glyph">I</span>
-        </div>
-      </div>
+    <div class="preloader-logo-wrap" id="preloader-logo-wrap">
+      <img
+        src="/images/logo.png"
+        alt="KASET PRODUCTION"
+        class="preloader-logo"
+        id="preloader-logo"
+        draggable="false"
+      />
     </div>
 
     {/* Percentage Counter & Subtitle Status */}
-    <div class="preloader-meta-group">
+    <div class="preloader-meta-group" id="preloader-meta-group">
       <div id="preloader-percentage" class="percentage-counter">0%</div>
       <div id="preloader-status-text" class="status-stage-text">
         CONNECTING TO ARCHIVE...
@@ -44,7 +30,7 @@
     </div>
   </div>
 
-  {/* Bottom metadata bar (Reference 00:00) */}
+  {/* Bottom metadata bar */}
   <div class="preloader-bottom-bar">
     <span class="meta-tag">BORN RISK TAKERS</span>
     <span class="meta-tag">@ROMI</span>
@@ -56,22 +42,29 @@
 
   function RunPreloader() {
     const preloaderEl = document.querySelector<HTMLElement>("#preloader");
-    const cylinderEl = document.querySelector<HTMLElement>("#reel-cylinder");
+    const logoWrapEl = document.querySelector<HTMLElement>("#preloader-logo-wrap");
     const percentEl = document.querySelector<HTMLElement>(
       "#preloader-percentage",
     );
     const statusEl = document.querySelector<HTMLElement>(
       "#preloader-status-text",
     );
+    const metaGroupEl = document.querySelector<HTMLElement>(
+      "#preloader-meta-group",
+    );
     const heroSection = document.querySelector<HTMLElement>("#hero-section");
     const video =
       document.querySelector<HTMLVideoElement>("#hero-video-a") ||
       document.querySelector<HTMLVideoElement>("#hero-video");
 
-    if (!preloaderEl || !cylinderEl || !percentEl) return;
+    // Nav logo — hide until the fly-in lands
+    const navLogoImg = document.querySelector<HTMLElement>(
+      "#main-nav-header .logo-img",
+    );
+
+    if (!preloaderEl || !logoWrapEl || !percentEl) return;
 
     const preloader = preloaderEl;
-    const cylinder = cylinderEl;
     const percent = percentEl;
 
     if (preloaderRaf) {
@@ -85,11 +78,11 @@
     if (statusEl) statusEl.textContent = "CONNECTING TO ARCHIVE...";
     document.body.style.overflow = "hidden";
 
-    // Frame height in pixels (120px on desktop, 90px on mobile)
-    const isMobile = window.innerWidth <= 768;
-    const frameHeight = isMobile ? 90 : 120;
-
-    cylinder.style.transform = "translateY(0px)";
+    // Hide the real nav logo so our flying clone is the only one
+    if (navLogoImg) {
+      navLogoImg.style.opacity = "0";
+      navLogoImg.style.transition = "none";
+    }
 
     let progress = 0;
     let videoReady = false;
@@ -110,17 +103,7 @@
     }
 
     const startTime = performance.now();
-    const minDuration = 2500; // 5-second buffer
-
-    // Steps: 0 = 'R', 1 = 'O', 2 = 'M', 3 = 'I'
-    function getReelStep(pct: number): number {
-      if (pct < 28) return 0; // 'R' (0% - 28%)
-      if (pct < 62) return 1; // 'O' (28% - 62%)
-      if (pct < 88) return 2; // 'M' (62% - 88%)
-      return 3; // 'I' (88% - 100%)
-    }
-
-    let currentStep = 0;
+    const minDuration = 2500;
 
     function updateProgress(now: number) {
       const elapsed = now - startTime;
@@ -132,13 +115,6 @@
         progress = 100;
       } else {
         progress = 95 + Math.floor((Math.sin(elapsed / 80) + 1) * 2);
-      }
-
-      // Vertical Drum Roll Transition (Reference 00:02)
-      const targetStep = getReelStep(progress);
-      if (targetStep !== currentStep) {
-        currentStep = targetStep;
-        cylinder.style.transform = `translateY(-${currentStep * frameHeight}px)`;
       }
 
       if (statusEl) {
@@ -169,16 +145,122 @@
     preloaderRaf = requestAnimationFrame(updateProgress);
 
     function finishPreloader() {
-      preloader.classList.add("fade-out");
-      document.body.style.overflow = "";
-
-      if (heroSection) {
-        heroSection.classList.add("is-ready");
+      // 1. Fade out meta labels
+      if (metaGroupEl) {
+        metaGroupEl.style.transition = "opacity 0.3s ease";
+        metaGroupEl.style.opacity = "0";
+      }
+      const topBar = preloader.querySelector<HTMLElement>(".preloader-top-bar");
+      const bottomBar = preloader.querySelector<HTMLElement>(".preloader-bottom-bar");
+      if (topBar) {
+        topBar.style.transition = "opacity 0.3s ease";
+        topBar.style.opacity = "0";
+      }
+      if (bottomBar) {
+        bottomBar.style.transition = "opacity 0.3s ease";
+        bottomBar.style.opacity = "0";
       }
 
+      // 2. After brief pause, fly the logo to the navbar
+      setTimeout(() => {
+        flyLogoToNav();
+      }, 320);
+    }
+
+    function flyLogoToNav() {
+      // Measure current logo position
+      const srcRect = logoWrapEl.getBoundingClientRect();
+
+      const navLogoLink = document.querySelector<HTMLElement>(
+        "#main-nav-header .logo-link",
+      );
+
+      if (!navLogoLink || !navLogoImg) {
+        simpleFadeOut();
+        return;
+      }
+
+      const tgtRect = navLogoLink.getBoundingClientRect();
+
+      // Target size matches the rendered nav logo height
+      const isMobile = window.innerWidth <= 768;
+      const targetHeight = isMobile ? 60 : 76;
+      const targetWidth = targetHeight; // logo is a square
+
+      // Source and target centres
+      const srcCx = srcRect.left + srcRect.width / 2;
+      const srcCy = srcRect.top + srcRect.height / 2;
+      const tgtCx = tgtRect.left + tgtRect.width / 2;
+      const tgtCy = tgtRect.top + tgtRect.height / 2;
+
+      // Create flying clone that floats above everything
+      const clone = document.createElement("img");
+      clone.src = "/images/logo.png";
+      clone.alt = "";
+      clone.setAttribute("aria-hidden", "true");
+      clone.style.cssText = `
+        position: fixed;
+        z-index: 9999999;
+        pointer-events: none;
+        width: ${srcRect.width}px;
+        height: ${srcRect.height}px;
+        left: ${srcRect.left}px;
+        top: ${srcRect.top}px;
+        transform-origin: center center;
+        will-change: transform, opacity;
+        object-fit: contain;
+      `;
+      document.body.appendChild(clone);
+
+      // Hide the in-preloader logo (clone takes visual ownership)
+      logoWrapEl.style.opacity = "0";
+
+      // Fade out the black overlay
+      preloader.classList.add("fade-out");
+      document.body.style.overflow = "";
+      if (heroSection) heroSection.classList.add("is-ready");
+
+      // Two rAF ticks ensure browser has painted the clone before animating
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const dx = tgtCx - srcCx;
+          const dy = tgtCy - srcCy;
+          const scaleX = targetWidth / srcRect.width;
+          const scaleY = targetHeight / srcRect.height;
+
+          clone.style.transition =
+            "transform 0.72s cubic-bezier(0.76, 0, 0.24, 1), opacity 0.2s ease";
+          clone.style.transform = `translate(${dx}px, ${dy}px) scale(${scaleX}, ${scaleY})`;
+
+          // Swap clone → real nav logo just before landing
+          setTimeout(() => {
+            if (navLogoImg) {
+              navLogoImg.style.transition = "opacity 0.18s ease";
+              navLogoImg.style.opacity = "1";
+            }
+            clone.style.opacity = "0";
+            setTimeout(() => clone.remove(), 200);
+          }, 640);
+        });
+      });
+
+      // Remove preloader DOM after overlay transition
       setTimeout(() => {
         preloader.style.display = "none";
-      }, 700);
+      }, 900);
+    }
+
+    function simpleFadeOut() {
+      preloader.classList.add("fade-out");
+      document.body.style.overflow = "";
+      if (heroSection) heroSection.classList.add("is-ready");
+      if (navLogoImg) {
+        navLogoImg.style.transition = "opacity 0.3s ease";
+        navLogoImg.style.opacity = "1";
+      }
+      setTimeout(() => {
+        preloader.style.display = "none";
+      }, 900);
     }
   }
 
@@ -201,18 +283,15 @@
     padding: var(--space-xl) var(--space-2xl);
     box-sizing: border-box;
     user-select: none;
-    transition:
-      opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1),
-      transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .preloader-screen.fade-out {
     opacity: 0;
-    transform: translateY(-40px);
     pointer-events: none;
   }
 
-  /* Top & Bottom metadata rows (Reference 00:00) */
+  /* Top & Bottom metadata rows */
   .preloader-top-bar,
   .preloader-bottom-bar {
     width: 100%;
@@ -240,61 +319,36 @@
     margin: auto 0;
   }
 
-  /* ---------- Vertical Drum Slot Viewport (Reference 00:02) ---------- */
-  .reel-window {
-    width: 160px;
-    height: 120px; /* Fixed frame aperture */
-    overflow: hidden;
+  /* ---------- Logo Stage ---------- */
+  .preloader-logo-wrap {
     position: relative;
-    display: flex;
-    justify-content: center;
-    mask-image: linear-gradient(
-      to bottom,
-      transparent 0%,
-      black 15%,
-      black 85%,
-      transparent 100%
-    );
-    -webkit-mask-image: linear-gradient(
-      to bottom,
-      transparent 0%,
-      black 15%,
-      black 85%,
-      transparent 100%
-    );
-  }
-
-  .reel-cylinder {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    /* Snappy kinetic roll matching reference 00:02 */
-    transition: transform 0.45s cubic-bezier(0.85, 0, 0.15, 1);
-    will-change: transform;
-  }
-
-  .reel-cell {
-    width: 100%;
-    height: 120px;
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
+    width: 180px;
+    height: 180px;
   }
 
-  /* Ultra-Heavy Block Typography (Consistent Across All Glyphs) */
-  .block-glyph {
-    font-family: "Space Grotesk", Impact, "Arial Black", sans-serif;
-    font-size: clamp(5.5rem, 14vw, 7.5rem);
-    font-weight: 900;
-    line-height: 1;
-    color: #ffffff;
-    text-transform: uppercase;
-    letter-spacing: -0.04em;
-    text-shadow: 0 0 35px rgba(255, 255, 255, 0.45);
+  .preloader-logo {
+    width: 140px;
+    height: 140px;
+    object-fit: contain;
     display: block;
-    user-select: none;
-    text-align: center;
+    position: relative;
+    z-index: 2;
+    /* Subtle glow pulse while loading — no size change */
+    animation: logo-glow 3s ease-in-out infinite;
+    filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.28));
+    will-change: filter;
+  }
+
+  @keyframes logo-glow {
+    0%, 100% {
+      filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.28));
+    }
+    50% {
+      filter: drop-shadow(0 0 38px rgba(255, 255, 255, 0.55));
+    }
   }
 
   /* Percentage & Subtitle Status */
@@ -327,15 +381,13 @@
     .preloader-screen {
       padding: var(--space-lg);
     }
-    .reel-window {
-      width: 120px;
-      height: 90px;
+    .preloader-logo-wrap {
+      width: 140px;
+      height: 140px;
     }
-    .reel-cell {
-      height: 90px;
-    }
-    .block-glyph {
-      font-size: 4.8rem;
+    .preloader-logo {
+      width: 110px;
+      height: 110px;
     }
   }
 </style>
