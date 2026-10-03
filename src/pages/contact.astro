@@ -31,43 +31,20 @@ import ContactForm from "../features/contact/components/contact-form.astro";
             Commercial &bull; Music Video &bull; Film
           </p>
         </div>
+      </div>
+    </div>
+  </div>
 
-        <div class="editorial-col">
-          <span class="col-label">SOCIAL ARCHIVE</span>
-          <div class="social-row">
-            <a
-              href="https://www.instagram.com/bini._romi?stkn=NWl6MmJ0MGt2MG9x&utm_source=qr"
-              target="_blank"
-              rel="noopener noreferrer">instagram</a
-            >
-            <span>/</span>
-            <a
-              href="https://vimeo.com/user262746173?fl=pp&fe=sh"
-              target="_blank"
-              rel="noopener noreferrer">vimeo</a
-            >
-            <span>/</span>
-            <a
-              href="https://youtube.com"
-              target="_blank"
-              rel="noopener noreferrer">youtube</a
-            >
-          </div>
-        </div>
+  {/* Form pushed to the end as secondary inquiry */}
+  <div class="contact-form-section content-rise-up">
+    <div class="form-section-header">
+      <div class="divider">
+        <span class="divider__label">Project Inquiry Form</span>
       </div>
     </div>
 
-    {/* Form pushed to the end as secondary inquiry */}
-    <div class="contact-form-section content-rise-up">
-      <div class="form-section-header">
-        <div class="divider">
-          <span class="divider__label">Project Inquiry Form</span>
-        </div>
-      </div>
-
-      <div class="form-outer-wrapper">
-        <ContactForm />
-      </div>
+    <div class="form-outer-wrapper">
+      <ContactForm />
     </div>
   </div>
 </BaseLayout>
