@@ -38,10 +38,13 @@
 
 <style>
   .site-footer {
+    position: relative;
+    z-index: 10; /* Sits above sticky background layers */
     width: 100%;
     padding: var(--space-2xl) var(--space-xl);
-    background-color: var(--color-bg);
+    background-color: #ffffff !important; /* Pure solid white on all pages */
     box-sizing: border-box;
+    border-top: none;
   }
 
   .footer-container {
@@ -53,7 +56,7 @@
     justify-content: flex-start;
   }
 
-  /* Bottom-Left Minimalist Link Bar (Reference Match) */
+  /* Bottom-Left Minimalist Link Bar */
   .footer-find-us {
     display: flex;
     align-items: center;

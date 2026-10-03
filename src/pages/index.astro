@@ -28,7 +28,7 @@ const tickerText =
 ---
 
 <BaseLayout title="Kaset Production" transparentNav={true}>
-  {/* 5-Second 3D ROMI Buffer Preloader with Live Status */}
+  {/* 5-Second 3D ROMI Buffer Preloader */}
   <Preloader />
 
   <div class="homepage-curtain-wrapper">
@@ -44,7 +44,9 @@ const tickerText =
         <div class="marquee-track">
           <div class="marquee-item">
             <span>{tickerText}</span>
+            <span class="marquee-spacer">—</span>
             <span>{tickerText}</span>
+            <span class="marquee-spacer">—</span>
           </div>
           <div class="marquee-item" aria-hidden="true">
             <span>{tickerText}</span>
@@ -54,9 +56,8 @@ const tickerText =
           </div>
         </div>
       </div>
-      <div class="content-wrapper">
-        <div class="divider hero-title-drop"></div>
 
+      <div class="content-wrapper">
         <div class="content-rise-up">
           <ProjectGrid projects={featuredProjects} />
         </div>
@@ -65,36 +66,10 @@ const tickerText =
           <a href="/portfolio" class="view-all-link">View All Work →</a>
         </div>
       </div>
-
-      {/* Minimal Up-Navigation to Hero */}
-
-      <div class="return-hero-wrapper">
-        <button
-          id="scroll-to-hero-btn"
-          class="hero-scroll-cue"
-          type="button"
-          aria-label="Scroll back to hero section"
-        >
-          <svg
-            class="cue-chevron-up"
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <polyline points="18 15 12 9 6 15"></polyline>
-          </svg>
-
-          <span class="cue-label">HERO</span>
-        </button>
-      </div>
     </section>
   </div>
 </BaseLayout>
+
 <script>
   function InitCurtainScroll() {
     const scrollToHeroBtn = document.querySelector<HTMLButtonElement>(
@@ -104,34 +79,96 @@ const tickerText =
     if (scrollToHeroBtn) {
       scrollToHeroBtn.onclick = (e) => {
         e.preventDefault();
-
         window.scrollTo({ top: 0, behavior: "smooth" });
       };
     }
   }
+
   InitCurtainScroll();
   document.addEventListener("astro:page-load", InitCurtainScroll);
 </script>
+
 <style>
   .homepage-curtain-wrapper {
     position: relative;
     width: 100%;
+    background-color: #ffffff;
   }
-  /* Minimal Up-Navigation to Hero */
 
-  .return-hero-wrapper {
+  /* Pinned Hero */
+  .sticky-hero-container {
+    position: sticky;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1;
+    will-change: transform;
+  }
+
+  /* Rising Featured Section */
+  .featured-section {
+    position: relative;
+    z-index: 2;
+    background-color: #ffffff;
+    width: 100%;
+    min-height: 100vh;
+    padding-top: var(--space-xl);
+    padding-bottom: var(--space-4xl);
+    box-shadow: 0 -25px 60px rgba(0, 0, 0, 0.15); /* Soft, clean elevation on light theme */
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
+  .content-wrapper {
+    width: 100%;
+    max-width: 1380px;
+    margin: 0 auto;
+    padding-inline: var(--space-xl);
+    box-sizing: border-box;
+  }
+
+  .view-all-wrapper {
     display: flex;
     justify-content: center;
     margin-top: var(--space-4xl);
   }
 
-  .cue-label {
+  .view-all-link {
+    color: #000000;
     font-family: var(--font-heading);
-    font-size: 0.725rem;
-    font-weight: 600;
-    letter-spacing: 0.22em;
-    text-indent: 0.22em;
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-decoration: none;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
+    position: relative;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .view-all-link::after {
+    content: "";
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 0;
+    height: 1.5px;
+    background-color: #000000;
+    transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .view-all-link:hover {
+    transform: translateX(4px);
+  }
+
+  .view-all-link:hover::after {
+    width: 100%;
+  }
+
+  /* Minimal Up-Navigation to Hero */
+  .return-hero-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: var(--space-4xl);
   }
 
   .hero-scroll-cue {
@@ -153,6 +190,16 @@ const tickerText =
     color: var(--color-accent);
     transform: translateY(-2px);
   }
+
+  .cue-label {
+    font-family: var(--font-heading);
+    font-size: 0.725rem;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-indent: 0.22em;
+    text-transform: uppercase;
+  }
+
   @keyframes cuePulseUp {
     0%,
     100% {
@@ -169,84 +216,16 @@ const tickerText =
     animation: cuePulseUp 2s infinite ease-in-out;
   }
 
-  /* Pinned Hero */
-  .sticky-hero-container {
-    position: sticky;
-    top: 0;
-    left: 0;
-    width: 100%;
-    z-index: 1;
-    will-change: transform;
-  }
-
-  /* Rising Featured Section covering the pinned hero */
-  .featured-section {
-    position: relative;
-    z-index: 2;
-    background-color: var(--color-bg);
-    width: 100%;
-    min-height: 100vh;
-    padding-top: var(--space-4xl);
-    padding-bottom: var(--space-5xl);
-    box-shadow: 0 -25px 60px rgba(0, 0, 0, 0.9);
-    box-sizing: border-box;
-    overflow-x: hidden;
-  }
-
-  .content-wrapper {
-    width: 100%;
-    max-width: 960px;
-    margin: 0 auto;
-    padding-inline: var(--space-md);
-    box-sizing: border-box;
-  }
-
-  .view-all-wrapper {
-    display: flex;
-    justify-content: center;
-    margin-top: var(--space-3xl);
-  }
-
-  .view-all-link {
-    color: var(--color-accent);
-    font-family: var(--font-heading);
-    font-size: 1rem;
-    font-weight: 500;
-    text-decoration: none;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    position: relative;
-    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .view-all-link::after {
-    content: "";
-    position: absolute;
-    bottom: -4px;
-    left: 0;
-    width: 0;
-    height: 1px;
-    background-color: var(--color-accent);
-    transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .view-all-link:hover {
-    transform: translateX(4px);
-  }
-
-  .view-all-link:hover::after {
-    width: 100%;
-  }
-
   /* ---------- Full-Width Continuous Marquee ---------- */
   .marquee-container {
     width: 100%;
     overflow: hidden;
     user-select: none;
-    margin-top: var(--space-4xl);
+    margin-bottom: var(--space-4xl);
     padding-block: var(--space-md);
     display: flex;
     white-space: nowrap;
+    border-bottom: 1px solid var(--color-border);
   }
 
   .marquee-track {
@@ -264,7 +243,7 @@ const tickerText =
     align-items: center;
     flex-shrink: 0;
     font-family: var(--font-heading);
-    font-size: clamp(1rem, 2vw, 1.35rem);
+    font-size: clamp(0.9rem, 1.8vw, 1.15rem);
     font-weight: 600;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -274,7 +253,7 @@ const tickerText =
   .marquee-spacer {
     display: inline-block;
     margin-inline: var(--space-xl);
-    opacity: 0.45;
+    opacity: 0.35;
   }
 
   @keyframes marqueeScroll {
@@ -286,9 +265,9 @@ const tickerText =
     }
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    .marquee-track {
-      animation: none;
+  @media (max-width: 768px) {
+    .content-wrapper {
+      padding-inline: var(--space-md);
     }
   }
 </style>
