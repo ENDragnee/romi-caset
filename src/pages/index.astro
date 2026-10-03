@@ -22,6 +22,9 @@ const featuredProjects = await prisma.project.findMany({
   take: 6,
   orderBy: [{ order: "asc" }, { createdAt: "desc" }],
 });
+
+const tickerText =
+  "We believe a great film doesn’t just tell you something. It makes you feel something";
 ---
 
 <BaseLayout title="Kaset Production" transparentNav={true}>
@@ -48,53 +51,26 @@ const featuredProjects = await prisma.project.findMany({
         <div class="view-all-wrapper">
           <a href="/portfolio" class="view-all-link">View All Work →</a>
         </div>
+      </div>
 
-        {/* Minimal Up-Navigation to Hero */}
-        <div class="return-hero-wrapper">
-          <button
-            id="scroll-to-hero-btn"
-            class="hero-scroll-cue"
-            type="button"
-            aria-label="Scroll back to hero section"
-          >
-            <svg
-              class="cue-chevron-up"
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <polyline points="18 15 12 9 6 15"></polyline>
-            </svg>
-            <span class="cue-label">HERO</span>
-          </button>
+      {/* Infinite Horizontal Marquee Ticker */}
+      <div class="marquee-container" aria-label={tickerText}>
+        <div class="marquee-track">
+          <div class="marquee-item">
+            <span>{tickerText}</span>
+            <span>{tickerText}</span>
+          </div>
+          <div class="marquee-item" aria-hidden="true">
+            <span>{tickerText}</span>
+            <span class="marquee-spacer">—</span>
+            <span>{tickerText}</span>
+            <span class="marquee-spacer">—</span>
+          </div>
         </div>
       </div>
     </section>
   </div>
 </BaseLayout>
-
-<script>
-  function InitCurtainScroll() {
-    const scrollToHeroBtn = document.querySelector<HTMLButtonElement>(
-      "#scroll-to-hero-btn",
-    );
-
-    if (scrollToHeroBtn) {
-      scrollToHeroBtn.onclick = (e) => {
-        e.preventDefault();
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      };
-    }
-  }
-
-  InitCurtainScroll();
-  document.addEventListener("astro:page-load", InitCurtainScroll);
-</script>
 
 <style>
   .homepage-curtain-wrapper {
@@ -123,6 +99,7 @@ const featuredProjects = await prisma.project.findMany({
     padding-bottom: var(--space-5xl);
     box-shadow: 0 -25px 60px rgba(0, 0, 0, 0.9);
     box-sizing: border-box;
+    overflow-x: hidden;
   }
 
   .content-wrapper {
@@ -170,55 +147,57 @@ const featuredProjects = await prisma.project.findMany({
     width: 100%;
   }
 
-  /* Minimal Up-Navigation to Hero */
-  .return-hero-wrapper {
-    display: flex;
-    justify-content: center;
+  /* ---------- Full-Width Continuous Marquee ---------- */
+  .marquee-container {
+    width: 100%;
+    overflow: hidden;
+    user-select: none;
     margin-top: var(--space-4xl);
-  }
-
-  .hero-scroll-cue {
+    padding-block: var(--space-md);
     display: flex;
-    flex-direction: column;
+    white-space: nowrap;
+  }
+
+  .marquee-track {
+    display: flex;
+    width: max-content;
+    animation: marqueeScroll 35s linear infinite;
+  }
+
+  .marquee-container:hover .marquee-track {
+    animation-play-state: paused;
+  }
+
+  .marquee-item {
+    display: flex;
     align-items: center;
-    gap: 4px;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    color: var(--color-text-muted);
-    padding: var(--space-xs) var(--space-md);
-    transition:
-      color var(--transition-fast),
-      transform var(--transition-fast);
-  }
-
-  .hero-scroll-cue:hover {
-    color: var(--color-accent);
-    transform: translateY(-2px);
-  }
-
-  .cue-label {
+    flex-shrink: 0;
     font-family: var(--font-heading);
-    font-size: 0.725rem;
+    font-size: clamp(1rem, 2vw, 1.35rem);
     font-weight: 600;
-    letter-spacing: 0.22em;
-    text-indent: 0.22em;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
+    color: var(--color-text);
   }
 
-  @keyframes cuePulseUp {
-    0%,
+  .marquee-spacer {
+    display: inline-block;
+    margin-inline: var(--space-xl);
+    opacity: 0.45;
+  }
+
+  @keyframes marqueeScroll {
+    0% {
+      transform: translateX(0%);
+    }
     100% {
-      transform: translateY(0);
-      opacity: 0.75;
-    }
-    50% {
-      transform: translateY(-4px);
-      opacity: 1;
+      transform: translateX(-50%);
     }
   }
 
-  .cue-chevron-up {
-    animation: cuePulseUp 2s infinite ease-in-out;
+  @media (prefers-reduced-motion: reduce) {
+    .marquee-track {
+      animation: none;
+    }
   }
 </style>
