@@ -6,6 +6,7 @@ interface Props {
 }
 
 const { transparent = false } = Astro.props;
+const currentYear = new Date().getFullYear();
 ---
 
 <header
@@ -61,6 +62,7 @@ const { transparent = false } = Astro.props;
 
   {/* Mobile Menu Drawer */}
   <div id="mobile-menu" class="mobile-menu">
+    {/* Top Header: Logo on Left + Close on Right */}
     <div class="mobile-menu-header">
       <a href="/" class="logo-link" aria-label="Kaset Production Home">
         <img src="/images/logo.png" alt="KASET" class="logo-img-mobile" />
@@ -73,58 +75,46 @@ const { transparent = false } = Astro.props;
       >
     </div>
 
-    <nav class="mobile-nav">
-      <ul class="mobile-nav-list">
-        {
-          navigation.map((item) => (
-            <li
-              class={`mobile-nav-item ${item.children ? "has-children" : ""}`}
-            >
-              <div class="mobile-nav-row">
-                <a
-                  href={item.children ? "javascript:void(0)" : item.href}
-                  class="mobile-nav-link"
-                >
-                  {item.label}
-                </a>
-                {item.children && (
-                  <button
-                    type="button"
-                    class="mobile-expand-btn"
-                    aria-label={`Toggle ${item.label} submenu`}
+    {/* Centered Navigation Body */}
+    <div class="mobile-menu-body">
+      <nav class="mobile-nav">
+        <ul class="mobile-nav-list">
+          {
+            navigation.map((item) => (
+              <li
+                class={`mobile-nav-item ${item.children ? "has-children" : ""}`}
+              >
+                <div class="mobile-nav-row">
+                  <a
+                    href={item.children ? "javascript:void(0)" : item.href}
+                    class="mobile-nav-link"
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <polyline points="6 9 12 15 18 9" />
-                    </svg>
-                  </button>
+                    <span>{item.label}</span>
+                    {item.children && <span class="mobile-chevron">▾</span>}
+                  </a>
+                </div>
+                {item.children && (
+                  <ul class="mobile-dropdown">
+                    {item.children.map((child) => (
+                      <li class="mobile-dropdown-item">
+                        <a href={child.href} class="mobile-dropdown-link">
+                          {child.label}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
                 )}
-              </div>
-              {item.children && (
-                <ul class="mobile-dropdown">
-                  {item.children.map((child) => (
-                    <li class="mobile-dropdown-item">
-                      <a href={child.href} class="mobile-dropdown-link">
-                        {child.label}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </li>
-          ))
-        }
-      </ul>
-    </nav>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+    </div>
+
+    {/* Bottom Copyright Tag */}
+    <div class="mobile-menu-footer">
+      <span class="mobile-copy">&copy; {currentYear} KASET PRODUCTION</span>
+    </div>
   </div>
 </header>
 
@@ -195,28 +185,24 @@ const { transparent = false } = Astro.props;
       mobileMenuToggle.onclick = openMenu;
       mobileMenuClose.onclick = closeMenu;
 
-      // Handle items with and without children
       const mobileNavItems =
         mobileMenu.querySelectorAll<HTMLElement>(".mobile-nav-item");
 
       mobileNavItems.forEach((item) => {
         const hasChildren = item.classList.contains("has-children");
         const row = item.querySelector<HTMLElement>(".mobile-nav-row");
-        const link = item.querySelector<HTMLAnchorElement>(".mobile-nav-link");
+        const link = item.querySelector<HTMLAnchorElement>("a.mobile-nav-link");
 
         if (hasChildren && row) {
-          // Clicking ANYWHERE on the Work row toggles the collapsible submenu
           row.onclick = (e: MouseEvent) => {
             e.preventDefault();
             e.stopPropagation();
             item.classList.toggle("expanded");
           };
         } else if (link) {
-          // Items without children navigate and close the drawer
           link.onclick = () => closeMenu();
         }
 
-        // Sub-links inside the dropdown close the menu and navigate
         item
           .querySelectorAll<HTMLAnchorElement>(".mobile-dropdown-link")
           .forEach((subLink) => {
@@ -362,7 +348,7 @@ const { transparent = false } = Astro.props;
     transform: rotate(180deg);
   }
 
-  /* Dropdown */
+  /* Desktop Dropdown */
   .dropdown {
     position: absolute;
     top: calc(100% + 4px);
@@ -460,26 +446,29 @@ const { transparent = false } = Astro.props;
     bottom: -6px;
   }
 
-  /* Mobile Drawer (Side slide appearance) */
+  /* ==========================================================================
+     Mobile Menu (Drawer with Top Logo & Close Button)
+     ========================================================================== */
   .mobile-menu {
     position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
+    inset: 0;
     width: 100vw;
+    height: 100vh;
     height: 100dvh;
     background-color: #ffffff;
     z-index: 2000;
     display: flex;
     flex-direction: column;
-    padding: var(--space-xl) var(--space-lg);
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-xl) var(--space-xl) var(--space-2xl);
     visibility: hidden;
     transform: translateX(100%);
     transition:
       transform 0.45s cubic-bezier(0.25, 1, 0.5, 1),
       visibility 0.45s cubic-bezier(0.25, 1, 0.5, 1);
     overflow-y: auto;
+    box-sizing: border-box;
     will-change: transform;
   }
 
@@ -488,30 +477,49 @@ const { transparent = false } = Astro.props;
     transform: translateX(0);
   }
 
+  /* Top Drawer Header with Logo & Close Button */
   .mobile-menu-header {
+    width: 100%;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: var(--space-3xl);
   }
 
   .logo-img-mobile {
-    height: 64px;
+    height: 60px;
     width: auto;
+    display: block;
   }
 
   .mobile-close {
     background: none;
     border: none;
-    font-size: 2.2rem;
+    font-size: 2.5rem;
     line-height: 1;
     color: #000000;
     cursor: pointer;
-    padding: var(--space-2xs);
+    padding: 0;
+    transition: opacity var(--transition-fast);
   }
 
   .mobile-close:hover {
-    color: var(--color-accent);
+    opacity: 0.6;
+  }
+
+  /* Centered Navigation Body */
+  .mobile-menu-body {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    margin: auto 0;
+  }
+
+  .mobile-nav {
+    width: 100%;
+    display: flex;
+    justify-content: center;
   }
 
   .mobile-nav-list {
@@ -520,80 +528,114 @@ const { transparent = false } = Astro.props;
     margin: 0;
     display: flex;
     flex-direction: column;
-    gap: var(--space-lg);
+    align-items: center;
+    gap: var(--space-2xl);
+    width: 100%;
+    text-align: center;
   }
 
   .mobile-nav-item {
-    border-bottom: 1px solid var(--color-border);
-    padding-bottom: var(--space-md);
-  }
-
-  /* Clickable row container */
-  .mobile-nav-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    border: none !important;
+    padding: 0;
+    margin: 0;
     width: 100%;
-    cursor: default;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 
-  .has-children .mobile-nav-row {
-    cursor: pointer; /* Whole row indicates clickability */
+  .mobile-nav-row {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
   }
 
   .mobile-nav-link {
     font-family: var(--font-heading);
-    font-size: 1.6rem;
-    font-weight: 600;
+    font-size: clamp(1.4rem, 6vw, 1.9rem);
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.16em;
     color: #000000;
     text-decoration: none;
-    flex: 1;
-  }
-
-  .mobile-expand-btn {
-    background: transparent;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    color: var(--color-text-muted);
-    width: 38px;
-    height: 38px;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    pointer-events: none; /* Mouse/touch events bubble to the whole row */
+    gap: 6px;
+    transition: opacity var(--transition-fast);
   }
 
-  .mobile-nav-item.expanded .mobile-expand-btn svg {
+  .mobile-nav-link:hover {
+    opacity: 0.6;
+  }
+
+  .mobile-chevron {
+    font-size: 0.9rem;
+    transition: transform var(--transition-fast);
+  }
+
+  .mobile-nav-item.expanded .mobile-chevron {
     transform: rotate(180deg);
   }
 
+  /* Centered Submenu */
   .mobile-dropdown {
     list-style: none;
-    padding: var(--space-sm) 0 0 var(--space-md);
+    padding: var(--space-md) 0 0 0;
     margin: 0;
     display: none;
     flex-direction: column;
+    align-items: center;
     gap: var(--space-sm);
+    width: 100%;
   }
 
   .mobile-nav-item.expanded .mobile-dropdown {
     display: flex;
   }
 
+  .mobile-dropdown-item {
+    padding: var(--space-2xs) 0;
+  }
+
   .mobile-dropdown-link {
     font-family: var(--font-heading);
-    font-size: 1.1rem;
-    letter-spacing: 0.05em;
-    color: var(--color-text-muted);
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #777777;
     text-decoration: none;
+    transition: color var(--transition-fast);
+  }
+
+  .mobile-dropdown-link:hover {
+    color: #000000;
+  }
+
+  /* Bottom Copyright */
+  .mobile-menu-footer {
+    width: 100%;
+    text-align: center;
+    padding-top: var(--space-lg);
+  }
+
+  .mobile-copy {
+    font-family: var(--font-heading);
+    font-size: 0.725rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #888888;
   }
 
   @media (max-width: 768px) {
     .logo-img {
       height: 60px;
+    }
+    .mobile-nav-list {
+      gap: var(--space-xl);
     }
   }
 </style>
