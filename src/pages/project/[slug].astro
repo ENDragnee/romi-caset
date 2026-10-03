@@ -9,27 +9,16 @@ const project = await prisma.project.findUnique({
   where: { slug: slug as string },
 });
 if (!project) return Astro.redirect("/portfolio");
-
-const headerTitle = project.client
-  ? `'${project.title.toLowerCase()}'`
-  : `'${project.title.toLowerCase()}'`;
 ---
 
 <BaseLayout title={`${project.title} — Kaset Production`}>
-  <main class="project-detail container">
+  <main class="project-detail">
     <div class="content-wrapper">
-      {/* Title Divider */}
-      <div class="project-header-divider hero-title-drop">
-        <div class="divider-line"></div>
-        <h1 class="project-heading-title">{headerTitle}</h1>
-        <div class="divider-line"></div>
-      </div>
-
-      {/* Video with Chromeless Player & Play Trigger */}
+      {/* Video with Title on the Player */}
       <div class="project-content content-rise-up">
         {
           project.youtubeUrl && (
-            <div class="video-container">
+            <div class="video-container hero-title-drop">
               <VideoEmbed
                 url={project.youtubeUrl}
                 title={project.title}
@@ -39,14 +28,22 @@ const headerTitle = project.client
           )
         }
 
+        {/* Client Name & Year directly below the video */}
         {
-          project.description && (
-            <div class="project-description">
-              <p>{project.description}</p>
+          (project.client || project.year) && (
+            <div class="project-client-meta">
+              <p class="client-text">
+                {project.client}
+                {project.client && project.year && (
+                  <span class="meta-sep">&mdash;</span>
+                )}
+                {project.year && <span class="year-num">{project.year}</span>}
+              </p>
             </div>
           )
         }
 
+        {/* Behind The Scenes Stills */}
         {
           project.gallery && project.gallery.length > 0 && (
             <div class="gallery-section">
@@ -55,8 +52,9 @@ const headerTitle = project.client
           )
         }
 
+        {/* Back to Portfolio Link */}
         <div class="back-link-container">
-          <a href="/portfolio" class="back-link">← Back to Portfolio</a>
+          <a href="/portfolio" class="back-link">← Back to Projects</a>
         </div>
       </div>
     </div>
@@ -70,42 +68,13 @@ const headerTitle = project.client
     width: 100%;
   }
 
+  /* Wide Canvas (1380px) matching Portfolio Index */
   .content-wrapper {
     width: 100%;
-    max-width: 960px;
+    max-width: 1380px;
     margin: 0 auto;
-    padding-inline: var(--space-md);
+    padding-inline: var(--space-xl);
     box-sizing: border-box;
-  }
-
-  .project-header-divider {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-lg);
-    margin-bottom: var(--space-2xl);
-    width: 100%;
-  }
-
-  .divider-line {
-    flex: 1;
-    height: 1px;
-    background-color: var(--color-border);
-    min-width: 20px;
-  }
-
-  .project-heading-title {
-    font-family: var(--font-heading);
-    font-size: clamp(0.9rem, 3.2vw, 1.15rem);
-    font-weight: 500;
-    letter-spacing: 0.04em;
-    color: var(--color-text);
-    text-align: center;
-    margin: 0;
-    white-space: normal;
-    word-break: break-word;
-    max-width: 85%;
-    line-height: 1.4;
   }
 
   .project-content {
@@ -116,21 +85,37 @@ const headerTitle = project.client
 
   .video-container {
     width: 100%;
-    margin: 0 auto var(--space-3xl);
+    margin: 0 auto var(--space-lg);
   }
 
-  .project-description {
-    max-width: 720px;
-    margin: 0 auto var(--space-3xl);
+  /* Client & Year Row below video */
+  .project-client-meta {
     text-align: center;
-    font-size: 1rem;
-    line-height: 1.65;
+    margin-bottom: var(--space-3xl);
+  }
+
+  .client-text {
+    font-family: var(--font-heading);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
     color: var(--color-text-muted);
+    margin: 0;
+  }
+
+  .meta-sep {
+    margin-inline: 6px;
+    color: var(--color-border-strong);
+  }
+
+  .year-num {
+    color: var(--color-text);
   }
 
   .gallery-section {
     width: 100%;
-    margin-bottom: var(--space-3xl);
+    margin-bottom: var(--space-4xl);
   }
 
   .back-link-container {
@@ -140,16 +125,29 @@ const headerTitle = project.client
   }
 
   .back-link {
-    color: var(--color-text-muted);
+    color: var(--color-text);
     text-decoration: none;
     font-family: var(--font-heading);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.08em;
     font-size: 0.85rem;
-    transition: color 0.3s ease;
+    font-weight: 600;
+    transition: opacity var(--transition-fast);
   }
 
   .back-link:hover {
-    color: var(--color-text);
+    opacity: 0.6;
+  }
+
+  @media (max-width: 768px) {
+    .content-wrapper {
+      padding-inline: var(--space-md);
+    }
+    .video-container {
+      margin-bottom: var(--space-md);
+    }
+    .project-client-meta {
+      margin-bottom: var(--space-2xl);
+    }
   }
 </style>

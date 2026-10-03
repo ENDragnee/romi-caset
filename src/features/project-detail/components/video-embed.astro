@@ -7,7 +7,6 @@ interface Props {
 
 const { url, title, thumbnail } = Astro.props;
 
-// Extract Video Service & ID
 function parseVideoSource(rawUrl: string): {
   type: "youtube" | "vimeo" | "direct" | "invalid";
   id: string;
@@ -51,30 +50,22 @@ const posterSrc = thumbnail
   data-video-id={videoSource.id}
 >
   <div class="video-stage">
-    {/* Iframe Stage (Loaded on click or lazy) */}
     <div class="iframe-container" id="iframe-target"></div>
 
-    {
-      /* Poster Overlay with Centered Play Button & Bottom Title (Screenshot 2 Match) */
-    }
     <div class="video-poster-overlay" id="video-poster-overlay">
       {posterSrc && <img src={posterSrc} alt={title} class="poster-image" />}
 
-      {
-        /* Minimalist White Play Triangle (Exact match to reference screenshot) */
-      }
       <button
         type="button"
         class="center-play-btn"
         id="video-play-btn"
         aria-label="Play video"
       >
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="white">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="white">
           <polygon points="6 3 20 12 6 21 6 3"></polygon>
         </svg>
       </button>
 
-      {/* Bottom Left Lowercase Editorial Title */}
       <div class="bottom-title-caption font-editorial">
         <span>{title.toLowerCase()}</span>
       </div>
@@ -105,7 +96,6 @@ const posterSrc = thumbnail
         overlay.classList.add("hidden");
 
         if (type === "youtube") {
-          // Chromeless YouTube Embed with parameters
           iframeTarget.innerHTML = `
             <iframe
               src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&playsinline=1&controls=1"
@@ -115,7 +105,6 @@ const posterSrc = thumbnail
             ></iframe>
           `;
         } else if (type === "vimeo") {
-          // Chromeless Vimeo Embed
           iframeTarget.innerHTML = `
             <iframe
               src="https://player.vimeo.com/video/${id}?autoplay=1&dnt=1&title=0&byline=0&portrait=0"
@@ -140,7 +129,7 @@ const posterSrc = thumbnail
 <style>
   .custom-video-embed {
     width: 100%;
-    max-width: 960px;
+    max-width: 100%;
     margin: 0 auto;
     position: relative;
     background-color: #000000;
@@ -150,7 +139,7 @@ const posterSrc = thumbnail
   .video-stage {
     position: relative;
     width: 100%;
-    aspect-ratio: 16 / 10;
+    aspect-ratio: 16 / 9;
     overflow: hidden;
     background-color: #000000;
   }
@@ -171,7 +160,6 @@ const posterSrc = thumbnail
     object-fit: cover;
   }
 
-  /* Overlay Stage */
   .video-poster-overlay {
     position: absolute;
     inset: 0;
@@ -199,7 +187,6 @@ const posterSrc = thumbnail
     filter: brightness(0.92);
   }
 
-  /* Minimalist Centered White Play Triangle (Screenshot 2 Match) */
   .center-play-btn {
     position: relative;
     z-index: 3;
@@ -210,13 +197,11 @@ const posterSrc = thumbnail
     align-items: center;
     justify-content: center;
     padding: var(--space-md);
-    transition:
-      transform 0.25s ease,
-      opacity 0.25s ease;
+    transition: transform 0.25s ease;
   }
 
   .center-play-btn svg {
-    filter: drop-shadow(0 2px 14px rgba(0, 0, 0, 0.6));
+    filter: drop-shadow(0 2px 16px rgba(0, 0, 0, 0.6));
     transition: transform 0.2s ease;
   }
 
@@ -224,14 +209,13 @@ const posterSrc = thumbnail
     transform: scale(1.15);
   }
 
-  /* Bottom Left Editorial Title Caption (Screenshot 2 Match) */
   .bottom-title-caption {
     position: absolute;
     bottom: var(--space-lg);
     left: var(--space-xl);
     z-index: 3;
     color: #ffffff;
-    font-size: 1.35rem;
+    font-size: 1.45rem;
     font-weight: 400;
     letter-spacing: 0.02em;
     text-shadow: 0 1px 8px rgba(0, 0, 0, 0.8);
@@ -245,11 +229,11 @@ const posterSrc = thumbnail
     .bottom-title-caption {
       bottom: var(--space-md);
       left: var(--space-md);
-      font-size: 1.1rem;
+      font-size: 1.15rem;
     }
     .center-play-btn svg {
-      width: 32px;
-      height: 32px;
+      width: 34px;
+      height: 34px;
     }
   }
 </style>

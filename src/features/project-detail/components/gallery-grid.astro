@@ -22,7 +22,7 @@ const formattedImages = images.map((img) => getMediaUrl(img)).filter(Boolean);
 ---
 
 <div class="gallery-wrapper">
-  {/* 3-Column Still Grid */}
+  {/* 3 Columns Desktop -> 2 Columns (nx2) on Mobile */}
   <div class="gallery-grid" id="gallery-grid">
     {
       formattedImages.map((src, i) => (
@@ -65,7 +65,7 @@ const formattedImages = images.map((img) => getMediaUrl(img)).filter(Boolean);
     }
   </div>
 
-  {/* Pure Fullscreen Lightbox Overlay */}
+  {/* Pure Fullscreen Lightbox Modal */}
   <div
     id="gallery-lightbox"
     class="fullscreen-lightbox"
@@ -191,7 +191,6 @@ const formattedImages = images.map((img) => getMediaUrl(img)).filter(Boolean);
       }
     };
 
-    // Keyboard support
     document.addEventListener("keydown", (e) => {
       if (lightbox.style.display === "none") return;
       if (e.key === "Escape") closeViewer();
@@ -199,7 +198,6 @@ const formattedImages = images.map((img) => getMediaUrl(img)).filter(Boolean);
       if (e.key === "ArrowRight") openViewer(currentIndex + 1);
     });
 
-    // Cursor hover states on lightbox buttons
     if (customCursor) {
       const interactiveBtns = [closeBtn, prevBtn, nextBtn].filter(Boolean);
       interactiveBtns.forEach((btn) => {
@@ -220,14 +218,15 @@ const formattedImages = images.map((img) => getMediaUrl(img)).filter(Boolean);
 <style>
   .gallery-wrapper {
     width: 100%;
-    max-width: 960px;
+    max-width: 100%;
     margin: 0 auto;
   }
 
+  /* 3 Columns Desktop */
   .gallery-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
+    gap: var(--space-xl) var(--space-lg);
     width: 100%;
   }
 
@@ -237,7 +236,6 @@ const formattedImages = images.map((img) => getMediaUrl(img)).filter(Boolean);
     aspect-ratio: 16 / 10;
     background-color: var(--color-surface);
     cursor: pointer;
-    border-radius: var(--radius-sm);
   }
 
   .gallery-img {
@@ -284,7 +282,7 @@ const formattedImages = images.map((img) => getMediaUrl(img)).filter(Boolean);
     background-color: var(--color-accent);
   }
 
-  /* Fullscreen Lightbox */
+  /* Fullscreen Lightbox Modal */
   :global(.fullscreen-lightbox) {
     position: fixed !important;
     top: 0 !important;
@@ -297,7 +295,7 @@ const formattedImages = images.map((img) => getMediaUrl(img)).filter(Boolean);
     margin: 0 !important;
     padding: 0 !important;
     background-color: #000000 !important;
-    z-index: 99999 !important; /* Sits underneath cursor (z-index: 2147483647) */
+    z-index: 99999 !important;
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
@@ -395,10 +393,18 @@ const formattedImages = images.map((img) => getMediaUrl(img)).filter(Boolean);
     border-color: var(--color-accent);
   }
 
-  @media (max-width: 768px) {
+  /* 2 Columns (nx2 matrix) on Tablets and Mobile Screens */
+  @media (max-width: 1024px) {
     .gallery-grid {
       grid-template-columns: repeat(2, 1fr);
-      gap: 6px;
+      gap: var(--space-md);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .gallery-grid {
+      grid-template-columns: repeat(2, 1fr); /* nx2 matrix on mobile */
+      gap: 8px;
     }
 
     .expand-btn {
