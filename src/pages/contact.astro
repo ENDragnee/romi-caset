@@ -31,153 +31,176 @@ import ContactForm from "../features/contact/components/contact-form.astro";
             Commercial &bull; Music Video &bull; Film
           </p>
         </div>
+
+        <div class="editorial-col">
+          <span class="col-label">SOCIAL ARCHIVE</span>
+          <div class="social-row">
+            <a
+              href="https://www.instagram.com/bini._romi?stkn=NWl6MmJ0MGt2MG9x&utm_source=qr"
+              target="_blank"
+              rel="noopener noreferrer">instagram</a
+            >
+            <span>/</span>
+            <a
+              href="https://vimeo.com/user262746173?fl=pp&fe=sh"
+              target="_blank"
+              rel="noopener noreferrer">vimeo</a
+            >
+            <span>/</span>
+            <a
+              href="https://youtube.com"
+              target="_blank"
+              rel="noopener noreferrer">youtube</a
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* Form pushed to the end as secondary inquiry */}
+    <div class="contact-form-section content-rise-up">
+      <div class="form-section-header">
+        <div class="divider">
+          <span class="divider__label">Project Inquiry Form</span>
+        </div>
+      </div>
+
+      <div class="form-outer-wrapper">
+        <ContactForm />
       </div>
     </div>
   </div>
 
-  {/* Form pushed to the end as secondary inquiry */}
-  <div class="contact-form-section content-rise-up">
-    <div class="form-section-header">
-      <div class="divider">
-        <span class="divider__label">Project Inquiry Form</span>
-      </div>
-    </div>
+  <style>
+    .contact-page-container {
+      width: 100%;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: calc(var(--nav-height) + var(--space-2xl)) var(--space-md)
+        var(--space-5xl);
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4xl);
+    }
 
-    <div class="form-outer-wrapper">
-      <ContactForm />
-    </div>
-  </div>
-</BaseLayout>
-
-<style>
-  .contact-page-container {
-    width: 100%;
-    max-width: 960px;
-    margin: 0 auto;
-    padding: calc(var(--nav-height) + var(--space-2xl)) var(--space-md)
-      var(--space-5xl);
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4xl);
-  }
-
-  /* Editorial Contact Header */
-  .contact-hero-block {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-xl);
-  }
-
-  .brand-title {
-    font-family: var(--font-heading);
-    font-size: clamp(2.5rem, 5vw, 3.5rem);
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    color: var(--color-text);
-    margin: 0;
-    line-height: 1;
-  }
-
-  .phonetic-tag {
-    font-family: var(--font-body);
-    font-size: 0.9rem;
-    color: var(--color-text-muted);
-    letter-spacing: 0.05em;
-  }
-
-  .header-divider {
-    width: 100%;
-    height: 1px;
-    background-color: var(--color-border);
-    margin-top: var(--space-md);
-  }
-
-  /* 3-Column Info Row */
-  .contact-editorial-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--space-2xl);
-  }
-
-  .editorial-col {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-xs);
-  }
-
-  .col-label {
-    font-family: var(--font-heading);
-    font-size: 0.725rem;
-    font-weight: 700;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--color-text);
-    margin-bottom: 2px;
-  }
-
-  .editorial-link {
-    font-size: 0.95rem;
-    color: var(--color-text);
-    text-decoration: none;
-    font-weight: 500;
-    transition: opacity var(--transition-fast);
-  }
-
-  .editorial-link:hover {
-    opacity: 0.6;
-  }
-
-  .editorial-text {
-    font-size: 0.95rem;
-    color: var(--color-text);
-    margin: 0;
-    line-height: 1.5;
-  }
-
-  .editorial-text.muted {
-    color: var(--color-text-muted);
-    font-size: 0.85rem;
-  }
-
-  .social-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-  }
-
-  .social-row a {
-    color: var(--color-text);
-    text-decoration: none;
-  }
-
-  .social-row a:hover {
-    opacity: 0.6;
-  }
-
-  .social-row span {
-    color: var(--color-border);
-  }
-
-  /* Form pushed to the bottom */
-  .contact-form-section {
-    width: 100%;
-    padding-top: var(--space-xl);
-  }
-
-  .form-outer-wrapper {
-    max-width: 640px;
-    margin: var(--space-2xl) auto 0;
-  }
-
-  @media (max-width: 768px) {
-    .contact-editorial-grid {
-      grid-template-columns: 1fr;
+    /* Editorial Contact Header */
+    .contact-hero-block {
+      display: flex;
+      flex-direction: column;
       gap: var(--space-xl);
     }
-  }
-</style>
+
+    .brand-title {
+      font-family: var(--font-heading);
+      font-size: clamp(2.5rem, 5vw, 3.5rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--color-text);
+      margin: 0;
+      line-height: 1;
+    }
+
+    .phonetic-tag {
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      color: var(--color-text-muted);
+      letter-spacing: 0.05em;
+    }
+
+    .header-divider {
+      width: 100%;
+      height: 1px;
+      background-color: var(--color-border);
+      margin-top: var(--space-md);
+    }
+
+    /* 3-Column Info Row */
+    .contact-editorial-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-2xl);
+    }
+
+    .editorial-col {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+    }
+
+    .col-label {
+      font-family: var(--font-heading);
+      font-size: 0.725rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--color-text);
+      margin-bottom: 2px;
+    }
+
+    .editorial-link {
+      font-size: 0.95rem;
+      color: var(--color-text);
+      text-decoration: none;
+      font-weight: 500;
+      transition: opacity var(--transition-fast);
+    }
+
+    .editorial-link:hover {
+      opacity: 0.6;
+    }
+
+    .editorial-text {
+      font-size: 0.95rem;
+      color: var(--color-text);
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .editorial-text.muted {
+      color: var(--color-text-muted);
+      font-size: 0.85rem;
+    }
+
+    .social-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+
+    .social-row a {
+      color: var(--color-text);
+      text-decoration: none;
+    }
+
+    .social-row a:hover {
+      opacity: 0.6;
+    }
+
+    .social-row span {
+      color: var(--color-border);
+    }
+
+    /* Form pushed to the bottom */
+    .contact-form-section {
+      width: 100%;
+      padding-top: var(--space-xl);
+    }
+
+    .form-outer-wrapper {
+      max-width: 640px;
+      margin: var(--space-2xl) auto 0;
+    }
+
+    @media (max-width: 768px) {
+      .contact-editorial-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-xl);
+      }
+    }
+  </style>
+</BaseLayout>
