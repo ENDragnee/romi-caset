@@ -127,12 +127,17 @@ const { transparent = false } = Astro.props;
 </header>
 
 <script>
+  let currentPath;
   function InitNavbar() {
     const header = document.querySelector<HTMLElement>("#main-nav-header");
 
     if (header) {
       const handleScroll = () => {
-        if (window.scrollY > 50) {
+        currentPath = window.location.pathname;
+        console.log(currentPath);
+        if (window.scrollY > 800 && currentPath === "/") {
+          header.classList.add("scrolled");
+        } else if (currentPath !== "/") {
           header.classList.add("scrolled");
         } else {
           header.classList.remove("scrolled");
@@ -260,7 +265,7 @@ const { transparent = false } = Astro.props;
     background-color: rgba(255, 255, 255, 0.94);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: 0px solid var(--color-border);
   }
 
   .nav-header.scrolled .nav-link,
