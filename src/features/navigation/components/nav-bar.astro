@@ -135,7 +135,7 @@ const { transparent = false } = Astro.props;
       const handleScroll = () => {
         currentPath = window.location.pathname;
         console.log(currentPath);
-        if (window.scrollY > 800 && currentPath === "/") {
+        if (window.scrollY > 920 && currentPath === "/") {
           header.classList.add("scrolled");
         } else if (currentPath !== "/") {
           header.classList.add("scrolled");
