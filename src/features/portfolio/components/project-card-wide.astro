@@ -22,14 +22,13 @@ function getMediaUrl(src: string | null | undefined): string {
 }
 
 const imageSrc = getMediaUrl(project.thumbnail);
-const clientPrefix = project.client ? `${project.client.toUpperCase()} | ` : "";
 ---
 
 <a
   href={`/project/${project.slug}`}
-  class={`project-card-wide animate-in ${staggerClass}`}
+  class={`project-card-wrapper animate-in ${staggerClass}`}
 >
-  <div class="card-inner">
+  <div class="image-stage">
     {
       imageSrc ? (
         <img
@@ -43,36 +42,37 @@ const clientPrefix = project.client ? `${project.client.toUpperCase()} | ` : "";
         <div class="card-placeholder" />
       )
     }
+  </div>
 
-    {/* Centered Hover Overlay: CLIENT | 'TITLE' / CATEGORY - YEAR */}
-    <div class="card-overlay">
-      <div class="overlay-content">
-        <h3 class="project-title">
-          {clientPrefix}'{project.title.toUpperCase()}'
-        </h3>
-        <span class="project-subtext"
-          >{project.category}{project.year ? ` - ${project.year}` : ""}</span
-        >
-      </div>
+  {/* Title & Metadata placed below the card (Pulse Films style) */}
+  <div class="project-bottom-meta">
+    <div class="title-row">
+      <h3 class="project-title">{project.title}</h3>
+      {project.client && <span class="project-client">{project.client}</span>}
+    </div>
+    <div class="sub-row">
+      <span class="project-category">{project.category}</span>
+      {project.year && <span class="project-year">{project.year}</span>}
     </div>
   </div>
 </a>
 
 <style>
-  .project-card-wide {
-    display: block;
+  .project-card-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
     text-decoration: none;
-    overflow: hidden;
-    position: relative;
     width: 100%;
-    aspect-ratio: 4 / 3;
-    background-color: var(--color-surface);
+    color: inherit;
+    transition: transform var(--transition-normal);
   }
 
-  .card-inner {
+  .image-stage {
     position: relative;
     width: 100%;
-    height: 100%;
+    aspect-ratio: 16 / 9; /* Cinematic widescreen */
+    background-color: var(--color-surface);
     overflow: hidden;
   }
 
@@ -90,51 +90,52 @@ const clientPrefix = project.client ? `${project.client.toUpperCase()} | ` : "";
     background-color: var(--color-surface);
   }
 
-  /* Centered Overlay matching shotbypersona.com */
-  .card-overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.7);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: var(--space-md);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-
-  .overlay-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .project-title {
-    color: #ffffff;
-    font-family: var(--font-heading);
-    font-size: 0.85rem;
-    font-weight: 600;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    margin: 0;
-    line-height: 1.35;
-  }
-
-  .project-subtext {
-    color: rgba(255, 255, 255, 0.7);
-    font-family: var(--font-heading);
-    font-size: 0.7rem;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-  }
-
-  .project-card-wide:hover .project-img {
+  .project-card-wrapper:hover .project-img {
     transform: scale(1.03);
   }
 
-  .project-card-wide:hover .card-overlay {
-    opacity: 1;
+  /* Bottom Metadata */
+  .project-bottom-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    width: 100%;
+  }
+
+  .title-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-xs);
+  }
+
+  .project-title {
+    font-family: var(--font-heading);
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-text);
+    margin: 0;
+    line-height: 1.3;
+  }
+
+  .project-client {
+    font-family: var(--font-heading);
+    font-size: 0.775rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .sub-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.725rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
   }
 </style>

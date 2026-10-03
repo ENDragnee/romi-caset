@@ -29,17 +29,16 @@ const { projects = [] } = Astro.props;
 <style>
   .portfolio-grid-container {
     width: 100%;
-    max-width: 960px;
-    margin-left: auto;
-    margin-right: auto;
+    max-width: 1380px; /* Expansive wide studio canvas */
+    margin: 0 auto;
     display: flex;
     justify-content: center;
   }
 
   .project-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
+    grid-template-columns: repeat(3, 1fr); /* 3 columns on desktop */
+    gap: var(--space-xl) var(--space-lg);
     width: 100%;
     align-items: start;
   }
@@ -54,18 +53,26 @@ const { projects = [] } = Astro.props;
     will-change: opacity, filter, transform;
   }
 
-  /* Grey-out non-selected projects */
   :global(.grid-item.is-dimmed) {
     opacity: 0.18 !important;
     filter: grayscale(100%) brightness(0.4) !important;
     pointer-events: none !important;
-    transform: scale(0.97);
+    transform: scale(0.98);
   }
 
-  @media (max-width: 768px) {
+  /* Medium Tablets: 2 columns */
+  @media (max-width: 1024px) {
     .project-grid {
       grid-template-columns: repeat(2, 1fr);
-      gap: 6px;
+      gap: var(--space-lg);
+    }
+  }
+
+  /* Mobile: Single 1-column stack (Matches Pulse Films mobile screenshot) */
+  @media (max-width: 768px) {
+    .project-grid {
+      grid-template-columns: 1fr;
+      gap: var(--space-xl);
     }
   }
 </style>

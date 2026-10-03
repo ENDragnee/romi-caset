@@ -9,16 +9,16 @@ const allProjects = await prisma.project.findMany({
 
 const categories = [
   { label: "ALL", value: "ALL" },
-  { label: "MUSIC", value: "MUSICVIDEO" },
-  { label: "COMMERCIAL", value: "COMMERCIAL" },
-  { label: "FILM", value: "FILM" },
+  { label: "COMMERCIALS", value: "COMMERCIAL" },
+  { label: "MUSIC VIDEOS", value: "MUSICVIDEO" },
+  { label: "FILMS", value: "FILM" },
 ];
 ---
 
 <BaseLayout title="Projects — Kaset Production">
   <section class="section portfolio-page">
     <div class="content-wrapper">
-      {/* Massive Header + Refined Category Selector */}
+      {/* Category Tabs */}
       <header class="portfolio-header-block hero-title-drop">
         <div class="title-with-count">
           <h1 class="portfolio-huge-title">PROJECTS</h1>
@@ -27,28 +27,25 @@ const categories = [
           >
         </div>
 
-        {/* Compact, Mobile-Responsive Category Ribbon */}
-        <div class="category-nav-wrapper">
-          <nav
-            class="category-tabs-left"
-            aria-label="Filter portfolio categories"
-          >
-            {
-              categories.map((cat, index) => (
-                <button
-                  type="button"
-                  class={`tab-btn ${index === 0 ? "active" : ""}`}
-                  data-category={cat.value}
-                >
-                  <span>{cat.label}</span>
-                </button>
-              ))
-            }
-          </nav>
-        </div>
+        <nav
+          class="category-tabs-left"
+          aria-label="Filter portfolio categories"
+        >
+          {
+            categories.map((cat, index) => (
+              <button
+                type="button"
+                class={`tab-btn ${index === 0 ? "active" : ""}`}
+                data-category={cat.value}
+              >
+                <span>{cat.label}</span>
+              </button>
+            ))
+          }
+        </nav>
       </header>
 
-      {/* Project Grid with Spotlight Grey-Out Transitions */}
+      {/* Expansive Project Grid */}
       <div class="content-rise-up">
         <ProjectGrid projects={allProjects} />
       </div>
@@ -72,12 +69,10 @@ const categories = [
       const normalizedTarget = (targetCategory || "ALL").trim().toUpperCase();
       let matchCount = 0;
 
-      // 1. Update Tab Buttons (Active is pure black, others greyed out)
       tabBtns.forEach((btn) => {
         const btnCat = (btn.dataset.category || "").trim().toUpperCase();
         if (btnCat === normalizedTarget) {
           btn.classList.add("active");
-          // Smoothly scroll active tab into view on small touch screens
           btn.scrollIntoView({
             behavior: "smooth",
             block: "nearest",
@@ -88,7 +83,6 @@ const categories = [
         }
       });
 
-      // 2. Spotlight matching projects & count matches
       gridItems.forEach((item) => {
         const itemCat = (item.dataset.category || "").trim().toUpperCase();
         const isMatch =
@@ -102,7 +96,6 @@ const categories = [
         }
       });
 
-      // 3. Dynamically update the [count] badge with kinetic pop
       if (countBadge) {
         countBadge.classList.remove("count-pop");
         void countBadge.offsetWidth;
@@ -150,20 +143,20 @@ const categories = [
     width: 100%;
   }
 
+  /* Wide Canvas (1380px) */
   .content-wrapper {
     width: 100%;
-    max-width: 960px;
+    max-width: 1380px;
     margin: 0 auto;
-    padding-inline: var(--space-md);
+    padding-inline: var(--space-xl);
     box-sizing: border-box;
   }
 
-  /* ---------- Header Block ---------- */
   .portfolio-header-block {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    margin-bottom: var(--space-2xl);
+    margin-bottom: var(--space-3xl);
     width: 100%;
   }
 
@@ -193,55 +186,29 @@ const categories = [
     letter-spacing: -0.02em;
     margin-top: 4px;
     display: inline-block;
-    will-change: transform, opacity;
-  }
-
-  @keyframes countPop {
-    0% {
-      opacity: 0.3;
-      transform: scale(0.9);
-    }
-    100% {
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
-
-  .count-pop {
-    animation: countPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  }
-
-  /* ---------- Refined Category Ribbon ---------- */
-  .category-nav-wrapper {
-    width: 100%;
-    max-width: 100%;
-    margin-top: var(--space-lg);
-    position: relative;
-    overflow: hidden;
   }
 
   .category-tabs-left {
     display: flex;
     align-items: center;
-    gap: var(--space-lg);
-    padding: 4px 0 8px 0;
+    gap: var(--space-xl);
+    margin-top: var(--space-lg);
+    padding: 4px 0;
     overflow-x: auto;
-    width: 100%;
+    max-width: 100%;
     scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
   }
 
   .category-tabs-left::-webkit-scrollbar {
     display: none;
   }
 
-  /* Compact Editorial Typography */
   .tab-btn {
     background: transparent;
     border: none;
     cursor: pointer;
     font-family: var(--font-heading);
-    font-size: 0.78rem; /* Slightly smaller & more refined */
+    font-size: 0.825rem;
     font-weight: 600;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -250,48 +217,33 @@ const categories = [
     white-space: nowrap;
     position: relative;
     transition: color var(--transition-fast);
-    flex-shrink: 0;
   }
 
   .tab-btn:hover {
     color: #333333;
   }
 
-  /* Active Tab */
   .tab-btn.active {
     color: #000000;
     font-weight: 800;
   }
 
-  /* Mobile screen optimization (< 768px & < 480px) */
+  .tab-btn.active::after {
+    content: "";
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 100%;
+    height: 1.5px;
+    background-color: #000000;
+  }
+
   @media (max-width: 768px) {
-    .portfolio-header-block {
-      margin-bottom: var(--space-xl);
+    .content-wrapper {
+      padding-inline: var(--space-md);
     }
-
-    .category-nav-wrapper {
-      margin-top: var(--space-md);
-      /* Subtle right fade mask if viewport is under 360px */
-      mask-image: linear-gradient(
-        to right,
-        black calc(100% - 24px),
-        transparent 100%
-      );
-      -webkit-mask-image: linear-gradient(
-        to right,
-        black calc(100% - 24px),
-        transparent 100%
-      );
-    }
-
     .category-tabs-left {
-      gap: 14px;
-      padding-bottom: 4px;
-    }
-
-    .tab-btn {
-      font-size: 0.72rem;
-      letter-spacing: 0.08em;
+      gap: 16px;
     }
   }
 </style>
