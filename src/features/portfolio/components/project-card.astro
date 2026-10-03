@@ -22,6 +22,11 @@ function getMediaUrl(src: string | null | undefined): string {
 }
 
 const imageSrc = getMediaUrl(project.thumbnail);
+
+// Format single-line title: CLIENT | 'TITLE' (Reference Match)
+const formattedTitle = project.client
+  ? `${project.client.toUpperCase()} | '${project.title.toUpperCase()}'`
+  : `'${project.title.toUpperCase()}'`;
 ---
 
 <a
@@ -44,15 +49,9 @@ const imageSrc = getMediaUrl(project.thumbnail);
     }
   </div>
 
-  <div class="project-bottom-meta">
-    <div class="title-row">
-      <h3 class="project-title">{project.title}</h3>
-      {project.client && <span class="project-client">{project.client}</span>}
-    </div>
-    <div class="sub-row">
-      <span class="project-category">{project.category}</span>
-      {project.year && <span class="project-year">{project.year}</span>}
-    </div>
+  {/* Single Line Caption matching Reference */}
+  <div class="project-bottom-caption">
+    <span class="caption-text">{formattedTitle}</span>
   </div>
 </a>
 
@@ -60,11 +59,10 @@ const imageSrc = getMediaUrl(project.thumbnail);
   .project-card-wrapper {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
     text-decoration: none;
     width: 100%;
     color: inherit;
-    transition: transform var(--transition-normal);
   }
 
   .image-stage {
@@ -93,47 +91,33 @@ const imageSrc = getMediaUrl(project.thumbnail);
     transform: scale(1.03);
   }
 
-  .project-bottom-meta {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
+  /* Single-Line Caption below card */
+  .project-bottom-caption {
     width: 100%;
+    padding-top: 2px;
   }
 
-  .title-row {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--space-xs);
-  }
-
-  .project-title {
+  .caption-text {
     font-family: var(--font-heading);
-    font-size: 0.9rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--color-text);
-    margin: 0;
-    line-height: 1.3;
+    line-height: 1.4;
+    display: block;
+    word-break: break-word;
+    transition: opacity var(--transition-fast);
   }
 
-  .project-client {
-    font-family: var(--font-heading);
-    font-size: 0.775rem;
-    font-weight: 600;
-    color: var(--color-text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+  .project-card-wrapper:hover .caption-text {
+    opacity: 0.65;
   }
 
-  .sub-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 0.725rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--color-text-muted);
+  @media (max-width: 768px) {
+    .caption-text {
+      font-size: 0.775rem;
+      letter-spacing: 0.08em;
+    }
   }
 </style>
