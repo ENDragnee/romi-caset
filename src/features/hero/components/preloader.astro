@@ -74,86 +74,171 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
       },
     };
 
-    // Source priority:
-    //   1. Remote (Backblaze) showreel already stored in Cache Storage  -> plays instantly from disk
-    //   2. Local /videos/hero-video.mp4                                  -> plays now, while (1) is
-    //      downloaded + cached in the background for the NEXT visit (never swapped mid-intro,
-    //      so the timed shader cuts never jump).
-    const fallbackSrc = "/videos/hero-video.mp4";
+    // ------------------------------------------------------------------
+    // SOURCE PRIORITY (first match wins, never swapped mid-intro so the
+    // timed shader cuts at 1.0s / 2.29s / 3.46s can't jump):
+    //   1. Backend (Backblaze) showreel in Cache Storage  -> instant, from disk
+    //   2. Default hero-video in Cache Storage            -> instant, from disk
+    //                                                        (+ backend warmed in background)
+    //   3. Nothing cached yet -> DOWNLOAD the default hero-video *inside the loader*
+    //      with real progress, cache it, and only then start the intro timeline.
+    //      (+ backend warmed in background afterwards, so visit #2 uses it.)
+    // ------------------------------------------------------------------
+    const HERO_VERSION = "1"; // bump when you replace public/videos/hero-video.mp4
+    const HERO_URL = "/videos/hero-video.mp4?v=" + HERO_VERSION;
     const CACHE_NAME = "br-showreel-v1";
-    const MAX_BYTES = 120 * 1024 * 1024; // don't cache absurdly large files
-    const STALE_MS = 24 * 60 * 60 * 1000; // refresh cached copy in background after 24h
+    const MAX_BYTES = 120 * 1024 * 1024; // never cache absurdly large files
+    const STALE_MS = 24 * 60 * 60 * 1000; // refresh backend copy in background after 24h
+    const MAX_WAIT = 12000; // hard ceiling on how long the loader will wait for a download
     const remote =
-      showreelUrl && showreelUrl !== fallbackSrc ? showreelUrl : "";
+      showreelUrl && !showreelUrl.startsWith("/videos/hero-video.mp4")
+        ? showreelUrl
+        : "";
     let objUrl = "";
+
+    ctl.progress = 0; // 0..1 real download progress (stays 0 when served from cache)
+    ctl.isReady = false; // true once a source is attached and can play
+    ctl.ready = new Promise((r) => (ctl._resolveReady = r));
+    const markReady = () => {
+      if (ctl.isReady) return;
+      ctl.isReady = true;
+      ctl._resolveReady();
+    };
 
     vid.muted = true;
     vid.defaultMuted = true;
     vid.playsInline = true;
 
-    const playSrc = (src) => {
-      if (ctl.dead) return;
-      vid.src = src;
-      const pr = vid.play();
-      if (pr && pr.catch) pr.catch(() => {});
-    };
-
-    const cacheGet = async () => {
+    const openCache = async () => {
       try {
-        if (!remote || !("caches" in window)) return null;
-        const c = await caches.open(CACHE_NAME);
-        return (await c.match(remote)) || null;
+        return "caches" in window ? await caches.open(CACHE_NAME) : null;
       } catch (e) {
         return null;
       }
     };
 
-    const cacheFill = async () => {
+    const readCached = async (key) => {
       try {
-        if (!remote || !("caches" in window)) return;
-        const res = await fetch(remote, { mode: "cors", cache: "no-cache" });
-        if (!res.ok) return;
-        const len = +res.headers.get("content-length") || 0;
-        if (len > MAX_BYTES) return;
-        const blob = await res.blob();
-        if (!blob.size || blob.size > MAX_BYTES) return;
-        const c = await caches.open(CACHE_NAME);
-        await c.put(
-          remote,
-          new Response(blob, {
-            headers: {
-              "content-type":
-                blob.type || res.headers.get("content-type") || "video/mp4",
-              "x-br-cached-at": String(Date.now()),
-            },
-          }),
-        );
+        const c = await openCache();
+        const r = c && (await c.match(key));
+        return r
+          ? { blob: await r.blob(), at: +r.headers.get("x-br-cached-at") || 0 }
+          : null;
       } catch (e) {
-        /* CORS blocked / offline / quota: stay on the local fallback */
+        return null;
       }
     };
 
+    // Streams the file so we get real progress; returns a Blob (or null on any failure).
+    // The Blob is used for playback immediately, so playback never depends on the cache write.
+    const download = async (url, key, onProgress, fresh) => {
+      try {
+        const res = await fetch(url, {
+          mode: "cors",
+          cache: fresh ? "no-cache" : "default",
+        });
+        if (!res.ok) return null;
+        const total = +res.headers.get("content-length") || 0;
+        if (total > MAX_BYTES) return null;
+        let blob;
+        if (res.body && res.body.getReader) {
+          const rd = res.body.getReader();
+          const chunks = [];
+          let got = 0;
+          for (;;) {
+            const { done, value } = await rd.read();
+            if (done) break;
+            chunks.push(value);
+            got += value.length;
+            if (got > MAX_BYTES) return null;
+            if (onProgress)
+              onProgress(
+                total ? Math.min(got / total, 1) : 1 - Math.exp(-got / 2e6),
+              );
+          }
+          blob = new Blob(chunks, {
+            type: res.headers.get("content-type") || "video/mp4",
+          });
+        } else {
+          blob = await res.blob();
+        }
+        if (!blob.size) return null;
+        if (onProgress) onProgress(1);
+        try {
+          const c = await openCache();
+          if (c)
+            await c.put(
+              key,
+              new Response(blob, {
+                headers: {
+                  "content-type": blob.type || "video/mp4",
+                  "x-br-cached-at": String(Date.now()),
+                },
+              }),
+            );
+        } catch (e) {
+          /* quota / private mode: fine, we still play from the in-memory blob */
+        }
+        return blob;
+      } catch (e) {
+        return null; /* offline / CORS blocked */
+      }
+    };
+
+    // Attach a source and resolve ready when it can actually play (or after a short grace).
+    const attach = (src, blob) => {
+      if (ctl.dead) return;
+      if (blob) {
+        objUrl = URL.createObjectURL(blob);
+        src = objUrl;
+      }
+      const done = () => markReady();
+      vid.addEventListener("canplay", done, { once: true });
+      vid.addEventListener("error", done, { once: true });
+      setTimeout(done, 4000);
+      vid.src = src;
+      const pr = vid.play();
+      if (pr && pr.catch) pr.catch(() => {});
+    };
+
     (async () => {
-      // cache lookup is a few ms; cap it so the intro never waits on storage
-      const hit = await Promise.race([
-        cacheGet(),
-        new Promise((r) => setTimeout(() => r(null), 250)),
+      // 1 + 2: cache lookups (few ms). Capped so storage can never stall the intro.
+      const found = await Promise.race([
+        (async () => {
+          if (remote) {
+            const b = await readCached(remote);
+            if (b) return { ...b, kind: "remote" };
+          }
+          const h = await readCached(HERO_URL);
+          return h ? { ...h, kind: "hero" } : null;
+        })(),
+        new Promise((r) => setTimeout(() => r(null), 3000)), // only guards a hung storage backend
       ]);
       if (ctl.dead) return;
-      if (hit) {
-        try {
-          const blob = await hit.blob();
-          objUrl = URL.createObjectURL(blob);
-          playSrc(objUrl);
-          const at = +hit.headers.get("x-br-cached-at") || 0;
-          if (Date.now() - at > STALE_MS) cacheFill(); // refresh for next time
-          return;
-        } catch (e) {
-          /* fall through to fallback */
+
+      const tag = (v) => (document.documentElement.dataset.reelSource = v); // handy for debugging
+      if (found) {
+        tag(found.kind === "remote" ? "backend-cache" : "default-cache");
+        attach(null, found.blob);
+        if (found.kind === "remote") {
+          if (Date.now() - found.at > STALE_MS)
+            download(remote, remote, null, true);
+        } else if (remote) {
+          download(remote, remote, null, false); // warm backend for next visit
         }
+        return;
       }
-      playSrc(fallbackSrc);
-      cacheFill();
+
+      // 3: nothing cached. Hold the loader and download the default for real.
+      const blob = await Promise.race([
+        download(HERO_URL, HERO_URL, (p) => (ctl.progress = p), false),
+        new Promise((r) => setTimeout(() => r(null), MAX_WAIT)),
+      ]);
+      if (ctl.dead) return;
+      tag(blob ? "default-download" : "default-stream");
+      if (blob) attach(null, blob);
+      else attach(HERO_URL, null); // slow/failed: stream it progressively, don't block the page
+      if (remote) setTimeout(() => download(remote, remote, null, false), 1500);
     })();
 
     try {
@@ -515,7 +600,28 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
     const clrRect = $("#flClrRect");
     const tags = $$(".fl-tag");
 
-    // 1. Ticking counter 0% -> 100%
+    // 1a. Hold here until the showreel is actually playable. If it was cached this is ~instant;
+    //     on a first visit it shows REAL download progress (0-25%) so the loader never lies.
+    {
+      const paint = (pct) => {
+        txt.textContent = "loading……………. " + pct + "%";
+        const w = (pct / 100) * L.bw + 3;
+        for (const r of ldrs) r.setAttribute("width", w);
+      };
+      let last = -1;
+      while (!reel.isReady) {
+        const pct = Math.round(reel.progress * 25);
+        if (pct !== last) {
+          last = pct;
+          paint(pct);
+        }
+        await new Promise((r) => requestAnimationFrame(r));
+      }
+    }
+    const BASE = Math.round(reel.progress * 25); // 0 when cached, 25 after a fresh download
+
+    // 1b. Cinematic counter BASE% -> 100%. The video starts playing at the same moment,
+    //     so its timed cuts (1.0s / 2.29s / 3.46s) always land inside this window.
     const DUR = reduce ? 600 : 3500;
     const t0 = performance.now();
 
@@ -523,9 +629,8 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
       let lastPct = -1;
       function tick(now) {
         const t = clamp((now - t0) / DUR);
-        const pct = Math.round(easeIO(t) * 100);
+        const pct = BASE + Math.round((100 - BASE) * easeIO(t));
         if (pct !== lastPct) {
-          // only touch the DOM when the number actually changes
           lastPct = pct;
           txt.textContent = "loading……………. " + pct + "%";
           const w = pct >= 100 ? L.bw + 6 : (pct / 100) * L.bw + 3;
