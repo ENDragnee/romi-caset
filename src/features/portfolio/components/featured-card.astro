@@ -1,6 +1,4 @@
 ---
-// src/features/portfolio/components/featured-card.astro
-
 interface Props {
   id: string;
   client: string;
@@ -19,21 +17,38 @@ const {
   priority = false,
 } = Astro.props;
 
-// Resolve S3 key / media path into a streamable API URL
+// Clean media resolver avoiding double "/api/media/" or double "media/" prefixes
 function getMediaUrl(src: string | null | undefined): string {
   if (!src) return "";
+  const cleaned = src.trim();
+
+  // External or inline data
   if (
-    src.startsWith("http://") ||
-    src.startsWith("https://") ||
-    src.startsWith("/api/media/") ||
-    src.startsWith("data:")
+    cleaned.startsWith("http://") ||
+    cleaned.startsWith("https://") ||
+    cleaned.startsWith("data:")
   ) {
-    return src;
+    return cleaned;
   }
-  if (src.startsWith("/images/") || src.startsWith("/branding/")) {
-    return src;
+
+  // Local static public assets
+  if (
+    cleaned.startsWith("/images/") ||
+    cleaned.startsWith("/branding/") ||
+    cleaned.startsWith("/videos/")
+  ) {
+    return cleaned;
   }
-  return `/api/media/${src.startsWith("/") ? src.slice(1) : src}`;
+
+  // Already prefixed with /api/media/
+  if (cleaned.startsWith("/api/media/")) {
+    return cleaned;
+  }
+
+  // Stored key starting with "/"
+  const stripped = cleaned.startsWith("/") ? cleaned.slice(1) : cleaned;
+
+  return `/api/media/${stripped}`;
 }
 
 const resolvedThumbnail = getMediaUrl(thumbnail);
@@ -85,7 +100,7 @@ const resolvedThumbnail = getMediaUrl(thumbnail);
     position: relative;
     aspect-ratio: 4 / 3;
     overflow: hidden;
-    background: color-mix(in srgb, var(--color-text) 9%, var(--color-bg));
+    background: color-mix(in srgb, var(--ink, #000) 9%, var(--bg, #e1e1d7));
   }
 
   .thumb .in {
@@ -113,7 +128,7 @@ const resolvedThumbnail = getMediaUrl(thumbnail);
     display: flex;
     align-items: center;
     justify-content: center;
-    background: color-mix(in srgb, var(--color-text) 6%, var(--color-bg));
+    background: color-mix(in srgb, var(--ink, #000) 6%, var(--bg, #e1e1d7));
   }
 
   .placeholder-text {

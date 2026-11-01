@@ -23,14 +23,29 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const sleep = (ms) => new Promise((r) => setTimeout(r, reduce ? 1 : ms));
   const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
-  const easeIO = (t) =>
-    t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  const easeIO = (t) => {
+    t = clamp(t); // callers pass (t - delay) / span, which can be negative
+    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  };
   const easeOut = (t) => 1 - Math.pow(1 - clamp(t), 3);
   const easeSharp = (t) =>
     t < 0.5 ? 8 * Math.pow(t, 4) : 1 - Math.pow(-2 * t + 2, 4) / 2;
 
+  // The flying logo + film-negative layers use mix-blend-mode. #page has a CSS transform
+  // (menu push), which makes it an isolated stacking context: anything blended INSIDE it
+  // sees a transparent backdrop instead of the body's ivory, so the ivory logo paints
+  // ivory-on-ivory and is invisible. Hoisting these layers to <body> (like #hdr, which
+  // blends correctly) fixes the "logo vanishes before it lands" bug.
+  const hoist = () =>
+    ["negA", "negB", "fly", "flyA", "flyB"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el && el.parentElement !== document.body)
+        document.body.appendChild(el);
+    });
+  hoist();
+
   const loaderHTML = () =>
-    '<div id="loader"><canvas id="ld-cv"></canvas><video id="ld-vid" muted playsinline loop preload="auto"></video><div id="ld"><svg id="ld-block" viewBox="0 0 3318 1274" aria-hidden="true"></svg><svg class="ldN" id="ldNA" aria-hidden="true"></svg><svg class="ldN" id="ldNB" aria-hidden="true"></svg><div id="ld-txt">loading……………. 0%</div></div></div>';
+    '<div id="loader"><div id="ld-bg"></div><canvas id="ld-cv"></canvas><video id="ld-vid" muted playsinline loop preload="auto"></video><div id="ld"><svg id="ld-block" viewBox="0 0 3318 1274" aria-hidden="true"></svg><svg class="ldN" id="ldNA" aria-hidden="true"></svg><svg class="ldN" id="ldNB" aria-hidden="true"></svg><div id="ld-txt">loading……………. 0%</div></div></div>';
 
   function startShowreel(lay) {
     const cv = $("#ld-cv", lay);
@@ -45,6 +60,7 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
         try {
           vid.pause();
         } catch (e) {}
+        if (objUrl) URL.revokeObjectURL(objUrl);
       },
       setOpacity(o) {
         cv.style.transition = "none";
@@ -58,28 +74,87 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
       },
     };
 
-    // 1. Immediately start playing the local fallback video
+    // Source priority:
+    //   1. Remote (Backblaze) showreel already stored in Cache Storage  -> plays instantly from disk
+    //   2. Local /videos/hero-video.mp4                                  -> plays now, while (1) is
+    //      downloaded + cached in the background for the NEXT visit (never swapped mid-intro,
+    //      so the timed shader cuts never jump).
     const fallbackSrc = "/videos/hero-video.mp4";
+    const CACHE_NAME = "br-showreel-v1";
+    const MAX_BYTES = 120 * 1024 * 1024; // don't cache absurdly large files
+    const STALE_MS = 24 * 60 * 60 * 1000; // refresh cached copy in background after 24h
+    const remote =
+      showreelUrl && showreelUrl !== fallbackSrc ? showreelUrl : "";
+    let objUrl = "";
+
     vid.muted = true;
     vid.defaultMuted = true;
     vid.playsInline = true;
-    vid.src = fallbackSrc;
-    const pr = vid.play();
-    if (pr && pr.catch) pr.catch(() => {});
 
-    // 2. If a backend or cached video was passed, probe it in background and swap without stalling
-    if (showreelUrl && showreelUrl !== fallbackSrc) {
-      const probe = document.createElement("video");
-      probe.src = showreelUrl;
-      probe.muted = true;
-      probe.preload = "auto";
-      probe.oncanplay = () => {
-        if (!ctl.dead) {
-          vid.src = showreelUrl;
-          vid.play().catch(() => {});
+    const playSrc = (src) => {
+      if (ctl.dead) return;
+      vid.src = src;
+      const pr = vid.play();
+      if (pr && pr.catch) pr.catch(() => {});
+    };
+
+    const cacheGet = async () => {
+      try {
+        if (!remote || !("caches" in window)) return null;
+        const c = await caches.open(CACHE_NAME);
+        return (await c.match(remote)) || null;
+      } catch (e) {
+        return null;
+      }
+    };
+
+    const cacheFill = async () => {
+      try {
+        if (!remote || !("caches" in window)) return;
+        const res = await fetch(remote, { mode: "cors", cache: "no-cache" });
+        if (!res.ok) return;
+        const len = +res.headers.get("content-length") || 0;
+        if (len > MAX_BYTES) return;
+        const blob = await res.blob();
+        if (!blob.size || blob.size > MAX_BYTES) return;
+        const c = await caches.open(CACHE_NAME);
+        await c.put(
+          remote,
+          new Response(blob, {
+            headers: {
+              "content-type":
+                blob.type || res.headers.get("content-type") || "video/mp4",
+              "x-br-cached-at": String(Date.now()),
+            },
+          }),
+        );
+      } catch (e) {
+        /* CORS blocked / offline / quota: stay on the local fallback */
+      }
+    };
+
+    (async () => {
+      // cache lookup is a few ms; cap it so the intro never waits on storage
+      const hit = await Promise.race([
+        cacheGet(),
+        new Promise((r) => setTimeout(() => r(null), 250)),
+      ]);
+      if (ctl.dead) return;
+      if (hit) {
+        try {
+          const blob = await hit.blob();
+          objUrl = URL.createObjectURL(blob);
+          playSrc(objUrl);
+          const at = +hit.headers.get("x-br-cached-at") || 0;
+          if (Date.now() - at > STALE_MS) cacheFill(); // refresh for next time
+          return;
+        } catch (e) {
+          /* fall through to fallback */
         }
-      };
-    }
+      }
+      playSrc(fallbackSrc);
+      cacheFill();
+    })();
 
     try {
       const gl = cv.getContext("webgl", {
@@ -315,6 +390,7 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
   async function playIntro() {
     const root = document.documentElement;
     root.classList.add("locked");
+    hoist();
 
     const existing = $("#loader");
     if (existing) existing.remove();
@@ -370,24 +446,93 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
       });
     }
 
-    // 1. Ticking Counter from 0% -> 100%
+    // ---- Build the flying logo layers up-front (hidden) so SVG parsing and
+    // ---- first raster happen while the counter runs, not on the first flight frame.
+    const NEG_FILLS = ["#E1E1D7", NEG_A, NEG_B];
+    const flyEls = [$("#fly"), $("#flyA"), $("#flyB")];
+    const logoSvg = $("#logoL svg");
+    const FLY_H = L.h - L.by - L.bh; // height of the FILMWORK strip
+
+    // Shared defs: ONE clip rect + ONE mask drive all three layers (1 attribute write / frame, not 3).
+    const sharedDefs =
+      "<defs>" +
+      '<clipPath id="flClr"><rect id="flClrRect" x="' +
+      (L.bx - 4) +
+      '" y="' +
+      (L.by - 4) +
+      '" width="0" height="' +
+      (L.bh + 8) +
+      '"/></clipPath>' +
+      '<clipPath id="flTag"><rect x="' +
+      (L.bx - 4) +
+      '" y="' +
+      (L.by + L.bh) +
+      '" width="' +
+      (L.bw + 8) +
+      '" height="' +
+      FLY_H +
+      '"/></clipPath>' +
+      '<mask id="flMask" maskUnits="userSpaceOnUse" x="0" y="0" width="' +
+      L.w +
+      '" height="' +
+      L.h +
+      '">' +
+      '<rect width="' +
+      L.w +
+      '" height="' +
+      L.h +
+      '" fill="#fff"/>' +
+      '<path d="' +
+      L.inner +
+      '" fill-rule="evenodd" fill="#000" clip-path="url(#flClr)"/></mask></defs>';
+
+    const flySVG = (fill, withDefs) =>
+      '<svg viewBox="0 0 ' +
+      L.w +
+      " " +
+      L.h +
+      '" aria-hidden="true">' +
+      (withDefs ? sharedDefs : "") +
+      '<path d="' +
+      L.shell +
+      '" fill="' +
+      fill +
+      '" mask="url(#flMask)"/>' +
+      '<g clip-path="url(#flTag)"><path class="fl-tag" d="' +
+      L.tag +
+      '" fill-rule="evenodd" fill="' +
+      fill +
+      '"/></g></svg>';
+
+    flyEls.forEach((el, i) => {
+      el.style.cssText =
+        "display:block;opacity:0.001;position:fixed;pointer-events:none;will-change:transform,opacity;" +
+        "contain:layout style;backface-visibility:hidden;z-index:" +
+        (120 + i) +
+        ";";
+      el.innerHTML = flySVG(NEG_FILLS[i], i === 0);
+    });
+    const clrRect = $("#flClrRect");
+    const tags = $$(".fl-tag");
+
+    // 1. Ticking counter 0% -> 100%
     const DUR = reduce ? 600 : 3500;
     const t0 = performance.now();
 
     await new Promise((res) => {
+      let lastPct = -1;
       function tick(now) {
         const t = clamp((now - t0) / DUR);
         const pct = Math.round(easeIO(t) * 100);
-        txt.textContent = "loading……………. " + pct + "%";
-        ldrs.forEach((r) =>
-          r.setAttribute(
-            "width",
-            pct >= 100 ? L.bw + 6 : (pct / 100) * L.bw + 3,
-          ),
-        );
-
+        if (pct !== lastPct) {
+          // only touch the DOM when the number actually changes
+          lastPct = pct;
+          txt.textContent = "loading……………. " + pct + "%";
+          const w = pct >= 100 ? L.bw + 6 : (pct / 100) * L.bw + 3;
+          for (const r of ldrs) r.setAttribute("width", w);
+        }
         const vo = reel.opacity();
-        negs.forEach((s) => (s.style.opacity = vo));
+        for (const s of negs) s.style.opacity = vo;
 
         if (t < 1) requestAnimationFrame(tick);
         else res();
@@ -397,15 +542,22 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
 
     txt.textContent = "loading……………. 100%";
     ldrs.forEach((r) => r.setAttribute("width", L.bw + 6));
-    await sleep(320);
-    txt.style.opacity = "0";
-    await sleep(380);
 
-    // 2. Exact Target Coordinates Lookup
-    const target = $("#logoL svg")?.getBoundingClientRect();
-    if (!target) {
+    // Text fades out WHILE we hold on 100% (was two sequential sleeps = 700ms of dead air)
+    await sleep(240);
+    txt.style.opacity = "0";
+    await sleep(200);
+
+    // 2. Geometry (all layout reads batched, once)
+    const target = logoSvg?.getBoundingClientRect();
+    if (!target || !target.width) {
+      reel.stop();
       lay.remove();
-      document.body.classList.remove("pre");
+      flyEls.forEach((el) => {
+        el.style.display = "none";
+        el.innerHTML = "";
+      });
+      document.body.classList.remove("pre", "pre-logo");
       root.classList.remove("locked");
       return;
     }
@@ -417,130 +569,98 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
     const k0 = b0.width / (L.bw * s);
     const dx0 = b0.left + b0.width / 2 - (target.left + fcx);
     const dy0 = b0.top + b0.height / 2 - (target.top + fcy);
-
-    const flyEls = [$("#fly"), $("#flyA"), $("#flyB")];
-    const fills = ["#E1E1D7", NEG_A, NEG_B];
-
-    const flySVG = (sKey, fill) =>
-      '<svg viewBox="0 0 ' +
-      L.w +
-      " " +
-      L.h +
-      '">' +
-      "<defs>" +
-      '<clipPath id="cl' +
-      sKey +
-      '"><rect class="clr" x="' +
-      (L.bx - 4) +
-      '" y="' +
-      (L.by - 4) +
-      '" width="0" height="' +
-      (L.bh + 8) +
-      '"/></clipPath>' +
-      '<clipPath id="ct' +
-      sKey +
-      '"><rect x="' +
-      (L.bx - 4) +
-      '" y="' +
-      (L.by + L.bh) +
-      '" width="' +
-      (L.bw + 8) +
-      '" height="' +
-      (L.h - L.by - L.bh) +
-      '"/></clipPath>' +
-      '<mask id="mk' +
-      sKey +
-      '" maskUnits="userSpaceOnUse" x="0" y="0" width="' +
-      L.w +
-      '" height="' +
-      L.h +
-      '"><rect width="' +
-      L.w +
-      '" height="' +
-      L.h +
-      '" fill="#fff"/><path d="' +
-      L.inner +
-      '" fill-rule="evenodd" fill="#000" clip-path="url(#cl' +
-      sKey +
-      ')"/></mask>' +
-      "</defs>" +
-      '<path d="' +
-      L.shell +
-      '" fill="' +
-      fill +
-      '" mask="url(#mk' +
-      sKey +
-      ')"/>' +
-      '<g clip-path="url(#ct' +
-      sKey +
-      ')"><path class="fl-tag" d="' +
-      L.tag +
-      '" fill-rule="evenodd" fill="' +
-      fill +
-      '"/></g>' +
-      "</svg>";
-
-    flyEls.forEach((el, i) => {
-      el.style.cssText = `display:block;left:${target.left}px;top:${target.top}px;width:${target.width}px;height:${target.height}px;transform-origin:${fcx}px ${fcy}px;position:fixed;z-index:${120 + i};pointer-events:none;`;
-      el.innerHTML = flySVG(i, fills[i]);
-    });
-
-    blk.style.display = "none";
-    negs.forEach((s) => (s.style.display = "none"));
-    ld.style.visibility = "hidden";
-    flyEls.forEach(
-      (el) =>
-        (el.style.transform = `translate3d(${dx0}px,${dy0}px,0) scale(${k0})`),
-    );
-
-    const clrs = $$(".clr");
-    const tags = $$(".fl-tag");
     const vo0 = reel.opacity();
 
-    // Slower, smooth flight duration matching reference (2600ms)
-    const TT = reduce ? 300 : 2600;
-    const ts = performance.now();
+    // 3. Swap loader block -> fly layers (same frame, no flicker)
+    flyEls.forEach((el) => {
+      el.style.left = target.left + "px";
+      el.style.top = target.top + "px";
+      el.style.width = target.width + "px";
+      el.style.height = target.height + "px";
+      el.style.transformOrigin = fcx + "px " + fcy + "px";
+      el.style.transform = `translate3d(${dx0}px,${dy0}px,0) scale(${k0})`;
+    });
+    flyEls[0].style.opacity = "1";
+    flyEls[1].style.opacity = flyEls[2].style.opacity = vo0.toFixed(3);
+    blk.style.display = "none";
+    negs.forEach((n) => (n.style.display = "none"));
+    ld.style.visibility = "hidden";
+
+    // Backdrop fade without per-frame colour-mix(): a plain layer whose opacity is animated.
+    const bg = $("#ld-bg", lay);
+    bg.style.display = "block";
+    lay.style.background = "transparent";
+
+    // 4. The flight. Everything the compositor can do, it does:
+    //    transform (sampled easeSharp) + opacity fades via WAAPI, off the main thread.
+    const TT = reduce ? 300 : 1800;
+    const STEPS = reduce ? 4 : 36;
+
+    const flightFrames = [];
+    for (let i = 0; i <= STEPS; i++) {
+      const p = i / STEPS;
+      const e = easeSharp(p);
+      flightFrames.push({
+        transform: `translate3d(${dx0 * (1 - e)}px,${dy0 * (1 - e)}px,0) scale(${1 + (k0 - 1) * (1 - e)})`,
+        offset: p,
+      });
+    }
+    const anims = flyEls.map((el) =>
+      el.animate(flightFrames, {
+        duration: TT,
+        easing: "linear",
+        fill: "forwards",
+      }),
+    );
+
+    // Fade: begins at 12% of the flight, finishes at 74% (same curve as before, now linear on the compositor)
+    const fadeOpts = {
+      duration: TT * 0.62,
+      delay: TT * 0.12,
+      easing: "linear",
+      fill: "both",
+    };
+    const fadeOut = (el, from) =>
+      el.animate([{ opacity: from }, { opacity: 0 }], fadeOpts);
+    anims.push(fadeOut(bg, 1));
+    anims.push(
+      fadeOut(reel.el, parseFloat(getComputedStyle(reel.el).opacity) || 0),
+    );
+    anims.push(fadeOut(flyEls[1], vo0));
+    anims.push(fadeOut(flyEls[2], vo0));
+    reel.el.style.transition = "none";
+
+    // Main-thread work is now only the SVG wipe + FILMWORK unfold (1 clip write + 3 tiny transforms).
+    const tagH = FLY_H * 0.9;
+    const t_start = performance.now();
     let shown = false;
+    let lastW = -1;
+    let lastU = -1;
 
     await new Promise((res) => {
       function frame(now) {
-        const t = clamp((now - ts) / TT);
-        const e = easeSharp(t);
+        const t = clamp((now - t_start) / TT);
 
-        flyEls.forEach((el) => {
-          el.style.transform = `translate3d(${dx0 * (1 - e)}px,${dy0 * (1 - e)}px,0) scale(${1 + (k0 - 1) * (1 - e)})`;
-        });
+        // Wipe across BINI ROMI
+        const w = Math.round((L.bw + 8) * easeIO((t - 0.08) / 0.65));
+        if (w !== lastW) {
+          lastW = w;
+          clrRect.setAttribute("width", w);
+        }
 
-        // Wiping across BINI ROMI
-        clrs.forEach((clr) =>
-          clr.setAttribute(
-            "width",
-            String((L.bw + 8) * easeIO((t - 0.08) / 0.65)),
-          ),
-        );
-
-        // Unfolding FILMWORK
+        // Unfold FILMWORK
         const u = easeOut((t - 0.55) / 0.45);
-        tags.forEach((tag) =>
-          tag.setAttribute(
-            "transform",
-            `translate(0 ${(1 - u) * (L.h - L.by - L.bh) * 0.9})`,
-          ),
-        );
+        if (u !== lastU) {
+          lastU = u;
+          const tr = `translate(0 ${(1 - u) * tagH})`;
+          for (const tg of tags) tg.setAttribute("transform", tr);
+        }
 
-        // Gradual fade out
-        const fadeF = 1 - clamp((t - 0.12) / 0.62);
-        lay.style.background = `color-mix(in srgb,var(--bg) ${Math.round(fadeF * 100)}%,transparent)`;
-        reel.setOpacity(fadeF);
-        flyEls[1].style.opacity = flyEls[2].style.opacity = (
-          fadeF * vo0
-        ).toFixed(3);
-
+        // Cards rise as the logo lands (single class flip, CSS handles the rest)
         if (!shown && t > 0.48) {
           shown = true;
           document.body.classList.add("pre-logo");
           document.body.classList.remove("pre");
-
           if (page) {
             $$(".proj.rise.fb", page).forEach((el, i) => {
               setTimeout(() => el.classList.add("in"), 120 * Math.min(i, 8));
@@ -554,14 +674,22 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
       requestAnimationFrame(frame);
     });
 
+    // Make sure the compositor animations have fully landed before the hand-off
+    await Promise.all(anims.map((a) => a.finished.catch(() => {})));
+
+    // 5. Hand-off to the real navbar logo: swap in a single frame, no cross-fade, no pop.
     const lg = $("#hdr .logo");
     if (lg) lg.style.transition = "none";
     document.body.classList.remove("pre-logo", "pre");
     if (lg) void lg.offsetWidth;
+    // IMPORTANT: remove the fly layers in this SAME task. Both they and #hdr use
+    // mix-blend-mode:difference, so if they ever overlap for even one frame the
+    // navbar logo is differenced against the black fly logo and renders ivory (invisible).
     reel.stop();
-
+    anims.forEach((a) => a.cancel());
     flyEls.forEach((el) => {
       el.style.display = "none";
+      el.style.willChange = "auto";
       el.innerHTML = "";
     });
     lay.remove();
@@ -576,6 +704,8 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
 
   // Live Negative Filter Loop
   (function runNegative() {
+    if (window.__brNegLoop) return;
+    window.__brNegLoop = true;
     const mk = (k) => {
       const L = LOGOS[k];
       const svgStr =
@@ -664,8 +794,19 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
     })();
   })();
 
-  playIntro();
-  document.addEventListener("astro:page-load", playIntro);
+  let introRunning = false;
+  async function bootIntro() {
+    // Only on the landing page (body.pre is set by the layout), never twice at once
+    if (introRunning || !document.body.classList.contains("pre")) return;
+    introRunning = true;
+    try {
+      await playIntro();
+    } finally {
+      introRunning = false;
+    }
+  }
+  bootIntro();
+  document.addEventListener("astro:page-load", bootIntro);
 </script>
 
 <style>
@@ -704,6 +845,14 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
     transition: background-color 0.5s;
   }
 
+  :global(#ld-bg) {
+    position: absolute;
+    inset: 0;
+    display: none;
+    background: var(--bg);
+    will-change: opacity;
+  }
+
   :global(#ld-cv) {
     position: absolute;
     inset: 0;
@@ -711,6 +860,7 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
     height: 100%;
     opacity: 0;
     transition: opacity 0.9s ease;
+    will-change: opacity;
   }
 
   :global(#ld-vid) {

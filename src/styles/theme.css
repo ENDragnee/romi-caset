@@ -100,3 +100,12 @@ body * {
     border-color 0.5s var(--in-out),
     color 0.5s var(--in-out);
 }
+
+body[data-route="contact"],
+body[data-route="about"] {
+  --logoH: calc(var(--logoW) * 0.547);
+}
+
+body[data-route="work"] {
+  --top: calc(var(--logoH) + 4rem + 2.7rem);
+}

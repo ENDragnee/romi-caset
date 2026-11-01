@@ -15,6 +15,8 @@ const {
   description = "Independent production house creating bold, cinematic films, commercials, and music videos.",
   route = "home",
 } = Astro.props;
+
+const isHome = route === "home";
 ---
 
 <!doctype html>
@@ -28,7 +30,6 @@ const {
     <title>{title}</title>
     <meta name="description" content={description} />
 
-    <!-- Exact Vector Favicon from Prototype -->
     <link
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23E1E1D7'/%3E%3Cpath d='M18 26h38c6 0 8 3 12 8s8 8 14 8v32H18z' fill='%23000'/%3E%3C/svg%3E"
@@ -42,15 +43,20 @@ const {
     />
     <ClientRouter />
 
-    <script is:inline>
-      document.documentElement.classList.add("locked");
+    <script is:inline define:vars={{ isHome }}>
+      // Only lock if we are strictly on the landing page
+      if (isHome) {
+        document.documentElement.classList.add("locked");
+      } else {
+        document.documentElement.classList.remove("locked");
+      }
       try {
         const t = sessionStorage.getItem("br-theme");
         if (t) document.documentElement.dataset.theme = t;
       } catch (e) {}
     </script>
   </head>
-  <body class="pre" data-route={route}>
+  <body class={isHome ? "pre" : ""} data-route={route}>
     <NavBar />
 
     <main id="page">
@@ -73,6 +79,22 @@ const {
     </div>
 
     <script>
+      // Automatically unlock scroll on View Transitions navigation
+      function unlockForNavigation() {
+        const isHomePage = window.location.pathname === "/";
+        if (!isHomePage) {
+          document.documentElement.classList.remove("locked");
+          document.body.classList.remove("pre", "pre-logo");
+          document.body.style.overflow = "";
+        }
+      }
+
+      document.addEventListener(
+        "astro:before-preparation",
+        unlockForNavigation,
+      );
+      document.addEventListener("astro:page-load", unlockForNavigation);
+
       function InitSiteExperience() {
         const ring = document.querySelector<HTMLElement>(".custom-cursor");
         const pointer = document.querySelector<HTMLElement>(
@@ -81,7 +103,6 @@ const {
 
         if (ring && pointer && window.matchMedia("(pointer: fine)").matches) {
           document.body.classList.add("has-custom-cursor");
-
           const activeRing = ring;
           const activePointer = pointer;
 
