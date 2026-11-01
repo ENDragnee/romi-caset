@@ -1,294 +1,172 @@
 ---
-import BaseLayout from "../layouts/base-layout.astro";
-import HeroVideo from "../features/hero/components/hero-video.astro";
-import Preloader from "../features/hero/components/preloader.astro";
-import ProjectGrid from "../features/portfolio/components/project-grid.astro";
+import BaseLayout from "@/layouts/base-layout.astro";
+import Preloader from "@/features/hero/components/preloader.astro";
+import FeaturedCard from "@/features/portfolio/components/featured-card.astro";
 import { prisma } from "@/lib/prisma";
 
-// 1. Fetch active hero video reels in custom order
 const heroVideoRecords = await prisma.heroVideo.findMany({
   where: { active: true },
   orderBy: [{ order: "asc" }, { createdAt: "desc" }],
 });
 
-const heroVideoUrls =
+const heroVideoUrl =
   heroVideoRecords.length > 0
-    ? heroVideoRecords.map((v) => `/api/media/${v.key}`)
-    : ["/videos/hero-video.mp4"];
+    ? `/api/media/${heroVideoRecords[0].key}`
+    : "/videos/hero-video.mp4";
 
-// 2. Fetch featured portfolio projects in custom order
 const featuredProjects = await prisma.project.findMany({
   where: { featured: true },
   take: 6,
   orderBy: [{ order: "asc" }, { createdAt: "desc" }],
 });
-
-const tickerText =
-  "We believe a great film doesn’t just tell you something. It makes you feel something";
 ---
 
-<BaseLayout title="Kaset Production" transparentNav={true}>
-  {/* 5-Second 3D ROMI Buffer Preloader */}
-  <Preloader />
+<BaseLayout title="Bini Romi Filmwork" route="home">
+  <Preloader showreelUrl={heroVideoUrl} />
 
-  <div class="homepage-curtain-wrapper">
-    {/* Pinned Sticky Hero Section */}
-    <div class="sticky-hero-container" id="hero-wrapper">
-      <HeroVideo videos={heroVideoUrls} />
-    </div>
+  <section class="home-grid">
+    {
+      featuredProjects.map((p, index) => (
+        <FeaturedCard
+          id={p.slug}
+          client={p.client || "STUDIO"}
+          title={p.title}
+          category={p.category}
+          thumbnail={p.thumbnail}
+          priority={index < 2}
+        />
+      ))
+    }
+  </section>
 
-    {/* Rising Featured Section */}
-    <section class="section featured-section" id="featured-section">
-      {/* Seamless Continuous Large Marquee */}
-      <div class="marquee-container" aria-label={tickerText}>
-        <div class="marquee-track">
-          <div class="marquee-item">
-            <span>{tickerText}</span>
-            <span class="marquee-spacer">—</span>
-            <span>{tickerText}</span>
-            <span class="marquee-spacer">—</span>
-          </div>
-          <div class="marquee-item" aria-hidden="true">
-            <span>{tickerText}</span>
-            <span class="marquee-spacer">—</span>
-            <span>{tickerText}</span>
-            <span class="marquee-spacer">—</span>
-          </div>
-        </div>
-      </div>
+  <div class="foot-cta rise">
+    <a class="vw" href="/portfolio">
+      <span>View Work</span>
+      <svg
+        viewBox="0 0 12 12"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.2"
+      >
+        <path d="M1 6h9.2M6.4 2.2 10.2 6l-3.8 3.8"></path>
+      </svg>
+    </a>
+  </div>
 
-      <div class="content-wrapper">
-        {/* Selected Work Editorial Divider */}
-        <div class="divider section-divider hero-title-drop">
-          <span class="divider__label">Selected Work</span>
-        </div>
-
-        {/* Project Grid */}
-        <div class="content-rise-up">
-          <ProjectGrid projects={featuredProjects} />
-        </div>
-
-        <div class="view-all-wrapper">
-          <a href="/portfolio" class="view-all-link">View All Work →</a>
-        </div>
-      </div>
-    </section>
+  <div class="findus">
+    <span class="lab">Find us on</span>
+    <a href="https://vimeo.com" target="_blank" rel="noopener">vimeo</a><i>/</i>
+    <a href="https://instagram.com" target="_blank" rel="noopener">instagram</a
+    ><i>/</i>
+    <a href="https://youtube.com" target="_blank" rel="noopener">youtube</a>
   </div>
 </BaseLayout>
 
 <script>
-  function InitCurtainScroll() {
-    const scrollToHeroBtn = document.querySelector<HTMLButtonElement>(
-      "#scroll-to-hero-btn",
+  function InitHomeScroll() {
+    const rises = document.querySelectorAll(".rise:not(.in):not(.fb)");
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            e.target.classList.add("in");
+            observer.unobserve(e.target);
+          }
+        });
+      },
+      { rootMargin: "0px 0px -6% 0px" },
     );
 
-    if (scrollToHeroBtn) {
-      scrollToHeroBtn.onclick = (e) => {
-        e.preventDefault();
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      };
-    }
+    rises.forEach((el) => observer.observe(el));
   }
 
-  InitCurtainScroll();
-  document.addEventListener("astro:page-load", InitCurtainScroll);
+  InitHomeScroll();
+  document.addEventListener("astro:page-load", InitHomeScroll);
 </script>
 
 <style>
-  .homepage-curtain-wrapper {
-    position: relative;
-    width: 100%;
-    background-color: #ffffff;
+  /* Desktop Configuration */
+  .home-grid {
+    --c: 3.4rem;
+    --gut: 2vw;
+    --hcap: calc((100vh - var(--top) - var(--c) - 1.5rem) / 1.25);
+    --wcol: calc((100vw - 2 * var(--m) - var(--gut)) / 2);
+    --w: min(var(--wcol), calc(var(--hcap) * 4 / 3));
+    --h: calc(var(--w) * 3 / 4);
+    --rg: max(2rem, calc(100vh - var(--top) - var(--c) - 1.25 * var(--h)));
+    display: grid;
+    grid-template-columns: repeat(2, var(--w));
+    column-gap: var(--gut);
+    row-gap: var(--rg);
+    justify-content: center;
+    padding-top: var(--top);
   }
 
-  /* Pinned Hero */
-  .sticky-hero-container {
-    position: sticky;
-    top: 0;
-    left: 0;
-    width: 100%;
-    z-index: 1;
-    will-change: transform;
-  }
-
-  /* Rising Featured Section */
-  .featured-section {
-    position: relative;
-    z-index: 2;
-    background-color: #ffffff;
-    width: 100%;
-    min-height: 100vh;
-    padding-top: var(--space-xl);
-    padding-bottom: var(--space-5xl);
-    box-shadow: 0 -25px 60px rgba(0, 0, 0, 0.15);
-    box-sizing: border-box;
-    overflow-x: hidden;
-  }
-
-  .content-wrapper {
-    width: 100%;
-    max-width: 1380px;
-    margin: 0 auto;
-    padding-inline: var(--space-xl);
-    box-sizing: border-box;
-  }
-
-  /* Section Divider */
-  .section-divider {
-    margin-top: var(--space-md);
-    margin-bottom: var(--space-3xl);
-  }
-
-  .view-all-wrapper {
+  .foot-cta {
     display: flex;
     justify-content: center;
-    margin-top: var(--space-4xl);
+    padding: 7rem 0 0;
   }
 
-  .view-all-link {
-    color: #000000;
-    font-family: var(--font-heading);
-    font-size: 0.95rem;
-    font-weight: 700;
-    text-decoration: none;
-    letter-spacing: 0.1em;
+  .vw {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.8em;
+    font: 400 0.85rem var(--mf);
     text-transform: uppercase;
+    letter-spacing: 0.16em;
+    padding: 0.45rem 0;
     position: relative;
-    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  .view-all-link::after {
+  .vw::after {
     content: "";
     position: absolute;
-    bottom: -4px;
     left: 0;
-    width: 0;
-    height: 1.5px;
-    background-color: #000000;
-    transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    right: 0;
+    bottom: 0;
+    height: 1px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.5s var(--out);
   }
 
-  .view-all-link:hover {
-    transform: translateX(4px);
+  .vw:hover::after {
+    transform: scaleX(1);
   }
 
-  .view-all-link:hover::after {
-    width: 100%;
+  .vw svg {
+    width: 0.85em;
+    height: 0.85em;
+    transition: transform 0.5s var(--out);
   }
 
-  /* Minimal Up-Navigation to Hero */
-  .return-hero-wrapper {
-    display: flex;
-    justify-content: center;
-    margin-top: var(--space-4xl);
+  .vw:hover svg {
+    transform: translateX(5px);
   }
 
-  .hero-scroll-cue {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    color: var(--color-text-muted);
-    padding: var(--space-xs) var(--space-md);
-    transition:
-      color var(--transition-fast),
-      transform var(--transition-fast);
-  }
-
-  .hero-scroll-cue:hover {
-    color: var(--color-accent);
-    transform: translateY(-2px);
-  }
-
-  .cue-label {
-    font-family: var(--font-heading);
-    font-size: 0.725rem;
-    font-weight: 600;
-    letter-spacing: 0.22em;
-    text-indent: 0.22em;
-    text-transform: uppercase;
-  }
-
-  @keyframes cuePulseUp {
-    0%,
-    100% {
-      transform: translateY(0);
-      opacity: 0.75;
+  /* Exact Phone Version from Prototype */
+  @media (max-width: 900px) {
+    .home-grid {
+      --c: 12vw;
+      grid-template-columns: 1fr;
+      row-gap: 0;
+      column-gap: 0;
+      padding: var(--top) 4vw 0;
+      justify-content: stretch;
     }
-    50% {
-      transform: translateY(-4px);
-      opacity: 1;
+
+    .home-grid :global(.proj) {
+      width: 100%;
     }
-  }
 
-  .cue-chevron-up {
-    animation: cuePulseUp 2s infinite ease-in-out;
-  }
-
-  /* ---------- Larger Continuous Marquee ---------- */
-  .marquee-container {
-    width: 100%;
-    overflow: hidden;
-    user-select: none;
-    margin-bottom: var(--space-2xl);
-    padding-block: var(--space-xl);
-    display: flex;
-    white-space: nowrap;
-  }
-
-  .marquee-track {
-    display: flex;
-    width: max-content;
-    animation: marqueeScroll 40s linear infinite;
-  }
-
-  .marquee-container:hover .marquee-track {
-    animation-play-state: paused;
-  }
-
-  .marquee-item {
-    display: flex;
-    align-items: center;
-    flex-shrink: 0;
-    font-family: var(--font-heading);
-    font-size: clamp(1.2rem, 2.6vw, 1.75rem);
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--color-text);
-  }
-
-  .marquee-spacer {
-    display: inline-block;
-    margin-inline: var(--space-2xl);
-    opacity: 0.3;
-  }
-
-  @keyframes marqueeScroll {
-    0% {
-      transform: translateX(0%);
+    .home-grid :global(.cap) {
+      height: var(--c);
     }
-    100% {
-      transform: translateX(-50%);
-    }
-  }
 
-  @media (max-width: 768px) {
-    .content-wrapper {
-      padding-inline: var(--space-md);
-    }
-    .marquee-container {
-      margin-bottom: var(--space-xl);
-      padding-block: var(--space-md);
-    }
-    .marquee-item {
-      font-size: 1.1rem;
-    }
-    .section-divider {
-      margin-bottom: var(--space-2xl);
+    .foot-cta {
+      padding: 4rem 0 0;
     }
   }
 </style>
