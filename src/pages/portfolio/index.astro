@@ -1,262 +1,182 @@
 ---
-import BaseLayout from "../../layouts/base-layout.astro";
-import ProjectGrid from "../../features/portfolio/components/project-grid.astro";
+import BaseLayout from "@/layouts/base-layout.astro";
+import FeaturedCard from "@/features/portfolio/components/featured-card.astro";
 import { prisma } from "@/lib/prisma";
 
-const allProjects = await prisma.project.findMany({
+// Exclusively query database projects in custom order
+const dbProjects = await prisma.project.findMany({
   orderBy: [{ order: "asc" }, { createdAt: "desc" }],
 });
 
-const categories = [
-  { label: "ALL", value: "ALL" },
-  { label: "MUSIC", value: "MUSICVIDEO" },
-  { label: "COMMERCIAL", value: "COMMERCIAL" },
-  { label: "FILM", value: "FILM" },
-];
+// Normalize backend category enum (e.g. MUSICVIDEO -> music) for navbar filter button matching
+const projects = dbProjects.map((p) => {
+  let cat = "film";
+  const c = (p.category || "").toUpperCase();
+  if (c.includes("MUSIC")) cat = "music";
+  else if (c.includes("COMMERCIAL")) cat = "commercial";
+  return { ...p, filterCat: cat };
+});
 ---
 
-<BaseLayout title="Projects — Kaset Production">
-  <section class="section portfolio-page">
-    <div class="content-wrapper">
-      {/* Category Tabs */}
-      <header class="portfolio-header-block hero-title-drop">
-        <div class="title-with-count">
-          <h1 class="portfolio-huge-title">PROJECTS</h1>
-          <span id="projects-count-badge" class="projects-count-badge"
-            >[{allProjects.length}]</span
-          >
-        </div>
+<BaseLayout title="Work — Bini Romi Filmwork" route="work">
+  <div class="work-container">
+    <section class="work-grid" id="wgrid">
+      {
+        projects.length > 0 ? (
+          projects.map((p, index) => (
+            <FeaturedCard
+              id={p.slug}
+              client={p.client || "STUDIO"}
+              title={p.title}
+              category={p.filterCat}
+              thumbnail={p.thumbnail}
+              priority={index < 3}
+            />
+          ))
+        ) : (
+          <div class="no-projects">
+            <p>NO PROJECTS PUBLISHED YET.</p>
+          </div>
+        )
+      }
+    </section>
 
-        <nav
-          class="category-tabs-left"
-          aria-label="Filter portfolio categories"
+    <div class="work-foot">
+      <div class="findus">
+        <span class="lab">Find us on</span>
+        <a href="https://vimeo.com" target="_blank" rel="noopener">vimeo</a><i
+          >/</i
         >
-          {
-            categories.map((cat, index) => (
-              <button
-                type="button"
-                class={`tab-btn ${index === 0 ? "active" : ""}`}
-                data-category={cat.value}
-              >
-                <span>{cat.label}</span>
-              </button>
-            ))
-          }
-        </nav>
-      </header>
-
-      {/* Expansive Project Grid */}
-      <div class="content-rise-up">
-        <ProjectGrid projects={allProjects} />
+        <a href="https://instagram.com" target="_blank" rel="noopener"
+          >instagram</a
+        ><i>/</i>
+        <a href="https://youtube.com" target="_blank" rel="noopener">youtube</a>
       </div>
     </div>
-  </section>
+  </div>
 </BaseLayout>
 
 <script>
-  function InitPortfolioFilters() {
-    const tabBtns = document.querySelectorAll<HTMLButtonElement>(".tab-btn");
-    const countBadge = document.querySelector<HTMLElement>(
-      "#projects-count-badge",
-    );
-    const gridItems = document.querySelectorAll<HTMLElement>(
-      ".portfolio-grid-container .grid-item",
-    );
+  function InitWorkPage() {
+    // Forcefully remove lock on entering portfolio
+    document.documentElement.classList.remove("locked");
+    document.body.classList.remove("pre", "pre-logo");
+    document.body.style.overflow = "";
 
-    if (!tabBtns.length || !gridItems.length) return;
+    const grid = document.querySelector<HTMLElement>("#wgrid");
+    if (!grid) return;
 
-    function filterCategory(targetCategory: string) {
-      const normalizedTarget = (targetCategory || "ALL").trim().toUpperCase();
-      let matchCount = 0;
-
-      tabBtns.forEach((btn) => {
-        const btnCat = (btn.dataset.category || "").trim().toUpperCase();
-        if (btnCat === normalizedTarget) {
-          btn.classList.add("active");
-          btn.scrollIntoView({
-            behavior: "smooth",
-            block: "nearest",
-            inline: "nearest",
-          });
-        } else {
-          btn.classList.remove("active");
-        }
-      });
-
-      gridItems.forEach((item) => {
-        const itemCat = (item.dataset.category || "").trim().toUpperCase();
-        const isMatch =
-          normalizedTarget === "ALL" || itemCat === normalizedTarget;
-
-        if (isMatch) {
-          item.classList.remove("is-dimmed");
-          matchCount++;
-        } else {
-          item.classList.add("is-dimmed");
-        }
-      });
-
-      if (countBadge) {
-        countBadge.classList.remove("count-pop");
-        void countBadge.offsetWidth;
-        countBadge.textContent = `[${matchCount}]`;
-        countBadge.classList.add("count-pop");
-      }
-    }
-
-    tabBtns.forEach((btn) => {
-      btn.onclick = (e) => {
-        e.preventDefault();
-        const category = btn.dataset.category || "ALL";
-        filterCategory(category);
-
-        const url = new URL(window.location.href);
-        if (category === "ALL") {
-          url.searchParams.delete("category");
-        } else {
-          url.searchParams.set("category", category);
-        }
-        window.history.replaceState({}, "", url.toString());
-      };
+    const projectCards = grid.querySelectorAll<HTMLElement>(".proj");
+    projectCards.forEach((el, i) => {
+      setTimeout(() => el.classList.add("in"), 40 * Math.min(i, 8));
     });
 
+    // Handle filter broadcast from navbar
     window.addEventListener("apply-portfolio-filter", (e: any) => {
-      const category = e.detail?.category || "ALL";
-      filterCategory(category);
+      const selected = (e.detail?.category || "all").toLowerCase();
+      projectCards.forEach((p) => {
+        const cat = (p.dataset.cat || "").toLowerCase();
+        if (selected === "all" || cat === selected) {
+          p.classList.remove("dim");
+        } else {
+          p.classList.add("dim");
+        }
+      });
     });
 
-    const currentParams = new URLSearchParams(window.location.search);
-    const initialCategory = currentParams.get("category");
-    if (initialCategory) {
-      filterCategory(initialCategory);
+    // Check URL parameters (e.g. /portfolio?category=music)
+    const urlParams = new URLSearchParams(window.location.search);
+    const catParam = urlParams.get("category") || urlParams.get("cat");
+    if (catParam) {
+      window.dispatchEvent(
+        new CustomEvent("apply-portfolio-filter", {
+          detail: { category: catParam },
+        }),
+      );
+      document.querySelectorAll(".cat").forEach((b: any) => {
+        b.classList.toggle("on", b.dataset.cat === catParam.toLowerCase());
+      });
     }
   }
 
-  InitPortfolioFilters();
-  document.addEventListener("astro:page-load", InitPortfolioFilters);
+  InitWorkPage();
+  document.addEventListener("astro:page-load", InitWorkPage);
 </script>
 
 <style>
-  .portfolio-page {
-    padding-top: calc(var(--nav-height) + var(--space-xl));
-    padding-bottom: var(--space-5xl);
-    width: 100%;
+  .work-container {
+    min-height: 100vh;
+    background-color: var(--bg);
   }
 
-  /* Wide Canvas (1380px) */
-  .content-wrapper {
-    width: 100%;
-    max-width: 1380px;
-    margin: 0 auto;
-    padding-inline: var(--space-xl);
-    box-sizing: border-box;
+  /* Desktop Work Grid (3 Columns) */
+  .work-grid {
+    --c: 3.4rem;
+    --g: 1.8rem;
+    --gut: 1.4vw;
+    --hcap: calc(
+      (100vh - var(--top) + 2.7rem - 2 * var(--c) - 2 * var(--g)) / 2.1
+    );
+    --wcol: calc((100vw - 2 * var(--m) - 2 * var(--gut)) / 3);
+    --w: min(var(--wcol), calc(var(--hcap) * 4 / 3 * 1.14));
+    display: grid;
+    grid-template-columns: repeat(3, var(--w));
+    column-gap: var(--gut);
+    row-gap: var(--g);
+    justify-content: center;
+    padding-top: var(--top);
   }
 
-  .portfolio-header-block {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    margin-bottom: var(--space-3xl);
-    width: 100%;
+  .no-projects {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 6rem 0;
+    font-family: var(--mf);
+    font-size: 0.8rem;
+    letter-spacing: 0.16em;
+    opacity: 0.5;
   }
 
-  .title-with-count {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    line-height: 0.9;
+  .work-foot {
+    padding-top: 6rem;
   }
 
-  .portfolio-huge-title {
-    font-family: var(--font-heading);
-    font-size: clamp(3rem, 12vw, 7.5rem);
-    font-weight: 800;
-    letter-spacing: -0.03em;
-    line-height: 0.88;
-    text-transform: uppercase;
-    color: var(--color-text);
-    margin: 0;
-  }
-
-  .projects-count-badge {
-    font-family: var(--font-heading);
-    font-size: clamp(0.9rem, 3vw, 1.85rem);
-    font-weight: 700;
-    color: var(--color-text);
-    letter-spacing: -0.02em;
-    margin-top: 4px;
-    display: inline-block;
-  }
-
-  /* Left-Aligned Category Tabs */
-  .category-tabs-left {
-    display: flex;
-    align-items: center;
-    gap: var(--space-xl);
-    margin-top: var(--space-md);
-    padding: 2px 0;
-    overflow-x: auto;
-    max-width: 100%;
-    scrollbar-width: none;
-  }
-
-  .category-tabs-left::-webkit-scrollbar {
-    display: none;
-  }
-
-  .tab-btn {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    font-family: var(--font-heading);
-    font-size: 0.775rem;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: #8c8c8c;
-    padding: 2px 0;
-    white-space: nowrap;
-    position: relative;
-    transition: color var(--transition-fast);
-  }
-
-  .tab-btn:hover {
-    color: #333333;
-  }
-
-  .tab-btn.active {
-    color: #000000;
-    font-weight: 800;
-  }
-
-  .tab-btn.active::after {
-    content: "";
-    position: absolute;
-    bottom: -2px;
-    left: 0;
-    width: 100%;
-    height: 1.5px;
-    background-color: #000000;
-  }
-
-  /* Compact Mobile Proportions (Reference Match) */
-  @media (max-width: 768px) {
-    .content-wrapper {
-      padding-inline: var(--space-md);
+  /* Phone Version (2 Columns, Thin Gutters) */
+  @media (max-width: 900px) {
+    .work-grid {
+      grid-template-columns: repeat(2, 1fr) !important;
+      column-gap: 1.55vw !important;
+      row-gap: 1.45vw !important;
+      padding: var(--top) 3.7vw 0 !important;
+      justify-content: stretch !important;
     }
 
-    .portfolio-header-block {
-      margin-bottom: var(--space-xl);
+    .work-grid :global(.proj) {
+      width: 100% !important;
     }
 
-    .category-tabs-left {
-      gap: 12px;
-      margin-top: 6px; /* Sits tight under PROJECTS */
+    .work-grid :global(.cap) {
+      height: 10vw !important;
+      flex-wrap: nowrap !important;
+      gap: 1.2em !important;
+      padding: 0 0.15rem !important;
+      font-size: clamp(0.46rem, 2.05vw, 0.58rem) !important;
+      letter-spacing: 0.02em !important;
+      white-space: nowrap !important;
     }
 
-    .tab-btn {
-      font-size: 0.68rem; /* Small & sharp like reference */
-      letter-spacing: 0.08em;
+    .work-grid :global(.cap span) {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .work-grid :global(.cap .cl) {
+      flex: none;
+    }
+
+    .work-foot {
+      padding-top: 3rem;
     }
   }
 </style>

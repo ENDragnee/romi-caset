@@ -1,193 +1,243 @@
 ---
 import { ClientRouter } from "astro:transitions";
+import NavBar from "@/features/navigation/components/nav-bar.astro";
+import "../styles/theme.css";
 import "../styles/global.css";
 
 interface Props {
   title?: string;
   description?: string;
-  transparentNav?: boolean;
+  route?: "home" | "work" | "about" | "contact" | "project";
 }
 
 const {
-  title = "Kaset Production",
-  description = "Music video, commercial, and film production & editing.",
-  transparentNav = true,
+  title = "Bini Romi Filmwork",
+  description = "Independent production house creating bold, cinematic films, commercials, and music videos.",
+  route = "home",
 } = Astro.props;
 
-import NavBar from "../features/navigation/components/nav-bar.astro";
-import SiteFooter from "../features/footer/components/site-footer.astro";
+const isHome = route === "home";
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="icon" href="/favicon.ico" />
-    <meta name="generator" content={Astro.generator} />
-    <meta name="description" content={description} />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
     <title>{title}</title>
+    <meta name="description" content={description} />
 
-    {/* Astro View Transitions */}
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23E1E1D7'/%3E%3Cpath d='M18 26h38c6 0 8 3 12 8s8 8 14 8v32H18z' fill='%23000'/%3E%3C/svg%3E"
+    />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap"
+      rel="stylesheet"
+    />
     <ClientRouter />
+
+    <script is:inline define:vars={{ isHome }}>
+      // Only lock if we are strictly on the landing page
+      if (isHome) {
+        document.documentElement.classList.add("locked");
+      } else {
+        document.documentElement.classList.remove("locked");
+      }
+      try {
+        const t = sessionStorage.getItem("br-theme");
+        if (t) document.documentElement.dataset.theme = t;
+      } catch (e) {}
+    </script>
   </head>
+  <body class={isHome ? "pre" : ""} data-route={route}>
+    <NavBar />
 
-  <body class="site-body">
-    <NavBar transparent={transparentNav} />
-
-    <main id="main-content">
+    <main id="page">
       <slot />
     </main>
 
-    <SiteFooter />
+    <div id="grain" aria-hidden="true"></div>
 
-    {/* Custom cursor elements */}
+    <!-- Custom Cursor -->
     <div class="custom-cursor" aria-hidden="true"></div>
     <div class="custom-cursor--pointer" aria-hidden="true">
       <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path
           d="M1.5 1.5L14 7L8 9L6 14.5L1.5 1.5Z"
-          fill="#000000"
-          stroke="#ffffff"
+          fill="currentColor"
+          stroke="var(--bg)"
           stroke-width="1"
           stroke-linejoin="round"></path>
       </svg>
     </div>
 
     <script>
-      function InitCursor() {
+      // Automatically unlock scroll on View Transitions navigation
+      function unlockForNavigation() {
+        const isHomePage = window.location.pathname === "/";
+        if (!isHomePage) {
+          document.documentElement.classList.remove("locked");
+          document.body.classList.remove("pre", "pre-logo");
+          document.body.style.overflow = "";
+        }
+      }
+
+      document.addEventListener(
+        "astro:before-preparation",
+        unlockForNavigation,
+      );
+      document.addEventListener("astro:page-load", unlockForNavigation);
+
+      function InitSiteExperience() {
         const ring = document.querySelector<HTMLElement>(".custom-cursor");
         const pointer = document.querySelector<HTMLElement>(
           ".custom-cursor--pointer",
         );
-        if (!ring || !pointer) return;
 
-        if (!window.matchMedia("(pointer: fine)").matches) return;
+        if (ring && pointer && window.matchMedia("(pointer: fine)").matches) {
+          document.body.classList.add("has-custom-cursor");
+          const activeRing = ring;
+          const activePointer = pointer;
 
-        document.body.classList.add("has-custom-cursor");
+          let mouseX = -100;
+          let mouseY = -100;
+          let ringX = -100;
+          let ringY = -100;
+          let prevMouseX = -100;
+          let prevMouseY = -100;
+          let isOverIframe = false;
 
-        const activeRing = ring;
-        const activePointer = pointer;
+          const hideCursor = () => {
+            activeRing.classList.remove("custom-cursor--visible");
+            activePointer.classList.remove("custom-cursor--visible");
+          };
 
-        let mouseX = -100;
-        let mouseY = -100;
-        let ringX = -100;
-        let ringY = -100;
-        let prevMouseX = -100;
-        let prevMouseY = -100;
-        let isOverIframe = false;
-
-        const hideCursor = () => {
-          activeRing.classList.remove("custom-cursor--visible");
-          activePointer.classList.remove("custom-cursor--visible");
-        };
-
-        const showCursor = () => {
-          if (!isOverIframe) {
-            activeRing.classList.add("custom-cursor--visible");
-            activePointer.classList.add("custom-cursor--visible");
-          }
-        };
-
-        document.addEventListener("mousemove", (e: MouseEvent) => {
-          if (isOverIframe) return;
-          mouseX = e.clientX;
-          mouseY = e.clientY;
-          showCursor();
-        });
-
-        function AnimateCursor() {
-          if (!isOverIframe) {
-            const vx = mouseX - ringX;
-            const vy = mouseY - ringY;
-            ringX += vx * 0.22;
-            ringY += vy * 0.22;
-
-            const mouseVx = mouseX - prevMouseX;
-            const mouseVy = mouseY - prevMouseY;
-            const speed = Math.hypot(mouseVx, mouseVy);
-            const angle = Math.atan2(mouseVy, mouseVx) * (180 / Math.PI);
-
-            prevMouseX = mouseX;
-            prevMouseY = mouseY;
-
-            const blurAmount = Math.min(speed * 0.12, 3.5);
-            const stretch = Math.min(speed * 0.015, 0.45);
-            const squeeze = Math.min(speed * 0.008, 0.25);
-
-            activeRing.style.left = `${ringX}px`;
-            activeRing.style.top = `${ringY}px`;
-            activeRing.style.filter =
-              blurAmount > 0.3 ? `blur(${blurAmount * 0.8}px)` : "none";
-
-            if (speed > 2.5) {
-              activeRing.style.transform = `translate(-50%, -50%) rotate(${angle}deg) scale(${1 + stretch}, ${1 - squeeze})`;
-            } else {
-              activeRing.style.transform = `translate(-50%, -50%) scale(1)`;
+          const showCursor = () => {
+            if (!isOverIframe) {
+              activeRing.classList.add("custom-cursor--visible");
+              activePointer.classList.add("custom-cursor--visible");
             }
+          };
 
-            activePointer.style.left = `${mouseX}px`;
-            activePointer.style.top = `${mouseY}px`;
-            activePointer.style.filter =
-              blurAmount > 0.4 ? `blur(${blurAmount * 0.4}px)` : "none";
+          window.addEventListener("mousemove", (e: MouseEvent) => {
+            if (isOverIframe) return;
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            showCursor();
+          });
+
+          function AnimateCursor() {
+            if (!isOverIframe) {
+              const vx = mouseX - ringX;
+              const vy = mouseY - ringY;
+              ringX += vx * 0.22;
+              ringY += vy * 0.22;
+
+              const mouseVx = mouseX - prevMouseX;
+              const mouseVy = mouseY - prevMouseY;
+              const speed = Math.hypot(mouseVx, mouseVy);
+              const angle = Math.atan2(mouseVy, mouseVx) * (180 / Math.PI);
+
+              prevMouseX = mouseX;
+              prevMouseY = mouseY;
+
+              const blurAmount = Math.min(speed * 0.12, 3.5);
+              const stretch = Math.min(speed * 0.015, 0.45);
+              const squeeze = Math.min(speed * 0.008, 0.25);
+
+              activeRing.style.left = `${ringX}px`;
+              activeRing.style.top = `${ringY}px`;
+              activeRing.style.filter =
+                blurAmount > 0.3 ? `blur(${blurAmount * 0.8}px)` : "none";
+
+              if (speed > 2.5) {
+                activeRing.style.transform = `translate(-50%, -50%) rotate(${angle}deg) scale(${1 + stretch}, ${1 - squeeze})`;
+              } else {
+                activeRing.style.transform = `translate(-50%, -50%) scale(1)`;
+              }
+
+              activePointer.style.left = `${mouseX}px`;
+              activePointer.style.top = `${mouseY}px`;
+              activePointer.style.filter =
+                blurAmount > 0.4 ? `blur(${blurAmount * 0.4}px)` : "none";
+            }
+            requestAnimationFrame(AnimateCursor);
           }
           requestAnimationFrame(AnimateCursor);
-        }
-        AnimateCursor();
 
-        const interactiveSelector =
-          'a, button, [role="button"], input, textarea, select, label';
-        document.querySelectorAll(interactiveSelector).forEach((el) => {
-          el.addEventListener("mouseenter", () =>
-            activeRing.classList.add("custom-cursor--hover"),
-          );
-          el.addEventListener("mouseleave", () =>
-            activeRing.classList.remove("custom-cursor--hover"),
-          );
-        });
+          const interactiveSelector =
+            "a, button, [role='button'], input, textarea, select, label";
+          document.querySelectorAll(interactiveSelector).forEach((el) => {
+            el.addEventListener("mouseenter", () =>
+              activeRing.classList.add("custom-cursor--hover"),
+            );
+            el.addEventListener("mouseleave", () =>
+              activeRing.classList.remove("custom-cursor--hover"),
+            );
+          });
 
-        const iframeZones = document.querySelectorAll<HTMLElement>(
-          "iframe, [data-video-embed]",
-        );
-        iframeZones.forEach((zone) => {
-          zone.addEventListener("mouseenter", () => {
+          const mediaZones = document.querySelectorAll<HTMLElement>(
+            "iframe, video, .pj-video",
+          );
+          mediaZones.forEach((zone) => {
+            zone.addEventListener("mouseenter", () => {
+              isOverIframe = true;
+              hideCursor();
+            });
+            zone.addEventListener("mouseleave", () => {
+              isOverIframe = false;
+              showCursor();
+            });
+          });
+
+          document.addEventListener("mouseleave", hideCursor);
+          window.addEventListener("blur", () => {
             isOverIframe = true;
             hideCursor();
           });
-          zone.addEventListener("mouseleave", () => {
+          window.addEventListener("focus", () => {
             isOverIframe = false;
-            showCursor();
           });
-        });
+        }
 
-        document.addEventListener("mouseleave", hideCursor);
-        window.addEventListener("blur", () => {
-          isOverIframe = true;
-          hideCursor();
-        });
-        window.addEventListener("focus", () => {
-          isOverIframe = false;
-        });
+        const themeBtn = document.querySelector<HTMLButtonElement>("#theme");
+        if (themeBtn) {
+          themeBtn.onclick = (e) => {
+            e.preventDefault();
+            const root = document.documentElement;
+            const current = root.dataset.theme === "dark" ? "dark" : "light";
+            const next = current === "dark" ? "light" : "dark";
+
+            document.body.classList.add("theme-transitioning");
+            root.dataset.theme = next;
+            try {
+              sessionStorage.setItem("br-theme", next);
+            } catch (err) {}
+
+            setTimeout(() => {
+              document.body.classList.remove("theme-transitioning");
+            }, 600);
+          };
+        }
       }
 
-      InitCursor();
-      document.addEventListener("astro:page-load", InitCursor);
+      InitSiteExperience();
+      document.addEventListener("astro:page-load", InitSiteExperience);
     </script>
   </body>
 </html>
 
 <style>
-  .site-body {
-    background-color: var(--color-bg);
-    color: var(--color-text);
+  #page {
+    transform: translateY(var(--menuH, 0px));
+    transition: transform 0.6s cubic-bezier(0.65, 0, 0.35, 1);
     min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-  }
-
-  main {
-    flex: 1;
-    width: 100%;
   }
 </style>
