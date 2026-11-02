@@ -128,6 +128,303 @@ const L_FULL = LOGOS.full;
 
   InitNavbar();
   document.addEventListener("astro:page-load", InitNavbar);
+
+  // ==========================================================================
+  // FILM-NEGATIVE INVERSION for every navbar item
+  //
+  // The header already inverts against whatever is behind it (mix-blend-mode:
+  // difference). Over photos/video that reads as a plain colour inversion. To get
+  // the old colour-negative *film* look, each navbar item is mirrored by two
+  // body-level layers, clipped to exactly where the item overlaps media:
+  //   A: orange mask   #ffb474, mix-blend-mode: multiply
+  //   B: base fog      #5a2408, mix-blend-mode: screen
+  //
+  // Why body-level clones (and not styling the header itself)?
+  //   - #hdr is one blend group; a child blend mode inside it can't reach the page.
+  //   - #page has a transform, so anything inside it is an isolated stacking context
+  //     and can't blend with the body background either.
+  // Works for the logo, MENU/CLOSE, the theme icon and the category pills, on every
+  // route. Torn down and rebuilt on each ClientRouter swap.
+  // ==========================================================================
+  const NEG_A = "#ffb474";
+  const NEG_B = "#5a2408";
+  const MEDIA_SEL = ".thumb, .still, .pj-video";
+
+  type NegKind = "logo" | "icon" | "text";
+
+  interface NegTarget {
+    el: HTMLElement | SVGElement;
+    kind: NegKind;
+    underline: boolean; // mirror the MENU hover underline
+  }
+
+  interface NegLayer {
+    outer: HTMLElement;
+    inner: HTMLElement;
+    ul: HTMLElement | null;
+    sig: string;
+  }
+
+  function InitNegative() {
+    const w = window as unknown as { __brNegCleanup?: () => void };
+    if (w.__brNegCleanup) w.__brNegCleanup();
+
+    const hdr = document.getElementById("hdr");
+    if (!hdr) return;
+
+    const stack = new Map<Element, [NegLayer, NegLayer]>();
+    let raf = 0;
+    let dead = false;
+
+    const effOpacity = (el: Element) => {
+      let o = 1;
+      for (let n: Element | null = el; n; n = n.parentElement) {
+        o *= parseFloat(getComputedStyle(n).opacity);
+        if (n === hdr) break;
+      }
+      return Number.isFinite(o) ? o : 0;
+    };
+
+    function makeLayer(t: NegTarget, color: string, blend: string): NegLayer {
+      const outer = document.createElement("div");
+      outer.setAttribute("aria-hidden", "true");
+      Object.assign(outer.style, {
+        position: "fixed",
+        left: "0",
+        top: "0",
+        zIndex: "51",
+        pointerEvents: "none",
+        display: "none",
+        margin: "0",
+        padding: "0",
+        color,
+        mixBlendMode: blend,
+        transition: "none",
+      });
+
+      let inner: HTMLElement;
+      let ul: HTMLElement | null = null;
+
+      if (t.kind === "text") {
+        const cs = getComputedStyle(t.el);
+        inner = document.createElement("div");
+        Object.assign(inner.style, {
+          position: "relative",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          boxSizing: "border-box",
+          width: "100%",
+          height: "100%",
+          whiteSpace: "nowrap",
+          fontFamily: cs.fontFamily,
+          fontSize: cs.fontSize,
+          fontWeight: cs.fontWeight,
+          letterSpacing: cs.letterSpacing,
+          textTransform: cs.textTransform,
+          lineHeight: cs.lineHeight,
+          transition: "none",
+        });
+        const label = document.createElement("span");
+        label.className = "neg-label";
+        inner.appendChild(label);
+        if (t.underline) {
+          ul = document.createElement("i");
+          Object.assign(ul.style, {
+            position: "absolute",
+            left: "0",
+            right: "0",
+            bottom: "0",
+            height: "1px",
+            background: "currentColor",
+            transform: "scaleX(0)",
+            transformOrigin: "left",
+            transition: "transform 0.45s cubic-bezier(0.2, 0.7, 0.2, 1)",
+          });
+          inner.appendChild(ul);
+        }
+      } else {
+        // SVG items: mirror the real node so any artwork change is picked up automatically
+        const svg = t.el.cloneNode(true) as SVGElement;
+        svg.removeAttribute("id");
+        Object.assign(svg.style, {
+          display: "block",
+          width: "100%",
+          height: "100%",
+          transition: "none",
+        });
+        if (t.kind === "logo") svg.style.fill = "currentColor";
+        inner = document.createElement("div");
+        Object.assign(inner.style, {
+          width: "100%",
+          height: "100%",
+          transition: "transform 0.6s cubic-bezier(0.77, 0, 0.18, 1)", // theme icon spin
+        });
+        inner.appendChild(svg);
+      }
+
+      outer.appendChild(inner);
+      document.body.appendChild(outer);
+      return { outer, inner, ul, sig: "" };
+    }
+
+    function collect(): NegTarget[] {
+      const out: NegTarget[] = [];
+      const route = document.body.dataset.route;
+      const full = route === "contact" || route === "about";
+      const logo = hdr!.querySelector<SVGElement>(
+        full ? "#logoF svg" : "#logoL svg",
+      );
+      if (logo) out.push({ el: logo, kind: "logo", underline: false });
+      const menu = hdr!.querySelector<HTMLElement>("#menuBtn");
+      if (menu) out.push({ el: menu, kind: "text", underline: true });
+      const theme = hdr!.querySelector<SVGElement>("#theme svg");
+      if (theme) out.push({ el: theme, kind: "icon", underline: false });
+      if (route === "work") {
+        hdr!
+          .querySelectorAll<HTMLElement>(".cat")
+          .forEach((el) => out.push({ el, kind: "text", underline: false }));
+      }
+      return out;
+    }
+
+    const hideAll = () => {
+      stack.forEach(([a, b]) => {
+        a.outer.style.display = "none";
+        b.outer.style.display = "none";
+        a.sig = b.sig = "";
+      });
+    };
+
+    function frame() {
+      if (dead) return;
+      raf = requestAnimationFrame(frame);
+      if (document.hidden) return;
+
+      const B = document.body;
+      // Hidden while the loader owns the logo (prevents ghost / double logo)
+      if (B.classList.contains("pre") || B.classList.contains("pre-logo")) {
+        hideAll();
+        return;
+      }
+
+      const targets = collect();
+
+      // Drop layers for items that no longer exist (e.g. category pills off /work)
+      const live = new Set<Element>(targets.map((t) => t.el));
+      stack.forEach((pair, el) => {
+        if (!live.has(el) || !el.isConnected) {
+          pair[0].outer.remove();
+          pair[1].outer.remove();
+          stack.delete(el);
+        }
+      });
+
+      // Measure every target once
+      const rects = targets.map((t) => t.el.getBoundingClientRect());
+      if (!rects.length) return;
+      let zl = Infinity,
+        zt = Infinity,
+        zr = -Infinity,
+        zb = -Infinity;
+      for (const r of rects) {
+        zl = Math.min(zl, r.left);
+        zt = Math.min(zt, r.top);
+        zr = Math.max(zr, r.right);
+        zb = Math.max(zb, r.bottom);
+      }
+
+      // Media rects that touch the header zone (cheap reject first, style reads only if needed)
+      const media: DOMRect[] = [];
+      document.querySelectorAll<HTMLElement>(MEDIA_SEL).forEach((el) => {
+        const q = el.getBoundingClientRect();
+        if (q.bottom <= zt || q.top >= zb || q.right <= zl || q.left >= zr)
+          return;
+        const host = el.closest<HTMLElement>(".proj") || el;
+        if (parseFloat(getComputedStyle(host).opacity) < 0.5) return;
+        const img = el.querySelector("img");
+        if (img && parseFloat(getComputedStyle(img).opacity) < 0.5) return;
+        media.push(q);
+      });
+
+      targets.forEach((t, i) => {
+        const r = rects[i];
+        let pair = stack.get(t.el);
+        if (!pair) {
+          pair = [
+            makeLayer(t, NEG_A, "multiply"),
+            makeLayer(t, NEG_B, "screen"),
+          ];
+          stack.set(t.el, pair);
+        }
+
+        // Where this item overlaps media, in the item's own coordinates
+        let d = "";
+        for (const q of media) {
+          const x0 = Math.max(q.left, r.left) - r.left;
+          const y0 = Math.max(q.top, r.top) - r.top;
+          const x1 = Math.min(q.right, r.right) - r.left;
+          const y1 = Math.min(q.bottom, r.bottom) - r.top;
+          if (x1 <= x0 || y1 <= y0) continue;
+          d += `M${x0.toFixed(1)} ${y0.toFixed(1)}H${x1.toFixed(1)}V${y1.toFixed(1)}H${x0.toFixed(1)}Z`;
+        }
+
+        const op = d ? effOpacity(t.el) : 0;
+        const hover = t.el.matches(":hover");
+        const text = t.kind === "text" ? (t.el.textContent || "").trim() : "";
+        const on = t.el.classList.contains("on");
+        const sig = `${r.left.toFixed(1)},${r.top.toFixed(1)},${r.width.toFixed(1)},${r.height.toFixed(1)}|${d}|${op.toFixed(2)}|${text}|${on ? 1 : 0}|${hover ? 1 : 0}`;
+        if (pair[0].sig === sig) return;
+
+        for (const L of pair) {
+          L.sig = sig;
+          const s = L.outer.style;
+          if (!d || op < 0.02) {
+            s.display = "none";
+            continue;
+          }
+          s.display = "block";
+          s.width = r.width + "px";
+          s.height = r.height + "px";
+          s.transform = `translate(${r.left}px, ${r.top}px)`;
+          s.clipPath = `path('${d}')`;
+          s.opacity = op.toFixed(3);
+
+          if (t.kind === "text") {
+            const label = L.inner.querySelector<HTMLElement>(".neg-label");
+            if (label && label.textContent !== text) label.textContent = text;
+            // mirror the active-pill underline (.cat.on has a 1px currentColor border)
+            L.inner.style.borderBottom = t.el.classList.contains("cat")
+              ? `1px solid ${on ? "currentColor" : "transparent"}`
+              : "none";
+            if (L.ul) L.ul.style.transform = hover ? "scaleX(1)" : "scaleX(0)";
+          } else if (t.kind === "icon") {
+            L.inner.style.transform = hover ? "rotate(180deg)" : "none";
+          }
+        }
+      });
+    }
+
+    raf = requestAnimationFrame(frame);
+
+    w.__brNegCleanup = () => {
+      dead = true;
+      cancelAnimationFrame(raf);
+      stack.forEach(([a, b]) => {
+        a.outer.remove();
+        b.outer.remove();
+      });
+      stack.clear();
+    };
+  }
+
+  InitNegative();
+  document.addEventListener("astro:page-load", InitNegative);
+  // Layers live on <body>, which the router replaces: clean up before the swap.
+  document.addEventListener("astro:before-swap", () => {
+    const w = window as unknown as { __brNegCleanup?: () => void };
+    if (w.__brNegCleanup) w.__brNegCleanup();
+  });
 </script>
 
 <style>

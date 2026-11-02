@@ -6,6 +6,7 @@ interface Props {
   category: string;
   thumbnail?: string | null;
   priority?: boolean;
+  animate?: boolean;
 }
 
 const {
@@ -15,14 +16,15 @@ const {
   category,
   thumbnail = null,
   priority = false,
+  animate = true,
 } = Astro.props;
 
-// Clean media resolver avoiding double "/api/media/" or double "media/" prefixes
+// Normalizes media URLs ensuring exact /api/media/<key> without double prefixes
 function getMediaUrl(src: string | null | undefined): string {
   if (!src) return "";
-  const cleaned = src.trim();
+  let cleaned = src.trim();
 
-  // External or inline data
+  // Full remote URLs or inline data URIs
   if (
     cleaned.startsWith("http://") ||
     cleaned.startsWith("https://") ||
@@ -40,25 +42,32 @@ function getMediaUrl(src: string | null | undefined): string {
     return cleaned;
   }
 
-  // Already prefixed with /api/media/
+  // If already starts with /api/media/, ensure no duplicate media/ inside
   if (cleaned.startsWith("/api/media/")) {
-    return cleaned;
+    cleaned = cleaned.replace("/api/media/", "");
   }
 
-  // Stored key starting with "/"
-  const stripped = cleaned.startsWith("/") ? cleaned.slice(1) : cleaned;
+  // Strip leading slash
+  if (cleaned.startsWith("/")) {
+    cleaned = cleaned.slice(1);
+  }
 
-  return `/api/media/${stripped}`;
+  // Ensure only one "media/" prefix exists in the final query
+  if (cleaned.startsWith("media/media/")) {
+    cleaned = cleaned.replace("media/", "");
+  }
+
+  return `/api/media/${cleaned}`;
 }
 
 const resolvedThumbnail = getMediaUrl(thumbnail);
 ---
 
 <a
-  class="proj rise"
+  class={`proj ${animate ? "rise" : "rise in"}`}
   href={`/project/${id}`}
   data-id={id}
-  data-cat={category.toLowerCase()}
+  data-cat={category ? category.toLowerCase() : "film"}
 >
   <div class="thumb">
     <div class="in">
