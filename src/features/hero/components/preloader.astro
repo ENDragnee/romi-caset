@@ -481,6 +481,15 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
     const lay = $("#loader");
     lay.style.background = "#000";
 
+    // Arriving at home through the router (not first load): fade the loader in over the departing page
+    const replay = (window.__brIntroRuns = (window.__brIntroRuns || 0) + 1) > 1;
+    if (replay && !reduce) {
+      lay.animate([{ opacity: 0 }, { opacity: 1 }], {
+        duration: 380,
+        easing: "ease",
+      });
+    }
+
     const L = LOGOS.left;
     const ld = $("#ld");
     const blk = $("#ld-block");
@@ -552,8 +561,8 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
       '" width="' +
       (L.bw + 8) +
       '" height="' +
-      FLY_H +
-      '"/></clipPath>' +
+      (FLY_H + 80) +
+      '"/></clipPath>' + // +80: tag overruns the viewBox
       '<mask id="flMask" maskUnits="userSpaceOnUse" x="0" y="0" width="' +
       L.w +
       '" height="' +
@@ -806,8 +815,20 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
 
   let introRunning = false;
   async function bootIntro() {
-    // Only on the landing page (body.pre is set by the layout), never twice at once
-    if (introRunning || !document.body.classList.contains("pre")) return;
+    const B = document.body;
+    // Run ONLY on the landing page: body.pre + route "home" + this page actually contains the
+    // preloader markup. Anything else (about/contact with a missing route prop, a stale listener
+    // after a ClientRouter navigation...) must never build a loader, and must never leave one behind:
+    // without this page's CSS an orphaned #loader renders as a raw, playing <video> at the bottom.
+    const isLanding =
+      B.classList.contains("pre") &&
+      B.dataset.route === "home" &&
+      !!document.getElementById("fly");
+    if (!isLanding) {
+      document.getElementById("loader")?.remove();
+      return;
+    }
+    if (introRunning) return;
     introRunning = true;
     try {
       await playIntro();

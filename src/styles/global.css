@@ -1071,3 +1071,36 @@ body.pre-logo #hdr .logo {
     padding: calc(var(--top) - 1rem) var(--m) 2rem !important;
   }
 }
+
+/* ==========================================================================
+   Page transition (reference): fade to blank -> hold -> fade up
+   Driven by the ClientRouter lifecycle in base-layout.astro
+   ========================================================================== */
+body.fx-out #page,
+body.fx-out #hdr,
+body.fx-out #menu {
+  opacity: 0;
+  transition: opacity 0.45s cubic-bezier(0.55, 0.05, 0.9, 0.45);
+}
+
+body.fx-in #page,
+body.fx-in #hdr {
+  animation: fxIn 0.85s cubic-bezier(0.4, 0, 0.3, 1) both;
+}
+
+@keyframes fxIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* We run our own fade: switch off the browser's default cross-fade so the two don't stack */
+::view-transition-group(root),
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none !important;
+  mix-blend-mode: normal;
+}

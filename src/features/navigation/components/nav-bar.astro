@@ -71,7 +71,6 @@ const L_FULL = LOGOS.full;
   function InitNavbar() {
     const menuBtn = document.querySelector<HTMLButtonElement>("#menuBtn");
     const menu = document.querySelector<HTMLElement>("#menu");
-    const themeBtn = document.querySelector<HTMLButtonElement>("#theme");
     let menuOpen = false;
 
     function openMenu() {
@@ -100,17 +99,6 @@ const L_FULL = LOGOS.full;
     window.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && menuOpen) closeMenu();
     });
-
-    if (themeBtn) {
-      themeBtn.onclick = () => {
-        const isDark = document.documentElement.dataset.theme === "dark";
-        const next = isDark ? "light" : "dark";
-        document.documentElement.dataset.theme = next;
-        try {
-          sessionStorage.setItem("br-theme", next);
-        } catch (e) {}
-      };
-    }
 
     const catButtons = document.querySelectorAll<HTMLButtonElement>(".cat");
     catButtons.forEach((btn) => {
@@ -253,6 +241,7 @@ const L_FULL = LOGOS.full;
           height: "100%",
           transition: "none",
         });
+        svg.style.overflow = "visible";
         if (t.kind === "logo") svg.style.fill = "currentColor";
         inner = document.createElement("div");
         Object.assign(inner.style, {
@@ -464,6 +453,8 @@ const L_FULL = LOGOS.full;
     width: 100%;
     height: auto;
     fill: currentColor;
+    /* the tag line sits ~20 units below the viewBox; never clip artwork */
+    overflow: visible;
   }
 
   .logo .l-full {

@@ -13,7 +13,9 @@ interface Props {
 const {
   title = "Bini Romi Filmwork",
   description = "Independent production house creating bold, cinematic films, commercials, and music videos.",
-  route = "home",
+  // Safe default: only the real "/" is the landing page. A page that forgets to pass
+  // `route` must NOT be treated as home (that triggers the preloader + scroll lock).
+  route = Astro.url.pathname === "/" ? "home" : "project",
 } = Astro.props;
 
 const isHome = route === "home";
@@ -43,6 +45,76 @@ const isHome = route === "home";
     />
     <ClientRouter />
 
+    <!-- THEME: one source of truth. Runs before first paint, and only once per session
+         (Astro does not re-run identical head scripts on ClientRouter navigations). -->
+    <script is:inline>
+      (function () {
+        if (window.__brTheme) return;
+        var KEY = "br-theme";
+        function read() {
+          try {
+            var t = localStorage.getItem(KEY) || sessionStorage.getItem(KEY);
+            if (t === "dark" || t === "light") return t;
+          } catch (e) {}
+          return null;
+        }
+        function write(t) {
+          try {
+            localStorage.setItem(KEY, t);
+            sessionStorage.setItem(KEY, t);
+          } catch (e) {}
+        }
+        function apply(root, t) {
+          root.setAttribute("data-theme", t);
+          root.style.colorScheme = t;
+        }
+        var api = {
+          // the LIVE document is the truth during a session; storage seeds it on a fresh load
+          get: function () {
+            return document.documentElement.getAttribute("data-theme") ===
+              "dark"
+              ? "dark"
+              : "light";
+          },
+          set: function (t) {
+            t = t === "dark" ? "dark" : "light";
+            apply(document.documentElement, t);
+            write(t);
+          },
+          toggle: function () {
+            api.set(api.get() === "dark" ? "light" : "dark");
+          },
+        };
+        window.__brTheme = api;
+        apply(document.documentElement, read() || "light");
+
+        // ClientRouter overwrites <html> attributes with the NEW page's (hardcoded light).
+        // Hand the incoming document the current theme BEFORE the swap...
+        document.addEventListener("astro:before-swap", function (e) {
+          apply(e.newDocument.documentElement, api.get());
+        });
+        // ...and re-assert it right after, as a safety net.
+        document.addEventListener("astro:after-swap", function () {
+          apply(document.documentElement, api.get());
+        });
+        // One delegated handler for every #theme button (the navbar is re-created each page).
+        document.addEventListener("click", function (e) {
+          var b = e.target instanceof Element && e.target.closest("#theme");
+          if (!b) return;
+          e.preventDefault();
+          api.toggle();
+        });
+        // Keep other tabs in sync.
+        window.addEventListener("storage", function (e) {
+          if (
+            e.key === KEY &&
+            (e.newValue === "dark" || e.newValue === "light")
+          )
+            apply(document.documentElement, e.newValue);
+        });
+      })();
+    </script>
+
     <script is:inline define:vars={{ isHome }}>
       // Only lock if we are strictly on the landing page
       if (isHome) {
@@ -50,10 +122,6 @@ const isHome = route === "home";
       } else {
         document.documentElement.classList.remove("locked");
       }
-      try {
-        const t = sessionStorage.getItem("br-theme");
-        if (t) document.documentElement.dataset.theme = t;
-      } catch (e) {}
     </script>
   </head>
   <body class={isHome ? "pre" : ""} data-route={route}>
@@ -94,6 +162,46 @@ const isHome = route === "home";
         unlockForNavigation,
       );
       document.addEventListener("astro:page-load", unlockForNavigation);
+
+      // ==================================================================
+      // PAGE TRANSITION (matches the reference): the page fades to blank,
+      // holds a beat, the new page fades up, thumbnails follow one by one.
+      //   out  0.45s  (CSS: body.fx-out)
+      //   hold 0.30s  (blank)
+      //   in   0.85s  (CSS: body.fx-in on the NEW body)
+      // ==================================================================
+      const OUT_MS = 450;
+      const HOLD_MS = 300;
+      const reduceMotion = () =>
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      document.addEventListener("astro:before-preparation", (e: any) => {
+        if (reduceMotion() || e.from?.href === e.to?.href) return;
+        const original = e.loader;
+        e.loader = async () => {
+          document.body.classList.add("fx-out");
+          // fade+hold run IN PARALLEL with the fetch, so it never adds dead time on a slow link
+          const blank = new Promise<void>((r) =>
+            setTimeout(r, OUT_MS + HOLD_MS),
+          );
+          await Promise.all([original(), blank]);
+        };
+      });
+
+      document.addEventListener("astro:before-swap", (e: any) => {
+        const next: HTMLElement = e.newDocument.body;
+        // The landing page owns its own reveal (preloader). Everything else fades up.
+        if (!reduceMotion() && !next.classList.contains("pre")) {
+          next.classList.add("fx-in");
+        }
+      });
+
+      document.addEventListener("astro:page-load", () => {
+        const b = document.body;
+        if (b.classList.contains("fx-in")) {
+          setTimeout(() => b.classList.remove("fx-in"), 1000);
+        }
+      });
 
       function InitSiteExperience() {
         const ring = document.querySelector<HTMLElement>(".custom-cursor");
@@ -205,26 +313,6 @@ const isHome = route === "home";
           window.addEventListener("focus", () => {
             isOverIframe = false;
           });
-        }
-
-        const themeBtn = document.querySelector<HTMLButtonElement>("#theme");
-        if (themeBtn) {
-          themeBtn.onclick = (e) => {
-            e.preventDefault();
-            const root = document.documentElement;
-            const current = root.dataset.theme === "dark" ? "dark" : "light";
-            const next = current === "dark" ? "light" : "dark";
-
-            document.body.classList.add("theme-transitioning");
-            root.dataset.theme = next;
-            try {
-              sessionStorage.setItem("br-theme", next);
-            } catch (err) {}
-
-            setTimeout(() => {
-              document.body.classList.remove("theme-transitioning");
-            }, 600);
-          };
         }
       }
 
