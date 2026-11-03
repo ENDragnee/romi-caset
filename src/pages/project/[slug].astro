@@ -1,153 +1,356 @@
 ---
-import BaseLayout from "../../layouts/base-layout.astro";
-import VideoEmbed from "../../features/project-detail/components/video-embed.astro";
-import GalleryGrid from "../../features/project-detail/components/gallery-grid.astro";
+import BaseLayout from "@/layouts/base-layout.astro";
+import FeaturedCard from "@/features/portfolio/components/featured-card.astro";
 import { prisma } from "@/lib/prisma";
 
 const { slug } = Astro.params;
+
+// 1. Fetch current project from PostgreSQL
 const project = await prisma.project.findUnique({
   where: { slug: slug as string },
 });
+
 if (!project) return Astro.redirect("/portfolio");
+
+// 2. Fetch "Other Projects" (3 other projects excluding the current one)
+const otherProjects = await prisma.project.findMany({
+  where: { slug: { not: slug as string } },
+  take: 3,
+  orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+});
+
+// Clean media resolver avoiding double prefixing
+function resolveMedia(src: string | null | undefined): string {
+  if (!src) return "";
+  const cleaned = src.trim();
+  if (
+    cleaned.startsWith("http://") ||
+    cleaned.startsWith("https://") ||
+    cleaned.startsWith("data:") ||
+    cleaned.startsWith("/api/media/")
+  ) {
+    return cleaned;
+  }
+  if (
+    cleaned.startsWith("/images/") ||
+    cleaned.startsWith("/branding/") ||
+    cleaned.startsWith("/videos/")
+  ) {
+    return cleaned;
+  }
+  const stripped = cleaned.startsWith("/") ? cleaned.slice(1) : cleaned;
+  return `/api/media/${stripped}`;
+}
+
+const mainPoster = resolveMedia(project.thumbnail);
+const videoSrc = project.youtubeUrl ? resolveMedia(project.youtubeUrl) : null;
+const stills = (project.gallery || [])
+  .map((s) => resolveMedia(s))
+  .filter(Boolean);
 ---
 
-<BaseLayout title={`${project.title} — Kaset Production`}>
-  <main class="project-detail">
-    <div class="content-wrapper">
-      {/* Video with Title on the Player */}
-      <div class="project-content content-rise-up">
+<BaseLayout
+  title={`${project.client || "Bini Romi"} — '${project.title}'`}
+  route="project"
+>
+  <article class="pj">
+    <!-- Hero Video Stage with Play Overlay -->
+    <div class="pj-hero">
+      <div class="pj-video rise in" id="pjv" data-video={videoSrc}>
         {
-          project.youtubeUrl && (
-            <div class="video-container hero-title-drop">
-              <VideoEmbed
-                url={project.youtubeUrl}
-                title={project.title}
-                thumbnail={project.thumbnail}
-              />
-            </div>
+          mainPoster && (
+            <img
+              src={mainPoster}
+              alt={`${project.client} – ${project.title}`}
+              draggable="false"
+              onload="this.parentNode.style.setProperty('--ar', (this.naturalWidth / this.naturalHeight).toFixed(4))"
+            />
           )
         }
+        <i class="play" aria-label="Play Video">
+          <svg viewBox="0 0 20 26" aria-hidden="true">
+            <path d="M2.2 2.2L18.6 13L2.2 23.8Z"></path>
+          </svg>
+        </i>
+      </div>
 
-        {/* Client Name & Year directly below the video */}
-        {
-          (project.client || project.year) && (
-            <div class="project-client-meta">
-              <p class="client-text">
-                {project.client}
-                {project.client && project.year && (
-                  <span class="meta-sep">&mdash;</span>
-                )}
-                {project.year && <span class="year-num">{project.year}</span>}
-              </p>
-            </div>
-          )
-        }
-
-        {/* Behind The Scenes Stills */}
-        {
-          project.gallery && project.gallery.length > 0 && (
-            <div class="gallery-section">
-              <GalleryGrid images={project.gallery} alt={project.title} />
-            </div>
-          )
-        }
-
-        {/* Back to Portfolio Link */}
-        <div class="back-link-container">
-          <a href="/portfolio" class="back-link">← Back to Projects</a>
-        </div>
+      <!-- Caption directly below the video -->
+      <div class="cap pj-cap">
+        <span class="cl">{project.client}</span>
+        <span class="separator">|</span>
+        <span class="t">'{project.title.toUpperCase()}'</span>
       </div>
     </div>
-  </main>
+
+    <!-- Behind the Scenes Stills Grid -->
+    {
+      stills.length > 0 && (
+        <div class="stills">
+          {stills.map((still) => (
+            <div class="still rise in">
+              <div class="in">
+                <img
+                  src={still}
+                  alt="Production still"
+                  loading="lazy"
+                  draggable="false"
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      )
+    }
+
+    <!-- Other Projects Section -->
+    {
+      otherProjects.length > 0 && (
+        <section class="op-wrap">
+          <div class="op-in">
+            <h2>Other Projects</h2>
+            <div class="op3">
+              {otherProjects.map((o) => (
+                <FeaturedCard
+                  id={o.slug}
+                  client={o.client || "STUDIO"}
+                  title={o.title}
+                  category={o.category}
+                  thumbnail={o.thumbnail}
+                  animate={false}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+      )
+    }
+
+    <!-- Bottom Social Footer Strip -->
+    <div class="work-foot">
+      <div class="findus">
+        <span class="lab">Find us on</span>
+        <a href="https://vimeo.com" target="_blank" rel="noopener">vimeo</a><i
+          >/</i
+        >
+        <a href="https://instagram.com" target="_blank" rel="noopener"
+          >instagram</a
+        ><i>/</i>
+        <a href="https://youtube.com" target="_blank" rel="noopener">youtube</a>
+      </div>
+    </div>
+  </article>
+
+  <div id="toast"></div>
 </BaseLayout>
 
+<script>
+  function InitProjectPlayer() {
+    const pjv = document.querySelector<HTMLElement>("#pjv");
+    if (!pjv) return;
+
+    pjv.onclick = () => {
+      const videoUrl = pjv.dataset.video;
+      if (videoUrl) {
+        pjv.innerHTML = `<video src="${videoUrl}" controls autoplay playsinline style="width:100%;height:100%;object-fit:cover;"></video>`;
+      } else {
+        const toast = document.querySelector<HTMLElement>("#toast");
+        if (toast) {
+          toast.textContent = "Video file not added yet";
+          toast.classList.add("on");
+          setTimeout(() => toast.classList.remove("on"), 2200);
+        }
+      }
+    };
+  }
+
+  InitProjectPlayer();
+  document.addEventListener("astro:page-load", InitProjectPlayer);
+</script>
+
 <style>
-  .project-detail {
-    padding-top: calc(var(--nav-height) + var(--space-xl));
-    padding-bottom: var(--space-5xl);
-    width: 100%;
+  /* Base Project Variables */
+  .pj {
+    --sw: 21.1vw;
+    --sgap: 0.5vw;
+    min-height: 100vh;
+    background-color: var(--bg);
   }
 
-  /* Wide Canvas (1380px) matching Portfolio Index */
-  .content-wrapper {
-    width: 100%;
-    max-width: 1380px;
-    margin: 0 auto;
-    padding-inline: var(--space-xl);
-    box-sizing: border-box;
+  .pj-hero {
+    display: contents;
   }
 
-  .project-content {
+  .pj-video {
+    --ar: 1.6;
+    position: relative;
+    width: min(
+      70vw,
+      calc((100vh - var(--top) - 4.2rem - var(--sw) / 1.437 * 0.5) * var(--ar))
+    );
+    margin: var(--top) auto 0;
+    background: color-mix(in srgb, var(--ink) 9%, var(--bg));
+    overflow: hidden;
+    cursor: pointer;
+  }
+
+  .pj-video img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .play {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(15px, 1.97%);
+    transform: translate(-50%, -50%);
+    transition: transform 0.45s var(--out);
+  }
+
+  .play svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    fill: #ffffff;
+    stroke: #ffffff;
+    stroke-width: 1.4;
+    stroke-linejoin: round;
+  }
+
+  .pj-video:hover .play {
+    transform: translate(-50%, -50%) scale(1.12);
+  }
+
+  .pj-cap {
+    height: auto;
+    margin-top: 1.1rem;
+    font-size: 0.82rem;
     display: flex;
-    flex-direction: column;
-    width: 100%;
-  }
-
-  .video-container {
-    width: 100%;
-    margin: 0 auto var(--space-lg);
-  }
-
-  /* Client & Year Row below video */
-  .project-client-meta {
-    text-align: center;
-    margin-bottom: var(--space-3xl);
-  }
-
-  .client-text {
-    font-family: var(--font-heading);
-    font-size: 0.85rem;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--color-text-muted);
-    margin: 0;
-  }
-
-  .meta-sep {
-    margin-inline: 6px;
-    color: var(--color-border-strong);
-  }
-
-  .year-num {
-    color: var(--color-text);
-  }
-
-  .gallery-section {
-    width: 100%;
-    margin-bottom: var(--space-4xl);
-  }
-
-  .back-link-container {
-    display: flex;
+    align-items: center;
     justify-content: center;
-    margin-top: var(--space-3xl);
-  }
-
-  .back-link {
-    color: var(--color-text);
-    text-decoration: none;
-    font-family: var(--font-heading);
+    gap: 0.8rem;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-size: 0.85rem;
-    font-weight: 600;
-    transition: opacity var(--transition-fast);
+    font-family: var(--mf);
   }
 
-  .back-link:hover {
-    opacity: 0.6;
+  .pj-cap .cl {
+    font-weight: 700;
   }
 
-  @media (max-width: 768px) {
-    .content-wrapper {
-      padding-inline: var(--space-md);
+  .pj-cap .separator {
+    opacity: 0.35;
+  }
+
+  .pj-cap .t {
+    opacity: 0.55;
+  }
+
+  /* Stills Gallery (3 Columns Desktop) */
+  .stills {
+    display: grid;
+    grid-template-columns: repeat(3, var(--sw));
+    gap: var(--sgap);
+    justify-content: center;
+    margin-top: 1.8rem;
+  }
+
+  .still {
+    position: relative;
+    aspect-ratio: 1.437;
+    overflow: hidden;
+    background: color-mix(in srgb, var(--ink) 9%, var(--bg));
+  }
+
+  .still .in {
+    position: absolute;
+    inset: 0;
+    transition: transform 1.1s var(--out);
+  }
+
+  .still:hover .in {
+    transform: scale(1.035);
+  }
+
+  .still img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  /* Other Projects Grid */
+  .op-wrap {
+    margin-top: 8rem;
+  }
+
+  .op-in {
+    --c: 3.2rem;
+    --tw: 23.2vw;
+    --tg: 1.67vw;
+    width: calc(3 * var(--tw) + 2 * var(--tg));
+    margin: 0 auto;
+  }
+
+  .op-in h2 {
+    margin: 0 0 1.9rem;
+    font: 700 clamp(1.1rem, 1.6vw, 1.5rem) / 1 var(--sf);
+    letter-spacing: -0.03em;
+  }
+
+  .op3 {
+    display: grid;
+    grid-template-columns: repeat(3, var(--tw));
+    gap: var(--tg);
+  }
+
+  .work-foot {
+    padding-top: 6rem;
+  }
+
+  /* Mobile Layout Rules (< 900px) */
+  @media (max-width: 900px) {
+    .pj {
+      --sw: 45.3vw !important;
+      --sgap: 1.95vw !important;
     }
-    .video-container {
-      margin-bottom: var(--space-md);
+
+    .pj-hero {
+      display: block !important;
+      padding-top: calc(var(--top) + 1.2rem) !important;
     }
-    .project-client-meta {
-      margin-bottom: var(--space-2xl);
+
+    .pj-hero .pj-video {
+      width: 92.6vw !important;
+      margin: 0 auto !important;
+    }
+
+    .stills {
+      grid-template-columns: repeat(2, var(--sw)) !important;
+      gap: var(--sgap) !important;
+      margin-top: 1.8rem !important;
+    }
+
+    .still {
+      aspect-ratio: 1.6 !important;
+    }
+
+    .op-in {
+      --tw: 29.3vw !important;
+      --tg: 2vw !important;
+      width: 92.6vw !important;
+    }
+
+    .op3 :global(.cap) {
+      flex-direction: column !important;
+      gap: 0.1em !important;
+      height: auto !important;
+      padding: 0.6rem 0 0 !important;
+      line-height: 1.35 !important;
+    }
+
+    .work-foot {
+      padding-top: 3rem;
     }
   }
 </style>

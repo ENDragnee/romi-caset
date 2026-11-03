@@ -5,7 +5,10 @@ interface Props {
   title: string;
   category: string;
   thumbnail?: string | null;
+  trailer?: string | null;
+  enableTrailer?: boolean;
   priority?: boolean;
+  animate?: boolean;
 }
 
 const {
@@ -14,15 +17,18 @@ const {
   title,
   category,
   thumbnail = null,
+  trailer = null,
+  enableTrailer = false,
   priority = false,
+  animate = true,
 } = Astro.props;
 
-// Clean media resolver avoiding double "/api/media/" or double "media/" prefixes
+// Normalizes media URLs ensuring exact /api/media/<key> without double prefixes
 function getMediaUrl(src: string | null | undefined): string {
   if (!src) return "";
-  const cleaned = src.trim();
+  let cleaned = src.trim();
 
-  // External or inline data
+  // Full remote URLs or inline data URIs
   if (
     cleaned.startsWith("http://") ||
     cleaned.startsWith("https://") ||
@@ -40,25 +46,33 @@ function getMediaUrl(src: string | null | undefined): string {
     return cleaned;
   }
 
-  // Already prefixed with /api/media/
+  // If already starts with /api/media/, ensure no duplicate media/ inside
   if (cleaned.startsWith("/api/media/")) {
-    return cleaned;
+    cleaned = cleaned.replace("/api/media/", "");
   }
 
-  // Stored key starting with "/"
-  const stripped = cleaned.startsWith("/") ? cleaned.slice(1) : cleaned;
+  // Strip leading slash
+  if (cleaned.startsWith("/")) {
+    cleaned = cleaned.slice(1);
+  }
 
-  return `/api/media/${stripped}`;
+  // Ensure only one "media/" prefix exists in the final query
+  if (cleaned.startsWith("media/media/")) {
+    cleaned = cleaned.replace("media/", "");
+  }
+
+  return `/api/media/${cleaned}`;
 }
 
 const resolvedThumbnail = getMediaUrl(thumbnail);
+const resolvedTrailer = enableTrailer ? getMediaUrl(trailer) : "";
 ---
 
 <a
-  class="proj rise"
+  class={`proj ${animate ? "rise" : "rise in"}`}
   href={`/project/${id}`}
   data-id={id}
-  data-cat={category.toLowerCase()}
+  data-cat={category ? category.toLowerCase() : "film"}
 >
   <div class="thumb">
     <div class="in">
@@ -77,6 +91,18 @@ const resolvedThumbnail = getMediaUrl(thumbnail);
           </div>
         )
       }
+      {
+        resolvedTrailer && (
+          <video
+            class="trailer-vid"
+            muted
+            loop
+            playsinline
+            preload="none"
+            data-trailer-src={resolvedTrailer}
+          />
+        )
+      }
     </div>
   </div>
   <div class="cap">
@@ -85,6 +111,115 @@ const resolvedThumbnail = getMediaUrl(thumbnail);
     <span class="t">'{title.toUpperCase()}'</span>
   </div>
 </a>
+
+<script>
+  import { getTrailerSrc, prefetchTrailer } from "../../../lib/trailer-cache";
+
+  // Module-level so repeated InitTrailerPreviews() calls (astro:page-load
+  // fires on every view-transition navigation) never re-schedule the same
+  // clip's background prefetch twice.
+  const scheduledPrefetches = new Set<string>();
+
+  function schedulePrefetch(urls: string[]) {
+    const fresh = urls.filter((u) => !scheduledPrefetches.has(u));
+    if (!fresh.length) return;
+    fresh.forEach((u) => scheduledPrefetches.add(u));
+
+    const runSequentially = async () => {
+      for (const url of fresh) {
+        await prefetchTrailer(url);
+      }
+    };
+
+    if ("requestIdleCallback" in window) {
+      (window as any).requestIdleCallback(() => runSequentially());
+    } else {
+      setTimeout(runSequentially, 1000);
+    }
+  }
+
+  function InitTrailerPreviews() {
+    const cards = document.querySelectorAll<HTMLAnchorElement>(".proj");
+    const isDesktopHover = window.matchMedia(
+      "(hover: hover) and (pointer: fine)",
+    ).matches;
+
+    const triggerPlay = (video: HTMLVideoElement) => {
+      const reveal = () => video.classList.add("is-visible");
+
+      if (!video.src) {
+        const src = video.dataset.trailerSrc;
+        if (!src) return;
+        video.addEventListener("canplay", reveal, { once: true });
+        video.addEventListener("loadeddata", reveal, { once: true });
+        getTrailerSrc(src).then((resolved) => {
+          video.src = resolved;
+          video.play().catch(() => {});
+        });
+        return;
+      }
+
+      // src is already set from a previous hover/visibility trigger — the
+      // clip's data is already buffered, so show it immediately rather
+      // than waiting on a canplay/loadeddata event that already fired
+      // once and won't fire again for this element.
+      if (video.readyState >= video.HAVE_CURRENT_DATA) {
+        reveal();
+      } else {
+        video.addEventListener("canplay", reveal, { once: true });
+      }
+      video.play().catch(() => {});
+    };
+
+    const triggerStop = (video: HTMLVideoElement) => {
+      video.pause();
+      video.currentTime = 0;
+      video.classList.remove("is-visible");
+    };
+
+    let observer: IntersectionObserver | null = null;
+    if (!isDesktopHover) {
+      observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            const video = entry.target.querySelector<HTMLVideoElement>(
+              ".trailer-vid",
+            );
+            if (!video) return;
+            if (entry.isIntersecting) triggerPlay(video);
+            else triggerStop(video);
+          });
+        },
+        { rootMargin: "-20% 0px -20% 0px", threshold: 0.6 },
+      );
+    }
+
+    cards.forEach((card) => {
+      const video = card.querySelector<HTMLVideoElement>(".trailer-vid");
+      if (!video) return;
+
+      if (isDesktopHover) {
+        card.addEventListener("mouseenter", () => triggerPlay(video));
+        card.addEventListener("mouseleave", () => triggerStop(video));
+      } else {
+        observer?.observe(card);
+      }
+    });
+
+    // Warm the cache for every trailer on the page one at a time, in the
+    // background, so by the time a visitor actually hovers/scrolls to a
+    // card its clip is already cached instead of streaming cold.
+    const allTrailerSrcs = Array.from(
+      document.querySelectorAll<HTMLVideoElement>(".trailer-vid"),
+    )
+      .map((v) => v.dataset.trailerSrc)
+      .filter((src): src is string => !!src);
+    schedulePrefetch(allTrailerSrcs);
+  }
+
+  InitTrailerPreviews();
+  document.addEventListener("astro:page-load", InitTrailerPreviews);
+</script>
 
 <style>
   .proj {
@@ -120,6 +255,21 @@ const resolvedThumbnail = getMediaUrl(thumbnail);
     object-fit: cover;
     display: block;
     filter: blur(var(--sb, 0px));
+  }
+
+  .thumb .trailer-vid {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 0.45s cubic-bezier(0.2, 0.7, 0.2, 1);
+    pointer-events: none;
+  }
+
+  .thumb .trailer-vid.is-visible {
+    opacity: 1;
   }
 
   .placeholder-box {

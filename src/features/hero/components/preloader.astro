@@ -9,9 +9,6 @@ interface Props {
 const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
 ---
 
-<div class="neg" id="negA" aria-hidden="true"></div>
-<div class="neg" id="negB" aria-hidden="true"></div>
-
 <div id="fly" style="display: none;"></div>
 <div class="flyN" id="flyA" style="display: none;"></div>
 <div class="flyN" id="flyB" style="display: none;"></div>
@@ -37,7 +34,7 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
   // ivory-on-ivory and is invisible. Hoisting these layers to <body> (like #hdr, which
   // blends correctly) fixes the "logo vanishes before it lands" bug.
   const hoist = () =>
-    ["negA", "negB", "fly", "flyA", "flyB"].forEach((id) => {
+    ["fly", "flyA", "flyB"].forEach((id) => {
       const el = document.getElementById(id);
       if (el && el.parentElement !== document.body)
         document.body.appendChild(el);
@@ -484,6 +481,15 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
     const lay = $("#loader");
     lay.style.background = "#000";
 
+    // Arriving at home through the router (not first load): fade the loader in over the departing page
+    const replay = (window.__brIntroRuns = (window.__brIntroRuns || 0) + 1) > 1;
+    if (replay && !reduce) {
+      lay.animate([{ opacity: 0 }, { opacity: 1 }], {
+        duration: 380,
+        easing: "ease",
+      });
+    }
+
     const L = LOGOS.left;
     const ld = $("#ld");
     const blk = $("#ld-block");
@@ -555,8 +561,8 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
       '" width="' +
       (L.bw + 8) +
       '" height="' +
-      FLY_H +
-      '"/></clipPath>' +
+      (FLY_H + 80) +
+      '"/></clipPath>' + // +80: tag overruns the viewBox
       '<mask id="flMask" maskUnits="userSpaceOnUse" x="0" y="0" width="' +
       L.w +
       '" height="' +
@@ -807,102 +813,22 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
     root.classList.remove("locked");
   }
 
-  // Live Negative Filter Loop
-  (function runNegative() {
-    if (window.__brNegLoop) return;
-    window.__brNegLoop = true;
-    const mk = (k) => {
-      const L = LOGOS[k];
-      const svgStr =
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' +
-        L.w +
-        " " +
-        L.h +
-        '"><path fill-rule="evenodd" d="' +
-        L.shell +
-        " " +
-        L.inner +
-        " " +
-        L.tag +
-        '"/></svg>';
-      return 'url("data:image/svg+xml,' + encodeURIComponent(svgStr) + '")';
-    };
-    const masks = { left: mk("left"), full: mk("full") };
-    const layers = [$("#negA"), $("#negB")];
-    const hdr = $("#hdr");
-    let lastMask = "",
-      lastKey = "";
-
-    layers.forEach((l) => {
-      if (l) {
-        l.style.webkitMaskImage = masks.left;
-        l.style.maskImage = masks.left;
-      }
-    });
-
-    (function frame() {
-      const B = document.body;
-      const off =
-        B.classList.contains("pre") || B.classList.contains("pre-logo");
-      const full = B.dataset.route === "contact" || B.dataset.route === "about";
-      const svg = $(full ? "#logoF svg" : "#logoL svg");
-      let d = "",
-        key = "off";
-
-      if (!off && svg && hdr) {
-        const r = svg.getBoundingClientRect();
-        for (const el of document.querySelectorAll(
-          ".thumb, .still, .pj-video",
-        )) {
-          const q = el.getBoundingClientRect();
-          if (
-            q.bottom <= r.top ||
-            q.top >= r.bottom ||
-            q.right <= r.left ||
-            q.left >= r.right
-          )
-            continue;
-          const img = el.querySelector("img");
-          if (img && +getComputedStyle(img).opacity < 0.5) continue;
-          const x0 = Math.max(q.left, r.left) - r.left;
-          const y0 = Math.max(q.top, r.top) - r.top;
-          const x1 = Math.min(q.right, r.right) - r.left;
-          const y1 = Math.min(q.bottom, r.bottom) - r.top;
-          d += `M${x0.toFixed(1)} ${y0.toFixed(1)}H${x1.toFixed(1)}V${y1.toFixed(1)}H${x0.toFixed(1)}Z`;
-        }
-        const op = getComputedStyle(hdr).opacity;
-        key = `${r.left.toFixed(1)},${r.top.toFixed(1)},${r.width.toFixed(1)},${r.height.toFixed(1)}|${d}|${op}`;
-        if (key !== lastKey) {
-          const m = full ? masks.full : masks.left;
-          layers.forEach((l) => {
-            if (!l) return;
-            l.style.left = r.left + "px";
-            l.style.top = r.top + "px";
-            l.style.width = r.width + "px";
-            l.style.height = r.height + "px";
-            if (m !== lastMask) {
-              l.style.webkitMaskImage = m;
-              l.style.maskImage = m;
-            }
-            l.style.clipPath = d ? `path('${d}')` : "inset(50%)";
-            l.style.opacity = d ? op : "0";
-          });
-          lastMask = m;
-        }
-      } else if (lastKey !== "off") {
-        layers.forEach((l) => {
-          if (l) l.style.opacity = "0";
-        });
-      }
-      lastKey = key;
-      requestAnimationFrame(frame);
-    })();
-  })();
-
   let introRunning = false;
   async function bootIntro() {
-    // Only on the landing page (body.pre is set by the layout), never twice at once
-    if (introRunning || !document.body.classList.contains("pre")) return;
+    const B = document.body;
+    // Run ONLY on the landing page: body.pre + route "home" + this page actually contains the
+    // preloader markup. Anything else (about/contact with a missing route prop, a stale listener
+    // after a ClientRouter navigation...) must never build a loader, and must never leave one behind:
+    // without this page's CSS an orphaned #loader renders as a raw, playing <video> at the bottom.
+    const isLanding =
+      B.classList.contains("pre") &&
+      B.dataset.route === "home" &&
+      !!document.getElementById("fly");
+    if (!isLanding) {
+      document.getElementById("loader")?.remove();
+      return;
+    }
+    if (introRunning) return;
     introRunning = true;
     try {
       await playIntro();
@@ -915,29 +841,6 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
 </script>
 
 <style>
-  .neg {
-    position: fixed;
-    left: 0;
-    top: 0;
-    width: 0;
-    height: 0;
-    z-index: 51;
-    pointer-events: none;
-    opacity: 0;
-    mask-size: 100% 100%;
-    -webkit-mask-size: 100% 100%;
-    mask-repeat: no-repeat;
-    -webkit-mask-repeat: no-repeat;
-  }
-  #negA {
-    background: #ffb474;
-    mix-blend-mode: multiply;
-  }
-  #negB {
-    background: #5a2408;
-    mix-blend-mode: screen;
-  }
-
   :global(#loader) {
     position: fixed;
     inset: 0;

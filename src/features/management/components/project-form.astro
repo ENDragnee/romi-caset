@@ -14,6 +14,7 @@ interface Props {
     description: string | null;
     featured: boolean;
     thumbnail: string | null;
+    trailer: string | null;
     gallery: string[];
     order?: number;
   };
@@ -303,6 +304,127 @@ const isEdit = mode === "edit";
           </div>
         </div>
 
+        {/* Trailer Video Slot */}
+        <div class="media-field-block">
+          <div class="field-title-group">
+            <label class="field-label">Trailer Video</label>
+            <span class="field-subtext"
+              >Short MP4/MOV hover-preview clip (a few seconds, muted) shown
+              when visitors hover this project on the home page.</span
+            >
+          </div>
+
+          <input
+            type="hidden"
+            id="trailer-key"
+            name="trailerKey"
+            value={project?.trailer || ""}
+          />
+          <div id="trailer-container" class="thumbnail-slot-wrapper">
+            <div
+              id="trailer-filled"
+              class={`thumbnail-chosen-container ${project?.trailer ? "" : "hidden"}`}
+            >
+              <video
+                id="trailer-video-preview"
+                src={project?.trailer ? `/api/media/${project.trailer}` : ""}
+                muted
+                loop
+                playsinline
+                preload="metadata"
+                onmouseenter="this.play()"
+                onmouseleave="this.pause()"
+              />
+              <div class="thumbnail-hover-actions">
+                <button
+                  type="button"
+                  id="change-trailer-btn"
+                  class="btn-action-pill"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    ><path
+                      d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
+                    ></path><path
+                      d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
+                    ></path></svg
+                  >
+                  <span>Change</span>
+                </button>
+                <button
+                  type="button"
+                  id="remove-trailer-btn"
+                  class="btn-action-pill btn-action-danger"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    ><polyline points="3 6 5 6 21 6"></polyline><path
+                      d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                    ></path></svg
+                  >
+                  <span>Remove</span>
+                </button>
+              </div>
+            </div>
+
+            <div
+              id="trailer-empty"
+              class={`media-drop-preview ${project?.trailer ? "hidden" : ""}`}
+            >
+              <div class="empty-upload-prompt">
+                <div class="prompt-icon-circle">
+                  <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                  >
+                    <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                    <rect x="1" y="5" width="15" height="14" rx="2"></rect>
+                  </svg>
+                </div>
+                <div class="prompt-text-group">
+                  <span class="prompt-primary">No trailer video selected</span
+                  >
+                  <span class="prompt-secondary"
+                    >Recommended: a few seconds, muted, loopable</span
+                  >
+                </div>
+                <button
+                  type="button"
+                  id="choose-trailer-btn"
+                  class="btn-secondary btn-sm"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    ><polygon points="23 7 16 12 23 17 23 7"
+                    ></polygon><rect x="1" y="5" width="15" height="14" rx="2"
+                    ></rect></svg
+                  >
+                  <span>Choose from Library</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Gallery Multi-Asset Picker */}
         <div class="media-field-block">
           <div class="gallery-header-row">
@@ -414,6 +536,7 @@ const isEdit = mode === "edit";
         description: formData.get("description") || null,
         featured: formData.get("featured") === "on",
         thumbnailKey: formData.get("thumbnailKey") || null,
+        trailerKey: formData.get("trailerKey") || null,
         galleryKeys: JSON.parse(
           (formData.get("galleryKeys") as string) || "[]",
         ),
@@ -474,6 +597,24 @@ const isEdit = mode === "edit";
     "#remove-thumbnail-btn",
   );
 
+  const trailerKeyInput =
+    document.querySelector<HTMLInputElement>("#trailer-key");
+  const trailerFilled =
+    document.querySelector<HTMLElement>("#trailer-filled");
+  const trailerEmpty = document.querySelector<HTMLElement>("#trailer-empty");
+  const trailerVideo = document.querySelector<HTMLVideoElement>(
+    "#trailer-video-preview",
+  );
+  const chooseTrailerBtn = document.querySelector<HTMLButtonElement>(
+    "#choose-trailer-btn",
+  );
+  const changeTrailerBtn = document.querySelector<HTMLButtonElement>(
+    "#change-trailer-btn",
+  );
+  const removeTrailerBtn = document.querySelector<HTMLButtonElement>(
+    "#remove-trailer-btn",
+  );
+
   const galleryKeysInput =
     document.querySelector<HTMLInputElement>("#gallery-keys");
   const manageGalleryBtn = document.querySelector<HTMLButtonElement>(
@@ -505,6 +646,28 @@ const isEdit = mode === "edit";
     thumbnailEmpty?.classList.remove("hidden");
   });
 
+  const openTrailerPicker = () => {
+    window.dispatchEvent(
+      new CustomEvent("open-media-picker", {
+        detail: {
+          target: "trailer",
+          multiple: false,
+          preselectedKeys: trailerKeyInput?.value || null,
+        },
+      }),
+    );
+  };
+
+  chooseTrailerBtn?.addEventListener("click", openTrailerPicker);
+  changeTrailerBtn?.addEventListener("click", openTrailerPicker);
+
+  removeTrailerBtn?.addEventListener("click", () => {
+    if (trailerKeyInput) trailerKeyInput.value = "";
+    if (trailerVideo) trailerVideo.removeAttribute("src");
+    trailerFilled?.classList.add("hidden");
+    trailerEmpty?.classList.remove("hidden");
+  });
+
   manageGalleryBtn?.addEventListener("click", () => {
     const keys: string[] = JSON.parse(galleryKeysInput?.value || "[]");
     window.dispatchEvent(
@@ -527,6 +690,19 @@ const isEdit = mode === "edit";
       if (thumbnailImg) thumbnailImg.src = `/api/media/${selectedItem.key}`;
       thumbnailEmpty?.classList.add("hidden");
       thumbnailFilled?.classList.remove("hidden");
+    } else if (target === "trailer" && items && items.length > 0) {
+      const selectedItem = items[0];
+      const isVideo =
+        selectedItem.mimeType?.startsWith("video/") ||
+        /\.(mp4|mov|webm)$/i.test(selectedItem.key);
+      if (!isVideo) {
+        alert("Please choose a video file for the trailer slot.");
+      } else {
+        if (trailerKeyInput) trailerKeyInput.value = selectedItem.key;
+        if (trailerVideo) trailerVideo.src = `/api/media/${selectedItem.key}`;
+        trailerEmpty?.classList.add("hidden");
+        trailerFilled?.classList.remove("hidden");
+      }
     } else if (target === "gallery" && keys) {
       if (galleryKeysInput) galleryKeysInput.value = JSON.stringify(keys);
       renderGalleryPreview();
@@ -809,7 +985,8 @@ const isEdit = mode === "edit";
     border: 1px solid var(--color-border);
   }
 
-  .thumbnail-chosen-container img {
+  .thumbnail-chosen-container img,
+  .thumbnail-chosen-container video {
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -839,7 +1016,8 @@ const isEdit = mode === "edit";
     opacity: 1;
   }
 
-  .thumbnail-chosen-container:hover img {
+  .thumbnail-chosen-container:hover img,
+  .thumbnail-chosen-container:hover video {
     transform: scale(1.02);
   }
 
