@@ -82,6 +82,7 @@ model Project {
   client      String
   category    ProjectCategory
   thumbnail   String?
+  trailer     String?         // S3 key for the hover/scroll trailer preview clip
   youtubeUrl  String?
   gallery     String[]
   cardType    CardType        @default(WIDE)

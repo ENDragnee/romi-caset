@@ -8,6 +8,7 @@ export interface Project {
   client: string;
   category: ProjectCategory;
   thumbnail?: string | null;
+  trailer?: string | null;
   youtubeUrl?: string | null;
   gallery: string[];
   cardType: CardType;

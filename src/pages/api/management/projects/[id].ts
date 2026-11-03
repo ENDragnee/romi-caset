@@ -27,6 +27,13 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
           ? body.thumbnail
           : undefined;
 
+    const trailer =
+      body.trailerKey !== undefined
+        ? body.trailerKey
+        : body.trailer !== undefined
+          ? body.trailer
+          : undefined;
+
     const gallery = Array.isArray(body.galleryKeys)
       ? body.galleryKeys
       : Array.isArray(body.gallery)
@@ -54,6 +61,7 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
         description: body.description || null,
         featured: Boolean(body.featured),
         ...(thumbnail !== undefined ? { thumbnail } : {}),
+        ...(trailer !== undefined ? { trailer } : {}),
         ...(gallery !== undefined ? { gallery } : {}),
         ...orderUpdate, // Preserves original order if not changed
       },

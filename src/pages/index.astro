@@ -33,6 +33,8 @@ const featuredProjects = await prisma.project.findMany({
           title={p.title}
           category={p.category}
           thumbnail={p.thumbnail}
+          trailer={p.trailer}
+          enableTrailer
           priority={index < 2}
         />
       ))

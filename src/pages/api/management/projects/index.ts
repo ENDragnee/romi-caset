@@ -14,6 +14,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     // Map thumbnailKey or thumbnail
     const thumbnail = body.thumbnailKey || body.thumbnail || null;
+    const trailer = body.trailerKey || body.trailer || null;
     const gallery = Array.isArray(body.galleryKeys)
       ? body.galleryKeys
       : Array.isArray(body.gallery)
@@ -33,6 +34,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         featured: Boolean(body.featured),
         order: body.order !== undefined ? parseInt(body.order) : 0,
         thumbnail,
+        trailer,
         gallery,
       },
     });
