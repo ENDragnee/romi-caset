@@ -37,6 +37,10 @@ const L_FULL = LOGOS.full;
         <path
           fill-rule="evenodd"
           d={`${L_FULL.shell} ${L_FULL.inner} ${L_FULL.tag}`}></path>
+        <text class="tag-extra" x="460" y="1700">IS AN</text>
+        <text class="tag-extra" x="1850" y="1524">INDEPENDENT</text>
+        <text class="tag-extra" x="1850" y="1716">FILMMAKING</text>
+        <text class="tag-extra" x="1850" y="1908">STUDIO</text>
       </svg>
     </span>
   </a>
@@ -462,6 +466,13 @@ const L_FULL = LOGOS.full;
     left: 0;
     top: 0;
     opacity: 0;
+  }
+
+  .logo .tag-extra {
+    font-family: var(--mf);
+    font-weight: 700;
+    font-size: 200px;
+    letter-spacing: 6px;
   }
 
   :global(body[data-route="contact"]) .logo .l-full,
