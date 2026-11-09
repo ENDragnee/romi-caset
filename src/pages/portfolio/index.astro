@@ -155,7 +155,13 @@ const projects = dbProjects.map((p) => {
   /* Phone Version (2 Columns, Thin Gutters) */
   @media (max-width: 900px) {
     .work-grid {
-      grid-template-columns: repeat(2, 1fr) !important;
+      /* minmax(0, 1fr), not bare 1fr: a bare 1fr track's automatic minimum
+         is its content's min-content width, so one column with a longer
+         unbroken caption (white-space:nowrap below) grows wider than the
+         other, misaligning every row since .thumb's aspect-ratio makes
+         image height follow column width. minmax(0, ...) caps that
+         minimum at 0 so both columns stay equal and ellipsis can truncate. */
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
       column-gap: 1.55vw !important;
       row-gap: 1.45vw !important;
       padding: var(--top) 3.7vw 0 !important;
