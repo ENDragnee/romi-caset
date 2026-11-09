@@ -516,14 +516,6 @@ video {
   opacity: 0.6;
 }
 
-.about .findus {
-  position: fixed;
-  left: 0;
-  bottom: 0;
-  padding: 0 var(--m) 1.7rem;
-  z-index: 5;
-}
-
 body[data-route="about"] #page {
   min-height: 0;
 }
@@ -778,43 +770,6 @@ body[data-route="about"] #page {
 /* ==========================================================================
    Footer & Toast Notification
    ========================================================================== */
-.findus {
-  padding: 3.2rem var(--m) 2.4rem;
-  display: flex;
-  flex-direction: row;
-  align-items: baseline;
-  gap: 0.95rem;
-  flex-wrap: nowrap;
-  white-space: nowrap;
-}
-
-.findus .lab {
-  font: 400 0.68rem var(--mf);
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  opacity: 0.55;
-}
-
-.findus a {
-  font: 700 0.78rem var(--mf);
-  letter-spacing: 0.04em;
-  background: linear-gradient(currentColor, currentColor) 0 100% / 0 1px
-    no-repeat;
-  transition:
-    background-size 0.45s var(--out),
-    opacity 0.3s;
-}
-
-.findus a:hover {
-  background-size: 100% 1px;
-}
-
-.findus i {
-  font-style: normal;
-  opacity: 0.35;
-  font-size: 0.78rem;
-}
-
 #toast {
   position: fixed;
   left: 50%;
@@ -855,14 +810,18 @@ body.scrolling #grain {
 }
 
 /* ---------- Custom Pointer Cursor ---------- */
+/* Same auto-contrast trick as #hdr (nav-bar.astro): a fixed ivory color
+   composited with mix-blend-mode: difference inverts against whatever is
+   beneath it (light bg, dark bg, video, photos) with no per-theme tracking. */
 .custom-cursor {
   position: fixed;
   width: 22px;
   height: 22px;
-  border: 1px solid var(--ink);
-  background-color: color-mix(in srgb, var(--ink) 5%, transparent);
+  border: 1px solid var(--ivory);
+  background-color: color-mix(in srgb, var(--ivory) 5%, transparent);
   border-radius: 50%;
   pointer-events: none;
+  mix-blend-mode: difference;
   transform: translate(-50%, -50%);
   transition:
     width var(--transition-fast),
@@ -878,8 +837,9 @@ body.scrolling #grain {
   position: fixed;
   width: 14px;
   height: 14px;
-  color: var(--ink);
+  color: var(--ivory);
   pointer-events: none;
+  mix-blend-mode: difference;
   transform: translate(-2px, -2px);
   z-index: 2147483647 !important;
   opacity: 0;
