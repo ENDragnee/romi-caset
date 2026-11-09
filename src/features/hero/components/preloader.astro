@@ -541,7 +541,10 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
     // ---- first raster happen while the counter runs, not on the first flight frame.
     const NEG_FILLS = ["#E1E1D7", NEG_A, NEG_B];
     const flyEls = [$("#fly"), $("#flyA"), $("#flyB")];
-    const logoSvg = $("#logoL svg");
+    // #logoL is now the masked <span> itself (no nested <svg>) — its own
+    // box is exactly the rendered logo, which is all getBoundingClientRect()
+    // below needs as the fly-to target.
+    const logoSvg = $("#logoL");
     const FLY_H = L.h - L.by - L.bh; // height of the FILMWORK strip
 
     // Shared defs: ONE clip rect + ONE mask drive all three layers (1 attribute write / frame, not 3).

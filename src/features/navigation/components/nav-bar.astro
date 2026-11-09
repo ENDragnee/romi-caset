@@ -1,8 +1,9 @@
 ---
-import { LOGOS } from "@/lib/logos";
-
-const L_LEFT = LOGOS.left;
-const L_FULL = LOGOS.full;
+// Logo mark rendered as a CSS mask from the real brand artwork
+// (public/branding/logo-mark-*.png) so it's pixel-accurate to the source
+// files, not hand-traced path data. mask-image + background-color:
+// currentColor preserves the mix-blend-mode: difference auto-contrast
+// trick on #hdr below, same as plain SVG fill did before.
 ---
 
 <!-- Push Menu (Slides down from top) -->
@@ -17,32 +18,13 @@ const L_FULL = LOGOS.full;
 <!-- Header -->
 <header id="hdr">
   <a class="logo" href="/" id="logoLink" aria-label="Bini Romi Filmwork, home">
-    <span class="l-left" id="logoL">
-      <svg
-        viewBox={`0 0 ${L_LEFT.w} ${L_LEFT.h}`}
-        role="img"
-        aria-label="Bini Romi"
-      >
-        <path
-          fill-rule="evenodd"
-          d={`${L_LEFT.shell} ${L_LEFT.inner} ${L_LEFT.tag}`}></path>
-      </svg>
-    </span>
-    <span class="l-full" id="logoF">
-      <svg
-        viewBox={`0 0 ${L_FULL.w} ${L_FULL.h}`}
-        role="img"
-        aria-label="Bini Romi Full"
-      >
-        <path
-          fill-rule="evenodd"
-          d={`${L_FULL.shell} ${L_FULL.inner} ${L_FULL.tag}`}></path>
-        <text class="tag-extra" x="460" y="1700">IS AN</text>
-        <text class="tag-extra" x="1850" y="1524">INDEPENDENT</text>
-        <text class="tag-extra" x="1850" y="1716">FILMMAKING</text>
-        <text class="tag-extra" x="1850" y="1908">STUDIO</text>
-      </svg>
-    </span>
+    <span class="l-left" id="logoL" role="img" aria-label="Bini Romi"></span>
+    <span
+      class="l-full"
+      id="logoF"
+      role="img"
+      aria-label="Bini Romi — Filmwork is an independent filmmaking studio"
+    ></span>
   </a>
 
   <!-- Category Filter (Visible on /portfolio) -->
@@ -236,8 +218,8 @@ const L_FULL = LOGOS.full;
           inner.appendChild(ul);
         }
       } else {
-        // SVG items: mirror the real node so any artwork change is picked up automatically
-        const svg = t.el.cloneNode(true) as SVGElement;
+        // SVG/mask items: mirror the real node so any artwork change is picked up automatically
+        const svg = t.el.cloneNode(true) as HTMLElement | SVGElement;
         svg.removeAttribute("id");
         Object.assign(svg.style, {
           display: "block",
@@ -246,7 +228,13 @@ const L_FULL = LOGOS.full;
           transition: "none",
         });
         svg.style.overflow = "visible";
-        if (t.kind === "logo") svg.style.fill = "currentColor";
+        if (t.kind === "logo") {
+          // "logo" is a masked <span> (background-color + mask-image), not
+          // an <svg>; fill is a no-op there but harmless, backgroundColor
+          // is what actually recolors it.
+          svg.style.fill = "currentColor";
+          svg.style.backgroundColor = "currentColor";
+        }
         inner = document.createElement("div");
         Object.assign(inner.style, {
           width: "100%",
@@ -265,9 +253,7 @@ const L_FULL = LOGOS.full;
       const out: NegTarget[] = [];
       const route = document.body.dataset.route;
       const full = route === "contact" || route === "about";
-      const logo = hdr!.querySelector<SVGElement>(
-        full ? "#logoF svg" : "#logoL svg",
-      );
+      const logo = hdr!.querySelector<HTMLElement>(full ? "#logoF" : "#logoL");
       if (logo) out.push({ el: logo, kind: "logo", underline: false });
       const menu = hdr!.querySelector<HTMLElement>("#menuBtn");
       if (menu) out.push({ el: menu, kind: "text", underline: true });
@@ -446,19 +432,36 @@ const L_FULL = LOGOS.full;
     display: block;
     position: relative;
     width: var(--logoW);
-    margin-top: calc(1.11rem - var(--logoW) * 0.1913);
     transition:
       width 0.5s var(--ease),
       opacity 0.7s;
   }
 
-  .logo svg {
+  /* Unscoped (not ".logo .l-left") so these base styles still apply when
+     the navbar's negative-mirror effect (script below) clones this node
+     to document.body for the film-negative hover effect. */
+  .l-left,
+  .l-full {
     display: block;
     width: 100%;
-    height: auto;
-    fill: currentColor;
-    /* the tag line sits ~20 units below the viewBox; never clip artwork */
-    overflow: visible;
+    background-color: currentColor;
+    mask-repeat: no-repeat;
+    mask-size: 100% 100%;
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: 100% 100%;
+    transition: width 0.5s var(--ease);
+  }
+
+  .l-left {
+    aspect-ratio: 1400 / 632;
+    mask-image: url("/branding/logo-mark-left.png");
+    -webkit-mask-image: url("/branding/logo-mark-left.png");
+  }
+
+  .l-full {
+    aspect-ratio: 1400 / 764;
+    mask-image: url("/branding/logo-mark-full.png");
+    -webkit-mask-image: url("/branding/logo-mark-full.png");
   }
 
   .logo .l-full {
@@ -466,13 +469,6 @@ const L_FULL = LOGOS.full;
     left: 0;
     top: 0;
     opacity: 0;
-  }
-
-  .logo .tag-extra {
-    font-family: var(--mf);
-    font-weight: 700;
-    font-size: 200px;
-    letter-spacing: 6px;
   }
 
   :global(body[data-route="contact"]) .logo .l-full,
