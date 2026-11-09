@@ -64,7 +64,7 @@ const navItems = [
             class="brand-link"
             title="Visit live site"
           >
-            <img src="/images/logo.png" alt="Kaset" class="brand-logo" />
+            <span class="brand-logo" role="img" aria-label="Bini Romi"></span>
             <span class="badge-studio">STUDIO</span>
           </a>
         </div>
@@ -208,8 +208,17 @@ const navItems = [
       }
 
       .brand-logo {
+        display: block;
         height: 28px;
         width: auto;
+        aspect-ratio: 1400 / 632;
+        background-color: var(--color-text);
+        mask-image: url("/branding/logo-mark-left.png");
+        -webkit-mask-image: url("/branding/logo-mark-left.png");
+        mask-size: 100% 100%;
+        -webkit-mask-size: 100% 100%;
+        mask-repeat: no-repeat;
+        -webkit-mask-repeat: no-repeat;
       }
 
       .badge-studio {

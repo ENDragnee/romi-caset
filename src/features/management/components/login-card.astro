@@ -4,8 +4,8 @@
 
 <div class="login-glass-card animate-in">
   <div class="login-header">
-    <a href="/" class="login-logo-link" title="Kaset Production">
-      <img src="/images/logo.png" alt="Kaset Production" class="login-logo" />
+    <a href="/" class="login-logo-link" title="Bini Romi">
+      <span class="login-logo" role="img" aria-label="Bini Romi"></span>
     </a>
     <div class="badge-tag">STUDIO MANAGEMENT</div>
   </div>
@@ -36,7 +36,7 @@
           name="email"
           required
           autocomplete="email"
-          placeholder="admin@kasetproduction.com"
+          placeholder="admin@biniromi.com"
         />
       </div>
     </div>
@@ -166,8 +166,17 @@
   }
 
   .login-logo {
+    display: block;
     height: 42px;
     width: auto;
+    aspect-ratio: 1400 / 632;
+    background-color: var(--color-text);
+    mask-image: url("/branding/logo-mark-left.png");
+    -webkit-mask-image: url("/branding/logo-mark-left.png");
+    mask-size: 100% 100%;
+    -webkit-mask-size: 100% 100%;
+    mask-repeat: no-repeat;
+    -webkit-mask-repeat: no-repeat;
   }
 
   .badge-tag {

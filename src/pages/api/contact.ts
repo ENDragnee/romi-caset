@@ -34,7 +34,7 @@ export const POST: APIRoute = async ({ request }) => {
     const resend = new Resend(resendApiKey);
 
     const emailResponse = await resend.emails.send({
-      from: "Kaset Inquiries <onboarding@resend.dev>",
+      from: "Bini Romi Inquiries <onboarding@resend.dev>",
       to: [recipientEmail],
       replyTo: email,
       subject: `New Project Inquiry from ${name} [${projectType || "General"}]`,
@@ -57,7 +57,7 @@ export const POST: APIRoute = async ({ request }) => {
           <body>
             <div class="container">
               <div class="header">
-                <h1 class="title">KASET PRODUCTION — NEW INQUIRY</h1>
+                <h1 class="title">BINI ROMI — NEW INQUIRY</h1>
               </div>
               <div class="field-row">
                 <div class="label">Sender Name</div>
@@ -76,7 +76,7 @@ export const POST: APIRoute = async ({ request }) => {
                 <div class="message-box">${message.replace(/\n/g, "<br/>")}</div>
               </div>
               <div class="footer">
-                Received via Kaset Production Contact Form &bull; Reply directly to this email to respond to ${name}.
+                Received via Bini Romi Contact Form &bull; Reply directly to this email to respond to ${name}.
               </div>
             </div>
           </body>
