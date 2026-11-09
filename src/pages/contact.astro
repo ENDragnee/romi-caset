@@ -1,6 +1,13 @@
 ---
 import BaseLayout from "../layouts/base-layout.astro";
 import ContactForm from "../features/contact/components/contact-form.astro";
+
+// Public, non-personalized page — safe to serve from Vercel's edge cache.
+// (The form itself POSTs to /api/contact, a separate uncached route.)
+Astro.response.headers.set(
+  "Cache-Control",
+  "public, s-maxage=300, stale-while-revalidate=86400",
+);
 ---
 
 <BaseLayout title="Contact — Bini Romi Filmwork" route="contact">
