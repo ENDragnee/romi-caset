@@ -770,6 +770,36 @@ body[data-route="about"] #page {
 /* ==========================================================================
    Footer & Toast Notification
    ========================================================================== */
+.findus {
+  padding: 3.2rem var(--m) 2.4rem;
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 0.95rem;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.findus a {
+  font: 700 0.78rem var(--mf);
+  letter-spacing: 0.04em;
+  background: linear-gradient(currentColor, currentColor) 0 100% / 0 1px
+    no-repeat;
+  transition:
+    background-size 0.45s var(--out),
+    opacity 0.3s;
+}
+
+.findus a:hover {
+  background-size: 100% 1px;
+}
+
+.findus i {
+  font-style: normal;
+  opacity: 0.35;
+  font-size: 0.78rem;
+}
+
 #toast {
   position: fixed;
   left: 50%;

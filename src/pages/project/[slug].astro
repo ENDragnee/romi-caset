@@ -131,6 +131,17 @@ const stills = (project.gallery || [])
       )
     }
 
+    <div class="work-foot">
+      <div class="findus">
+        <a href="https://vimeo.com" target="_blank" rel="noopener">vimeo</a><i
+          >/</i
+        >
+        <a href="https://instagram.com" target="_blank" rel="noopener"
+          >instagram</a
+        ><i>/</i>
+        <a href="https://youtube.com" target="_blank" rel="noopener">youtube</a>
+      </div>
+    </div>
   </article>
 
   <div id="toast"></div>
@@ -297,6 +308,10 @@ const stills = (project.gallery || [])
     gap: var(--tg);
   }
 
+  .work-foot {
+    padding-top: 6rem;
+  }
+
   /* Mobile Layout Rules (< 900px) */
   @media (max-width: 900px) {
     .pj {
@@ -336,6 +351,10 @@ const stills = (project.gallery || [])
       height: auto !important;
       padding: 0.6rem 0 0 !important;
       line-height: 1.35 !important;
+    }
+
+    .work-foot {
+      padding-top: 3rem;
     }
   }
 </style>
