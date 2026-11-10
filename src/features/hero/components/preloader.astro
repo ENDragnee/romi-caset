@@ -886,10 +886,13 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
   /* Icon (.fi) stacked over tagline (.ft) inside each fly layer — the same
      two crops of public/branding/logo-mark-left.png used by #ld-block and
      the real navbar logo, so flight and landing are pixel-consistent. */
-  #fly .fi,
-  .flyN .fi,
-  #fly .ft,
-  .flyN .ft {
+  /* :global() on .fi/.ft: they're injected via innerHTML at runtime, so
+     they never receive Astro's data-astro-cid scoping attribute — a scoped
+     selector would silently never match them. */
+  #fly :global(.fi),
+  .flyN :global(.fi),
+  #fly :global(.ft),
+  .flyN :global(.ft) {
     position: absolute;
     left: 0;
     width: 100%;
@@ -899,16 +902,16 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
     -webkit-mask-repeat: no-repeat;
   }
 
-  #fly .fi,
-  .flyN .fi {
+  #fly :global(.fi),
+  .flyN :global(.fi) {
     top: 0;
     height: 85.127%; /* 538/632 */
     mask-image: url("/branding/logo-mark-left-icon.png");
     -webkit-mask-image: url("/branding/logo-mark-left-icon.png");
   }
 
-  #fly .ft,
-  .flyN .ft {
+  #fly :global(.ft),
+  .flyN :global(.ft) {
     top: 85.127%;
     height: 14.873%; /* 94/632 */
     mask-image: url("/branding/logo-mark-left-tag.png");
