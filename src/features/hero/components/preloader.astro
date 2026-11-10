@@ -1,6 +1,4 @@
 ---
-import { LOGOS } from "@/lib/logos";
-
 interface Props {
   showreelUrl?: string;
 }
@@ -13,7 +11,7 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
 <div class="flyN" id="flyA" style="display: none;"></div>
 <div class="flyN" id="flyB" style="display: none;"></div>
 
-<script define:vars={{ showreelUrl, LOGOS }}>
+<script define:vars={{ showreelUrl }}>
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
@@ -42,7 +40,7 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
   hoist();
 
   const loaderHTML = () =>
-    '<div id="loader"><div id="ld-bg"></div><canvas id="ld-cv"></canvas><video id="ld-vid" muted playsinline loop preload="auto"></video><div id="ld"><svg id="ld-block" viewBox="0 0 3318 1274" aria-hidden="true"></svg><svg class="ldN" id="ldNA" aria-hidden="true"></svg><svg class="ldN" id="ldNB" aria-hidden="true"></svg><div id="ld-txt">loading……………. 0%</div></div></div>';
+    '<div id="loader"><div id="ld-bg"></div><canvas id="ld-cv"></canvas><video id="ld-vid" muted playsinline loop preload="auto"></video><div id="ld"><div id="ld-block" aria-hidden="true"></div><div class="ldN" id="ldNA" aria-hidden="true"></div><div class="ldN" id="ldNB" aria-hidden="true"></div><div id="ld-txt">loading……………. 0%</div></div></div>';
 
   function startShowreel(lay) {
     const cv = $("#ld-cv", lay);
@@ -490,44 +488,32 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
       });
     }
 
-    const L = LOGOS.left;
     const ld = $("#ld");
     const blk = $("#ld-block");
     const txt = $("#ld-txt");
 
-    blk.setAttribute("viewBox", `${L.bx} ${L.by} ${L.bw} ${L.bh}`);
     const NEG_A = "#FFB474",
       NEG_B = "#5A2408";
 
-    const blkSVG = (id, fill) =>
-      '<defs><clipPath id="ldc' +
-      id +
-      '"><rect class="ldr" x="' +
-      (L.bx - 3) +
-      '" y="' +
-      (L.by - 3) +
-      '" width="0" height="' +
-      (L.bh + 6) +
-      '"/></clipPath></defs>' +
-      '<path d="' +
-      L.shell +
-      '" clip-path="url(#ldc' +
-      id +
-      ')"' +
-      (fill ? ' fill="' + fill + '"' : "") +
-      "/>";
-
-    blk.innerHTML = blkSVG("", "");
+    // Icon mark (no tagline) rendered via the same real-artwork CSS mask as
+    // the navbar logo (public/branding/logo-mark-left-icon.png), recolored
+    // per layer with background-color instead of SVG fill.
     const negs = [$("#ldNA"), $("#ldNB")];
     negs.forEach((s, i) => {
-      s.setAttribute("viewBox", `${L.bx} ${L.by} ${L.bw} ${L.bh}`);
-      s.innerHTML = blkSVG(i ? "B" : "A", i ? NEG_B : NEG_A);
+      s.style.backgroundColor = i ? NEG_B : NEG_A;
       s.style.display = "block";
       s.style.opacity = "0";
     });
     blk.style.display = "block";
 
-    const ldrs = $$(".ldr", lay);
+    // Wipe-reveal for the counting phase: a growing clip-path across the
+    // icon mark, driven directly by the displayed percentage (0-100).
+    const wipeEls = [blk, ...negs];
+    const setWipe = (pct) => {
+      const c = `inset(0 ${100 - clamp(pct, 0, 100)}% 0 0)`;
+      for (const el of wipeEls) el.style.clipPath = c;
+    };
+
     const reel = startShowreel(lay);
 
     const page = $("#page");
@@ -537,7 +523,7 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
       });
     }
 
-    // ---- Build the flying logo layers up-front (hidden) so SVG parsing and
+    // ---- Build the flying logo layers up-front (hidden) so mask parsing and
     // ---- first raster happen while the counter runs, not on the first flight frame.
     const NEG_FILLS = ["#E1E1D7", NEG_A, NEG_B];
     const flyEls = [$("#fly"), $("#flyA"), $("#flyB")];
@@ -545,58 +531,18 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
     // box is exactly the rendered logo, which is all getBoundingClientRect()
     // below needs as the fly-to target.
     const logoSvg = $("#logoL");
-    const FLY_H = L.h - L.by - L.bh; // height of the FILMWORK strip
 
-    // Shared defs: ONE clip rect + ONE mask drive all three layers (1 attribute write / frame, not 3).
-    const sharedDefs =
-      "<defs>" +
-      '<clipPath id="flClr"><rect id="flClrRect" x="' +
-      (L.bx - 4) +
-      '" y="' +
-      (L.by - 4) +
-      '" width="0" height="' +
-      (L.bh + 8) +
-      '"/></clipPath>' +
-      '<clipPath id="flTag"><rect x="' +
-      (L.bx - 4) +
-      '" y="' +
-      (L.by + L.bh) +
-      '" width="' +
-      (L.bw + 8) +
-      '" height="' +
-      (FLY_H + 80) +
-      '"/></clipPath>' + // +80: tag overruns the viewBox
-      '<mask id="flMask" maskUnits="userSpaceOnUse" x="0" y="0" width="' +
-      L.w +
-      '" height="' +
-      L.h +
-      '">' +
-      '<rect width="' +
-      L.w +
-      '" height="' +
-      L.h +
-      '" fill="#fff"/>' +
-      '<path d="' +
-      L.inner +
-      '" fill-rule="evenodd" fill="#000" clip-path="url(#flClr)"/></mask></defs>';
-
-    const flySVG = (fill, withDefs) =>
-      '<svg viewBox="0 0 ' +
-      L.w +
-      " " +
-      L.h +
-      '" aria-hidden="true">' +
-      (withDefs ? sharedDefs : "") +
-      '<path d="' +
-      L.shell +
-      '" fill="' +
+    // Each fly layer is the icon mark (.fi, masked by logo-mark-left-icon.png)
+    // stacked over the tagline (.ft, masked by logo-mark-left-tag.png) — the
+    // same two crops of public/branding/logo-mark-left.png used by the icon
+    // wipe/tagline-unfold animation below, so the landed frame is pixel
+    // identical to the real navbar logo (#logoL) it hands off to.
+    const flyLayerHTML = (fill) =>
+      '<div class="fi" style="background-color:' +
       fill +
-      '" mask="url(#flMask)"/>' +
-      '<g clip-path="url(#flTag)"><path class="fl-tag" d="' +
-      L.tag +
-      '" fill-rule="evenodd" fill="' +
+      '"></div><div class="ft" style="background-color:' +
       fill +
-      '"/></g></svg>';
+      '"></div>';
 
     flyEls.forEach((el, i) => {
       el.style.cssText =
@@ -604,18 +550,17 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
         "contain:layout style;backface-visibility:hidden;z-index:" +
         (120 + i) +
         ";";
-      el.innerHTML = flySVG(NEG_FILLS[i], i === 0);
+      el.innerHTML = flyLayerHTML(NEG_FILLS[i]);
     });
-    const clrRect = $("#flClrRect");
-    const tags = $$(".fl-tag");
+    const icons = flyEls.map((el) => el.querySelector(".fi"));
+    const tagsEls = flyEls.map((el) => el.querySelector(".ft"));
 
     // 1a. Hold here until the showreel is actually playable. If it was cached this is ~instant;
     //     on a first visit it shows REAL download progress (0-25%) so the loader never lies.
     {
       const paint = (pct) => {
         txt.textContent = "loading……………. " + pct + "%";
-        const w = (pct / 100) * L.bw + 3;
-        for (const r of ldrs) r.setAttribute("width", w);
+        setWipe(pct);
       };
       let last = -1;
       while (!reel.isReady) {
@@ -642,8 +587,7 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
         if (pct !== lastPct) {
           lastPct = pct;
           txt.textContent = "loading……………. " + pct + "%";
-          const w = pct >= 100 ? L.bw + 6 : (pct / 100) * L.bw + 3;
-          for (const r of ldrs) r.setAttribute("width", w);
+          setWipe(pct);
         }
         const vo = reel.opacity();
         for (const s of negs) s.style.opacity = vo;
@@ -655,7 +599,7 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
     });
 
     txt.textContent = "loading……………. 100%";
-    ldrs.forEach((r) => r.setAttribute("width", L.bw + 6));
+    setWipe(100);
 
     // Text fades out WHILE we hold on 100% (was two sequential sleeps = 700ms of dead air)
     await sleep(240);
@@ -676,11 +620,18 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
       return;
     }
 
-    const s = target.width / L.w;
-    const fcx = (L.bx + L.bw / 2) * s;
-    const fcy = (L.by + L.bh / 2) * s;
+    // target is #logoL, proportioned like the full icon+tagline asset
+    // (logo-mark-left.png, 1400x632); the icon sub-region within it is the
+    // full width by the top 538px (logo-mark-left-icon.png, same crop used
+    // by .fi below). b0 (the loader block) is icon-only, same proportions.
+    const FULL_W = 1400,
+      ICON_W = 1400,
+      ICON_H = 538;
+    const s = target.width / FULL_W;
+    const fcx = (ICON_W / 2) * s;
+    const fcy = (ICON_H / 2) * s;
     const b0 = blk.getBoundingClientRect();
-    const k0 = b0.width / (L.bw * s);
+    const k0 = b0.width / (ICON_W * s);
     const dx0 = b0.left + b0.width / 2 - (target.left + fcx);
     const dy0 = b0.top + b0.height / 2 - (target.top + fcy);
     const vo0 = reel.opacity();
@@ -745,7 +696,6 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
     reel.el.style.transition = "none";
 
     // Main-thread work is now only the SVG wipe + FILMWORK unfold (1 clip write + 3 tiny transforms).
-    const tagH = FLY_H * 0.9;
     const t_start = performance.now();
     let shown = false;
     let lastW = -1;
@@ -755,19 +705,20 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
       function frame(now) {
         const t = clamp((now - t_start) / TT);
 
-        // Wipe across BINI ROMI
-        const w = Math.round((L.bw + 8) * easeIO((t - 0.08) / 0.65));
-        if (w !== lastW) {
-          lastW = w;
-          clrRect.setAttribute("width", w);
+        // Wipe across the icon mark (same clip-path technique as the counter phase)
+        const wPct = Math.round(easeIO((t - 0.08) / 0.65) * 1000) / 10;
+        if (wPct !== lastW) {
+          lastW = wPct;
+          const c = `inset(0 ${100 - clamp(wPct, 0, 100)}% 0 0)`;
+          for (const ic of icons) ic.style.clipPath = c;
         }
 
-        // Unfold FILMWORK
+        // Unfold FILMWORK: slide the tagline div up into place from below
         const u = easeOut((t - 0.55) / 0.45);
         if (u !== lastU) {
           lastU = u;
-          const tr = `translate(0 ${(1 - u) * tagH})`;
-          for (const tg of tags) tg.setAttribute("transform", tr);
+          const tr = `translateY(${(1 - u) * 100}%)`;
+          for (const tg of tagsEls) tg.style.transform = tr;
         }
 
         // Cards rise as the logo lands (single class flip, CSS handles the rest)
@@ -895,9 +846,15 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
     top: 50%;
     transform: translate(-50%, -50%);
     width: var(--wb);
-    height: auto;
+    aspect-ratio: 1400 / 538;
     display: none;
-    fill: #e1e1d7;
+    background-color: #e1e1d7;
+    mask-image: url("/branding/logo-mark-left-icon.png");
+    -webkit-mask-image: url("/branding/logo-mark-left-icon.png");
+    mask-size: 100% 100%;
+    -webkit-mask-size: 100% 100%;
+    mask-repeat: no-repeat;
+    -webkit-mask-repeat: no-repeat;
     mix-blend-mode: difference;
   }
 
@@ -926,12 +883,36 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
     will-change: transform;
   }
 
-  #fly svg,
-  .flyN svg {
-    display: block;
+  /* Icon (.fi) stacked over tagline (.ft) inside each fly layer — the same
+     two crops of public/branding/logo-mark-left.png used by #ld-block and
+     the real navbar logo, so flight and landing are pixel-consistent. */
+  #fly .fi,
+  .flyN .fi,
+  #fly .ft,
+  .flyN .ft {
+    position: absolute;
+    left: 0;
     width: 100%;
-    height: 100%;
-    overflow: visible;
+    mask-size: 100% 100%;
+    -webkit-mask-size: 100% 100%;
+    mask-repeat: no-repeat;
+    -webkit-mask-repeat: no-repeat;
+  }
+
+  #fly .fi,
+  .flyN .fi {
+    top: 0;
+    height: 85.127%; /* 538/632 */
+    mask-image: url("/branding/logo-mark-left-icon.png");
+    -webkit-mask-image: url("/branding/logo-mark-left-icon.png");
+  }
+
+  #fly .ft,
+  .flyN .ft {
+    top: 85.127%;
+    height: 14.873%; /* 94/632 */
+    mask-image: url("/branding/logo-mark-left-tag.png");
+    -webkit-mask-image: url("/branding/logo-mark-left-tag.png");
   }
 
   :global(.ldN) {
@@ -940,9 +921,15 @@ const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
     top: 50%;
     transform: translate(-50%, -50%);
     width: var(--wb);
-    height: auto;
+    aspect-ratio: 1400 / 538;
     display: none;
     pointer-events: none;
+    mask-image: url("/branding/logo-mark-left-icon.png");
+    -webkit-mask-image: url("/branding/logo-mark-left-icon.png");
+    mask-size: 100% 100%;
+    -webkit-mask-size: 100% 100%;
+    mask-repeat: no-repeat;
+    -webkit-mask-repeat: no-repeat;
   }
 
   :global(#ldNA),
