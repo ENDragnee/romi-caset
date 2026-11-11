@@ -1,7 +1,9 @@
 ---
+import SiteFooter from "@/features/footer/components/site-footer.astro";
 import BaseLayout from "@/layouts/base-layout.astro";
 import FeaturedCard from "@/features/portfolio/components/featured-card.astro";
 import { prisma } from "@/lib/prisma";
+import { toPlayableVideo } from "@/lib/video-source";
 
 // Public, non-personalized page — safe to serve from Vercel's edge cache.
 Astro.response.headers.set(
@@ -49,7 +51,8 @@ function resolveMedia(src: string | null | undefined): string {
 }
 
 const mainPoster = resolveMedia(project.thumbnail);
-const videoSrc = project.youtubeUrl ? resolveMedia(project.youtubeUrl) : null;
+// youtubeUrl holds YouTube/Vimeo page links or an uploaded file key
+const video = toPlayableVideo(resolveMedia(project.youtubeUrl));
 const stills = (project.gallery || [])
   .map((s) => resolveMedia(s))
   .filter(Boolean);
@@ -62,7 +65,12 @@ const stills = (project.gallery || [])
   <article class="pj">
     <!-- Hero Video Stage with Play Overlay -->
     <div class="pj-hero">
-      <div class="pj-video rise in" id="pjv" data-video={videoSrc}>
+      <div
+        class="pj-video rise in"
+        id="pjv"
+        data-video={video?.src}
+        data-video-kind={video?.kind}
+      >
         {
           mainPoster && (
             <img
@@ -132,15 +140,7 @@ const stills = (project.gallery || [])
     }
 
     <div class="work-foot">
-      <div class="findus">
-        <a href="https://vimeo.com" target="_blank" rel="noopener">vimeo</a><i
-          >/</i
-        >
-        <a href="https://instagram.com" target="_blank" rel="noopener"
-          >instagram</a
-        ><i>/</i>
-        <a href="https://youtube.com" target="_blank" rel="noopener">youtube</a>
-      </div>
+      <SiteFooter />
     </div>
   </article>
 
@@ -153,9 +153,30 @@ const stills = (project.gallery || [])
     if (!pjv) return;
 
     pjv.onclick = () => {
-      const videoUrl = pjv.dataset.video;
-      if (videoUrl) {
-        pjv.innerHTML = `<video src="${videoUrl}" controls autoplay playsinline style="width:100%;height:100%;object-fit:cover;"></video>`;
+      const { video, videoKind } = pjv.dataset;
+      if (pjv.classList.contains("playing")) return;
+      if (video) {
+        // Lock the stage to the poster's size so the player doesn't collapse
+        const h = pjv.offsetHeight;
+        if (h) pjv.style.height = `${h}px`;
+        else pjv.style.aspectRatio = "16 / 9";
+        pjv.classList.add("playing");
+        const el =
+          videoKind === "iframe"
+            ? Object.assign(document.createElement("iframe"), {
+                src: video,
+                title: "Video player",
+                allow:
+                  "autoplay; fullscreen; picture-in-picture; encrypted-media",
+                allowFullscreen: true,
+              })
+            : Object.assign(document.createElement("video"), {
+                src: video,
+                controls: true,
+                autoplay: true,
+                playsInline: true,
+              });
+        pjv.replaceChildren(el);
       } else {
         const toast = document.querySelector<HTMLElement>("#toast");
         if (toast) {
@@ -201,6 +222,21 @@ const stills = (project.gallery || [])
     display: block;
     width: 100%;
     height: auto;
+  }
+
+  .pj-video.playing {
+    background: #000;
+    cursor: auto;
+  }
+
+  /* Injected at runtime, so no Astro scope attribute */
+  .pj-video :global(iframe),
+  .pj-video :global(video) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: #000;
   }
 
   .play {

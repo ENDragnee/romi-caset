@@ -1,4 +1,5 @@
 ---
+import SiteFooter from "@/features/footer/components/site-footer.astro";
 import BaseLayout from "@/layouts/base-layout.astro";
 import Preloader from "@/features/hero/components/preloader.astro";
 import FeaturedCard from "@/features/portfolio/components/featured-card.astro";
@@ -62,17 +63,16 @@ const featuredProjects = await prisma.project.findMany({
     </a>
   </div>
 
-  <div class="findus">
-    <a href="https://vimeo.com" target="_blank" rel="noopener">vimeo</a><i>/</i>
-    <a href="https://instagram.com" target="_blank" rel="noopener">instagram</a
-    ><i>/</i>
-    <a href="https://youtube.com" target="_blank" rel="noopener">youtube</a>
-  </div>
+  <SiteFooter />
 </BaseLayout>
 
 <script>
   function InitHomeScroll() {
-    const rises = document.querySelectorAll(".rise:not(.in):not(.fb)");
+    // During the intro the preloader owns the cards (they rise as the logo lands)
+    const sel = document.body.classList.contains("pre")
+      ? ".rise:not(.in):not(.fb):not(.proj)"
+      : ".rise:not(.in):not(.fb)";
+    const rises = document.querySelectorAll(sel);
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {

@@ -780,6 +780,13 @@ body[data-route="about"] #page {
   white-space: nowrap;
 }
 
+.findus .lab {
+  font: 400 0.68rem var(--mf);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+
 .findus a {
   font: 700 0.78rem var(--mf);
   letter-spacing: 0.04em;

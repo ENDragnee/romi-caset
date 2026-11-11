@@ -36,9 +36,7 @@
   /* ---------- Proportional Dynamic Metrics ---------- */
   --m: 4vw;
   --logoW: clamp(120px, 10.4vw, 184px);
-  --logoH: calc(
-    var(--logoW) * 0.4514
-  ); /* public/branding/logo-mark-left.png: 632/1400 */
+  --logoH: calc(var(--logoW) * 0.4535); /* LOGOS.left h/w */
   --top: calc(var(--logoH) + 4rem);
   --menuH: 0px;
 
@@ -105,8 +103,7 @@ body * {
 
 body[data-route="contact"],
 body[data-route="about"] {
-  /* public/branding/logo-mark-full.png: 764/1400 */
-  --logoH: calc(var(--logoW) * 0.5457);
+  --logoH: calc(var(--logoW) * 0.547); /* LOGOS.full h/w */
 }
 
 body[data-route="work"] {

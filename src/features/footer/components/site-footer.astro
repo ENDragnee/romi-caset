@@ -1,113 +1,24 @@
 ---
-
+// "Find us on" footer row, styled by .findus in global.css (matches the reference).
+const SOCIAL = [
+  { label: "vimeo", href: "https://vimeo.com/user262746173?fl=pp&fe=sh" },
+  {
+    label: "instagram",
+    href: "https://www.instagram.com/bini._romi?stkn=NWl6MmJ0MGt2MG9x&utm_source=qr",
+  },
+];
 ---
 
-<footer class="site-footer">
-  <div class="footer-container">
-    <div class="footer-find-us">
-      <span class="find-us-label">FIND US ON</span>
-      <a
-        href="https://vimeo.com/user262746173?fl=pp&fe=sh"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="social-link"
-      >
-        vimeo
-      </a>
-      <span class="separator">/</span>
-      <a
-        href="https://www.instagram.com/bini._romi?stkn=NWl6MmJ0MGt2MG9x&utm_source=qr"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="social-link"
-      >
-        instagram
-      </a>
-      <span class="separator">/</span>
-      <a
-        href="https://youtube.com"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="social-link"
-      >
-        youtube
-      </a>
-    </div>
-  </div>
-</footer>
-
-<style>
-  .site-footer {
-    position: relative;
-    z-index: 10;
-    width: 100%;
-    padding: var(--space-2xl) var(--space-2xl);
-    background-color: #ffffff !important;
-    box-sizing: border-box;
-    border-top: none;
+<div class="findus">
+  <span class="lab">Find us on</span>
+  {
+    SOCIAL.map((s, i) => (
+      <>
+        {i > 0 && <i>/</i>}
+        <a href={s.href} target="_blank" rel="noopener noreferrer">
+          {s.label}
+        </a>
+      </>
+    ))
   }
-
-  .footer-container {
-    width: 100%;
-    max-width: var(--container-wide, 1400px);
-    margin: 0 auto;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start; /* Aligns left flush */
-  }
-
-  /* Bottom-Left Minimalist Link Bar */
-  .footer-find-us {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.75rem;
-    letter-spacing: 0.08em;
-  }
-
-  .find-us-label {
-    font-family: var(--font-heading);
-    font-size: 0.68rem;
-    font-weight: 500;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: #8c8c8c;
-    margin-right: 2px;
-  }
-
-  .social-link {
-    color: #000000;
-    font-weight: 700;
-    text-decoration: none;
-    transition: opacity var(--transition-fast);
-  }
-
-  .social-link:hover {
-    opacity: 0.55;
-  }
-
-  .separator {
-    color: #d0d0d0;
-    font-weight: 400;
-    font-size: 0.7rem;
-    user-select: none;
-  }
-
-  /* Fixed Mobile Alignment: Attached directly to left margin */
-  @media (max-width: 768px) {
-    .site-footer {
-      padding: var(--space-xl) var(--space-md);
-    }
-
-    .footer-container {
-      justify-content: flex-start;
-      padding: 0;
-    }
-
-    .footer-find-us {
-      gap: 6px;
-      font-size: 0.725rem;
-      text-align: left;
-    }
-  }
-</style>
+</div>

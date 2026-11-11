@@ -1,9 +1,6 @@
 ---
-// Logo mark rendered as a CSS mask from the real brand artwork
-// (public/branding/logo-mark-*.png) so it's pixel-accurate to the source
-// files, not hand-traced path data. mask-image + background-color:
-// currentColor preserves the mix-blend-mode: difference auto-contrast
-// trick on #hdr below, same as plain SVG fill did before.
+// Same traced artwork the preloader flies in, so the hand-off is seamless.
+import { logoSVG } from "@/lib/logos";
 ---
 
 <!-- Push Menu (Slides down from top) -->
@@ -18,13 +15,11 @@
 <!-- Header -->
 <header id="hdr">
   <a class="logo" href="/" id="logoLink" aria-label="Bini Romi Filmwork, home">
-    <span class="l-left" id="logoL" role="img" aria-label="Bini Romi"></span>
-    <span
+    <span class="l-left" id="logoL" set:html={logoSVG("left")} /><span
       class="l-full"
       id="logoF"
-      role="img"
-      aria-label="Bini Romi — Filmwork is an independent filmmaking studio"
-    ></span>
+      set:html={logoSVG("full")}
+    />
   </a>
 
   <!-- Category Filter (Visible on /portfolio) -->
@@ -229,11 +224,10 @@
         });
         svg.style.overflow = "visible";
         if (t.kind === "logo") {
-          // "logo" is a masked <span> (background-color + mask-image), not
-          // an <svg>; fill is a no-op there but harmless, backgroundColor
-          // is what actually recolors it.
+          // the logo <span> wraps an <svg>; fill inherits down to its path
           svg.style.fill = "currentColor";
-          svg.style.backgroundColor = "currentColor";
+          svg.querySelector("svg")?.style.setProperty("width", "100%");
+          svg.querySelector("svg")?.style.setProperty("display", "block");
         }
         inner = document.createElement("div");
         Object.assign(inner.style, {
@@ -432,36 +426,22 @@
     display: block;
     position: relative;
     width: var(--logoW);
+    margin-top: calc(1.11rem - var(--logoW) * 0.1913);
     transition:
       width 0.5s var(--ease),
       opacity 0.7s;
   }
 
-  /* Unscoped (not ".logo .l-left") so these base styles still apply when
-     the navbar's negative-mirror effect (script below) clones this node
-     to document.body for the film-negative hover effect. */
-  .l-left,
-  .l-full {
+  .logo > span {
+    display: block;
+  }
+
+  /* set:html content has no Astro scope attribute */
+  .logo :global(svg) {
     display: block;
     width: 100%;
-    background-color: currentColor;
-    mask-repeat: no-repeat;
-    mask-size: 100% 100%;
-    -webkit-mask-repeat: no-repeat;
-    -webkit-mask-size: 100% 100%;
-    transition: width 0.5s var(--ease);
-  }
-
-  .l-left {
-    aspect-ratio: 1400 / 632;
-    mask-image: url("/branding/logo-mark-left.png");
-    -webkit-mask-image: url("/branding/logo-mark-left.png");
-  }
-
-  .l-full {
-    aspect-ratio: 1400 / 764;
-    mask-image: url("/branding/logo-mark-full.png");
-    -webkit-mask-image: url("/branding/logo-mark-full.png");
+    height: auto;
+    fill: currentColor;
   }
 
   .logo .l-full {

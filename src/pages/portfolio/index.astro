@@ -1,4 +1,5 @@
 ---
+import SiteFooter from "@/features/footer/components/site-footer.astro";
 import BaseLayout from "@/layouts/base-layout.astro";
 import FeaturedCard from "@/features/portfolio/components/featured-card.astro";
 import { prisma } from "@/lib/prisma";
@@ -48,15 +49,7 @@ const projects = dbProjects.map((p) => {
     </section>
 
     <div class="work-foot">
-      <div class="findus">
-        <a href="https://vimeo.com" target="_blank" rel="noopener">vimeo</a><i
-          >/</i
-        >
-        <a href="https://instagram.com" target="_blank" rel="noopener"
-          >instagram</a
-        ><i>/</i>
-        <a href="https://youtube.com" target="_blank" rel="noopener">youtube</a>
-      </div>
+      <SiteFooter />
     </div>
   </div>
 </BaseLayout>
