@@ -76,27 +76,25 @@ const L = LOGOS.left;
     // ------------------------------------------------------------------
     // SOURCE PRIORITY (first match wins, never swapped mid-intro so the
     // timed shader cuts at 1.0s / 2.29s / 3.46s can't jump):
-    //   1. Backend (Backblaze) showreel in Cache Storage  -> instant, from disk;
-    //      the intro then runs for the length of this video
+    //   1. Backend (Backblaze) showreel in Cache Storage  -> instant, from disk
     //   2. Bundled fallback clip in Cache Storage          -> instant, from disk
     //                                                        (+ backend warmed in background)
-    //   3. Nothing cached yet -> DOWNLOAD the fallback clip *inside the loader*
-    //      with real progress, cache it, and only then start the intro timeline.
-    //      (+ backend warmed in background afterwards, so visit #2 uses it.)
+    //   3. Nothing cached yet -> plain black loader, no footage; the fallback is
+    //      cached and the backend warmed in the background after the intro, so
+    //      visit #2 plays a video instantly.
+    // When a clip plays, the count runs for one play of it (else 3.5s).
     // ------------------------------------------------------------------
-    const FALLBACK_VERSION = "1"; // bump when you replace public/videos/hero-fallback.mp4
+    const FALLBACK_VERSION = "2"; // bump when you replace public/videos/hero-fallback.mp4
     const HERO_URL = "/videos/hero-fallback.mp4?v=" + FALLBACK_VERSION;
     const CACHE_NAME = "br-showreel-v1";
     const MAX_BYTES = 120 * 1024 * 1024; // never cache absurdly large files
     const STALE_MS = 24 * 60 * 60 * 1000; // refresh backend copy in background after 24h
-    const MAX_WAIT = 12000; // hard ceiling on how long the loader will wait for a download
+    const AFTER_INTRO_MS = 9000; // background caching waits until the intro is done
     const remote =
       showreelUrl && !showreelUrl.startsWith("/videos/") ? showreelUrl : "";
     let objUrl = "";
 
-    ctl.progress = 0; // 0..1 real download progress (stays 0 when served from cache)
     ctl.isReady = false; // true once a source is attached and can play
-    ctl.fromBackend = false; // true when playing the cached Backblaze showreel
     ctl.ready = new Promise((r) => (ctl._resolveReady = r));
     const markReady = () => {
       if (ctl.isReady) return;
@@ -128,8 +126,7 @@ const L = LOGOS.left;
       }
     };
 
-    // Streams the file so we get real progress; returns a Blob (or null on any failure).
-    // The Blob is used for playback immediately, so playback never depends on the cache write.
+    // Downloads the file into a Blob and caches it (returns null on any failure).
     const download = async (url, key, onProgress, fresh) => {
       try {
         const res = await fetch(url, {
@@ -218,7 +215,6 @@ const L = LOGOS.left;
       const tag = (v) => (document.documentElement.dataset.reelSource = v); // handy for debugging
       if (found) {
         tag(found.kind === "remote" ? "backend-cache" : "default-cache");
-        ctl.fromBackend = found.kind === "remote";
         attach(null, found.blob);
         if (found.kind === "remote") {
           if (Date.now() - found.at > STALE_MS)
@@ -229,16 +225,14 @@ const L = LOGOS.left;
         return;
       }
 
-      // 3: nothing cached. Hold the loader and download the default for real.
-      const blob = await Promise.race([
-        download(HERO_URL, HERO_URL, (p) => (ctl.progress = p), false),
-        new Promise((r) => setTimeout(() => r(null), MAX_WAIT)),
-      ]);
-      if (ctl.dead) return;
-      tag(blob ? "default-download" : "default-stream");
-      if (blob) attach(null, blob);
-      else attach(HERO_URL, null); // slow/failed: stream it progressively, don't block the page
-      if (remote) setTimeout(() => download(remote, remote, null, false), 1500);
+      // 3: nothing cached. Run the intro on the plain black loader (no footage),
+      //    then cache the fallback and warm the backend once the intro is over.
+      tag("none");
+      markReady();
+      setTimeout(async () => {
+        await download(HERO_URL, HERO_URL, null, false);
+        if (remote) download(remote, remote, null, false);
+      }, AFTER_INTRO_MS);
     })();
 
     try {
@@ -551,32 +545,17 @@ const L = LOGOS.left;
     const clrs = $$(".clr");
     const tags = $$(".fl-tag");
 
-    // 1a. Hold here until the showreel is actually playable. If it was cached this is ~instant;
-    //     on a first visit it shows REAL download progress (0-25%) so the loader never lies.
-    {
-      const paint = (pct) => {
-        txt.textContent = "loading……………. " + pct + "%";
-        setWipe(pct);
-      };
-      let last = -1;
-      while (!reel.isReady) {
-        const pct = Math.round(reel.progress * 25);
-        if (pct !== last) {
-          last = pct;
-          paint(pct);
-        }
-        await new Promise((r) => requestAnimationFrame(r));
-      }
-    }
-    const BASE = Math.round(reel.progress * 25); // 0 when cached, 25 after a fresh download
+    // 1a. Wait for the source decision: a cached clip that can play (~instant,
+    //     from disk) or none at all on a first visit.
+    await reel.ready;
 
-    // 1b. Cinematic counter BASE% -> 100%. The video starts playing at the same moment,
+    // 1b. Cinematic counter 0% -> 100%. The video starts playing at the same moment,
     //     so its timed cuts (1.0s / 2.29s / 3.46s) always land inside this window.
-    //     With the cached Backblaze showreel the count runs for one play of that video.
+    //     With a clip the count runs for one play of it; without one, 3.5s.
     const vidDur = $("#ld-vid", lay).duration;
     const DUR = reduce
       ? 600
-      : reel.fromBackend && Number.isFinite(vidDur) && vidDur > 0
+      : Number.isFinite(vidDur) && vidDur > 0
         ? clamp(vidDur * 1000, 2000, 15000)
         : 3500;
     const t0 = performance.now();
@@ -585,7 +564,7 @@ const L = LOGOS.left;
       let lastPct = -1;
       function tick(now) {
         const t = clamp((now - t0) / DUR);
-        const pct = BASE + Math.round((100 - BASE) * easeIO(t));
+        const pct = Math.round(100 * easeIO(t));
         if (pct !== lastPct) {
           lastPct = pct;
           txt.textContent = "loading……………. " + pct + "%";
