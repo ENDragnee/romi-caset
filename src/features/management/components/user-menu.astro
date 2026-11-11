@@ -1,0 +1,425 @@
+---
+// Sidebar avatar button that opens the account menu: who's signed in,
+// Settings, theme choice and Log out.
+interface Props {
+  name: string;
+  email: string;
+  settingsActive?: boolean;
+}
+
+const { name, email, settingsActive = false } = Astro.props;
+const initial = (name || email || "A").charAt(0).toUpperCase();
+
+const THEMES = [
+  { value: "light", label: "Light" },
+  { value: "dark", label: "Dark" },
+  { value: "system", label: "System" },
+];
+---
+
+<div class="user-menu">
+  <div class="um-panel" id="um-panel" role="menu" aria-label="Account" hidden>
+    <div class="um-head">
+      <div class="um-avatar um-avatar--lg">{initial}</div>
+      <div class="um-id">
+        <span class="user-name">{name || "Admin"}</span>
+        <span class="user-email">{email}</span>
+      </div>
+    </div>
+
+    <div class="um-sep" role="separator"></div>
+
+    <a
+      href="/management/settings"
+      class:list={["um-item", { active: settingsActive }]}
+      role="menuitem"
+    >
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+        ><circle cx="12" cy="12" r="3"></circle><path
+          d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+        ></path></svg
+      >
+      <span>Settings</span>
+    </a>
+
+    <div class="um-theme">
+      <span class="um-theme-label" id="um-theme-label">Theme</span>
+      <div class="um-seg" role="group" aria-labelledby="um-theme-label">
+        {
+          THEMES.map((t) => (
+            <button
+              type="button"
+              class="um-seg-btn"
+              role="menuitemradio"
+              aria-checked="false"
+              data-theme-pref={t.value}
+            >
+              {t.label}
+            </button>
+          ))
+        }
+      </div>
+    </div>
+
+    <div class="um-sep" role="separator"></div>
+
+    <button type="button" class="um-item um-logout" role="menuitem">
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+        ><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline
+          points="16 17 21 12 16 7"></polyline><line
+          x1="21"
+          y1="12"
+          x2="9"
+          y2="12"></line></svg
+      >
+      <span>Log out</span>
+    </button>
+  </div>
+
+  <button
+    type="button"
+    class="um-trigger"
+    aria-haspopup="menu"
+    aria-expanded="false"
+    aria-controls="um-panel"
+  >
+    <span class="um-avatar">{initial}</span>
+    <span class="um-id">
+      <span class="user-name">{name || "Admin"}</span>
+      <span class="user-email">{email}</span>
+    </span>
+    <svg
+      class="um-chevron"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"><polyline points="18 15 12 9 6 15"></polyline></svg
+    >
+  </button>
+</div>
+
+<script>
+  import {
+    applyTheme,
+    getThemePref,
+    setThemePref,
+    watchSystemTheme,
+    type ThemePref,
+  } from "@/lib/mgmt-theme";
+
+  watchSystemTheme();
+  applyTheme();
+
+  const root = document.querySelector<HTMLElement>(".user-menu");
+  const trigger = root?.querySelector<HTMLButtonElement>(".um-trigger");
+  const panel = root?.querySelector<HTMLElement>(".um-panel");
+
+  if (root && trigger && panel) {
+    const items = () =>
+      [
+        ...panel.querySelectorAll<HTMLElement>(
+          "[role=menuitem], [role=menuitemradio]",
+        ),
+      ].filter((el) => !(el as HTMLButtonElement).disabled);
+
+    const open = () => {
+      panel.hidden = false;
+      trigger.setAttribute("aria-expanded", "true");
+      items()[0]?.focus();
+    };
+    const close = (refocus = true) => {
+      if (panel.hidden) return;
+      panel.hidden = true;
+      trigger.setAttribute("aria-expanded", "false");
+      if (refocus) trigger.focus();
+    };
+
+    trigger.addEventListener("click", () =>
+      panel.hidden ? open() : close(false),
+    );
+
+    document.addEventListener("click", (e) => {
+      if (!root.contains(e.target as Node)) close(false);
+    });
+
+    root.addEventListener("keydown", (e) => {
+      if (panel.hidden) return;
+      if (e.key === "Escape") {
+        e.preventDefault();
+        close();
+        return;
+      }
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        const list = items();
+        const i = list.indexOf(document.activeElement as HTMLElement);
+        const step = e.key === "ArrowDown" ? 1 : -1;
+        list[(i + step + list.length) % list.length]?.focus();
+      }
+    });
+
+    // Theme choice
+    const segs = panel.querySelectorAll<HTMLButtonElement>("[data-theme-pref]");
+    const syncTheme = () => {
+      const pref = getThemePref();
+      segs.forEach((b) =>
+        b.setAttribute("aria-checked", String(b.dataset.themePref === pref)),
+      );
+    };
+    segs.forEach((b) =>
+      b.addEventListener("click", () =>
+        setThemePref(b.dataset.themePref as ThemePref),
+      ),
+    );
+    document.addEventListener("mgmt-theme-change", syncTheme);
+    syncTheme();
+
+    // Log out
+    const logout = panel.querySelector<HTMLButtonElement>(".um-logout");
+    logout?.addEventListener("click", async () => {
+      logout.disabled = true;
+      try {
+        // better-auth rejects a body-less POST (415), which left the session alive
+        const res = await fetch("/api/auth/sign-out", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: "{}",
+        });
+        if (!res.ok) throw new Error(`sign-out failed: ${res.status}`);
+        window.location.replace("/management");
+      } catch (err) {
+        console.error(err);
+        logout.disabled = false;
+        alert("Sign out failed. Please try again.");
+      }
+    });
+  }
+</script>
+
+<style>
+  .user-menu {
+    position: relative;
+    width: 100%;
+  }
+
+  .um-trigger {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    width: 100%;
+    padding: var(--space-xs);
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition:
+      background-color var(--transition-fast),
+      border-color var(--transition-fast);
+  }
+
+  .um-trigger:hover,
+  .um-trigger[aria-expanded="true"] {
+    background-color: var(--color-surface-elevated);
+    border-color: var(--color-border);
+  }
+
+  .um-trigger:focus-visible,
+  .um-item:focus-visible,
+  .um-seg-btn:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 1px;
+  }
+
+  .um-chevron {
+    margin-left: auto;
+    flex-shrink: 0;
+    color: var(--color-text-muted);
+    transition: transform var(--transition-fast);
+  }
+
+  .um-trigger[aria-expanded="false"] .um-chevron {
+    transform: rotate(180deg);
+  }
+
+  .um-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-full);
+    background-color: var(--color-accent);
+    color: var(--color-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+  }
+
+  .um-avatar--lg {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+  }
+
+  .um-id {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .user-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .user-email {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Opens upward from the bottom of the sidebar */
+  .um-panel {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(100% + var(--space-xs));
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-xs);
+    background-color: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 16px 40px -16px rgb(0 0 0 / 0.45);
+  }
+
+  .um-panel[hidden] {
+    display: none;
+  }
+
+  .um-head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm);
+  }
+
+  .um-sep {
+    height: 1px;
+    margin: var(--space-2xs) 0;
+    background-color: var(--color-border);
+  }
+
+  .um-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    width: 100%;
+    padding: 0.55rem var(--space-sm);
+    border: none;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--color-text);
+    font: inherit;
+    font-size: 0.875rem;
+    text-decoration: none;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+  }
+
+  .um-item:hover,
+  .um-item.active {
+    background-color: var(--color-surface-elevated);
+  }
+
+  .um-logout:hover {
+    color: #ef4444;
+  }
+
+  .um-logout:disabled {
+    opacity: 0.6;
+    cursor: wait;
+  }
+
+  .um-theme {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2xs);
+    padding: 0.4rem var(--space-sm) var(--space-xs);
+  }
+
+  .um-theme-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .um-seg {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    padding: 2px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background-color: var(--color-surface);
+  }
+
+  .um-seg-btn {
+    padding: 0.35rem 0;
+    border: none;
+    border-radius: calc(var(--radius-md) - 2px);
+    background: transparent;
+    color: var(--color-text-muted);
+    font: inherit;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition:
+      background-color var(--transition-fast),
+      color var(--transition-fast);
+  }
+
+  .um-seg-btn:hover {
+    color: var(--color-text);
+  }
+
+  .um-seg-btn[aria-checked="true"] {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    box-shadow: 0 0 0 1px var(--color-border);
+  }
+</style>

@@ -1,0 +1,112 @@
+---
+import ManagementLayout from "./management-layout.astro";
+import { SETTINGS_SECTIONS } from "../lib/settings-sections";
+
+interface Props {
+  /** href of the active section */
+  section: string;
+}
+
+const { section } = Astro.props;
+const current = SETTINGS_SECTIONS.find((s) => s.href === section);
+---
+
+<ManagementLayout
+  title={current ? `Settings · ${current.label}` : "Settings"}
+  currentPath={section}
+>
+  <div class="settings-shell">
+    <nav class="settings-nav" aria-label="Settings sections">
+      {
+        SETTINGS_SECTIONS.map((s) => (
+          <a
+            href={s.href}
+            class:list={["settings-tab", { active: s.href === section }]}
+            aria-current={s.href === section ? "page" : undefined}
+          >
+            <span class="settings-tab-label">{s.label}</span>
+            <span class="settings-tab-desc">{s.description}</span>
+          </a>
+        ))
+      }
+    </nav>
+    <div class="settings-body">
+      <slot />
+    </div>
+  </div>
+</ManagementLayout>
+
+<style>
+  .settings-shell {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: var(--space-2xl);
+    align-items: start;
+  }
+
+  .settings-nav {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2xs);
+    position: sticky;
+    top: var(--space-lg);
+  }
+
+  .settings-tab {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0.6rem var(--space-sm);
+    border-radius: var(--radius-md);
+    border-left: 2px solid transparent;
+    color: var(--color-text);
+    text-decoration: none;
+    transition: background-color var(--transition-fast);
+  }
+
+  .settings-tab:hover {
+    background-color: var(--color-surface);
+  }
+
+  .settings-tab.active {
+    background-color: var(--color-surface-elevated);
+    border-left-color: var(--color-accent);
+  }
+
+  .settings-tab-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  .settings-tab-desc {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+  }
+
+  @media (max-width: 900px) {
+    .settings-shell {
+      grid-template-columns: 1fr;
+      gap: var(--space-lg);
+    }
+
+    .settings-nav {
+      position: static;
+      flex-direction: row;
+      overflow-x: auto;
+    }
+
+    .settings-tab {
+      border-left: none;
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+    }
+
+    .settings-tab.active {
+      border-bottom-color: var(--color-accent);
+    }
+
+    .settings-tab-desc {
+      display: none;
+    }
+  }
+</style>

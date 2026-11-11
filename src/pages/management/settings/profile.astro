@@ -1,0 +1,374 @@
+---
+import SettingsLayout from "../../../features/management/components/settings-layout.astro";
+import PasswordToggle from "../../../features/management/components/password-toggle.astro";
+
+const user = Astro.locals.user;
+---
+
+<SettingsLayout section="/management/settings/profile">
+  <div class="profile-wrapper">
+    <p class="section-subtitle">
+      Manage the email and password used to sign in to the studio.
+    </p>
+
+    {/* Email */}
+    <form class="form-card" id="email-form" novalidate>
+      <div class="form-body">
+        <h3 class="section-heading">Login Email</h3>
+        <div class="form-group">
+          <label for="current-email">Current Email</label>
+          <input id="current-email" type="email" value={user?.email} disabled />
+        </div>
+        <div class="form-group">
+          <label for="new-email"
+            >New Email <span class="required">*</span></label
+          >
+          <input
+            id="new-email"
+            name="newEmail"
+            type="email"
+            autocomplete="email"
+            placeholder="name@example.com"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label for="email-password"
+            >Current Password <span class="required">*</span></label
+          >
+          <div class="pw-field">
+            <input
+              id="email-password"
+              name="currentPassword"
+              type="password"
+              autocomplete="current-password"
+              required
+            />
+            <PasswordToggle />
+          </div>
+          <span class="field-subtext"
+            >Required to confirm it's you. Use the new email next time you sign
+            in.</span
+          >
+        </div>
+      </div>
+      <div class="form-actions-bar">
+        <div class="form-msg" role="status"></div>
+        <button type="submit" class="btn-primary">Update Email</button>
+      </div>
+    </form>
+
+    {/* Password */}
+    <form class="form-card" id="password-form" novalidate>
+      <div class="form-body">
+        <h3 class="section-heading">Password</h3>
+        <div class="form-group">
+          <label for="pw-current"
+            >Current Password <span class="required">*</span></label
+          >
+          <div class="pw-field">
+            <input
+              id="pw-current"
+              name="currentPassword"
+              type="password"
+              autocomplete="current-password"
+              required
+            />
+            <PasswordToggle />
+          </div>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="pw-new"
+              >New Password <span class="required">*</span></label
+            >
+            <div class="pw-field">
+              <input
+                id="pw-new"
+                name="newPassword"
+                type="password"
+                autocomplete="new-password"
+                minlength="8"
+                required
+              />
+              <PasswordToggle />
+            </div>
+            <span class="field-subtext">At least 8 characters.</span>
+          </div>
+          <div class="form-group">
+            <label for="pw-confirm"
+              >Confirm New Password <span class="required">*</span></label
+            >
+            <div class="pw-field">
+              <input
+                id="pw-confirm"
+                name="confirmPassword"
+                type="password"
+                autocomplete="new-password"
+                required
+              />
+              <PasswordToggle />
+            </div>
+          </div>
+        </div>
+        <span class="field-subtext"
+          >Changing your password signs out every other device.</span
+        >
+      </div>
+      <div class="form-actions-bar">
+        <div class="form-msg" role="status"></div>
+        <button type="submit" class="btn-primary">Update Password</button>
+      </div>
+    </form>
+  </div>
+</SettingsLayout>
+
+<script>
+  type Check = (data: FormData) => string | null;
+
+  // Posts a form's fields as JSON and shows the outcome under it.
+  function bindForm(
+    id: string,
+    url: string,
+    check: Check,
+    onSuccess: (form: HTMLFormElement, data: any) => string,
+  ) {
+    const form = document.getElementById(id) as HTMLFormElement | null;
+    if (!form) return;
+    const msg = form.querySelector<HTMLElement>(".form-msg")!;
+    const btn = form.querySelector<HTMLButtonElement>("button[type=submit]")!;
+
+    const show = (text: string, ok: boolean) => {
+      msg.textContent = text;
+      msg.classList.toggle("ok", ok);
+    };
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const data = new FormData(form);
+      const problem = check(data);
+      if (problem) return show(problem, false);
+
+      btn.disabled = true;
+      show("Saving…", true);
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(Object.fromEntries(data)),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body.error || "Something went wrong");
+        show(onSuccess(form, body), true);
+      } catch (err) {
+        show((err as Error).message, false);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  }
+
+  bindForm(
+    "email-form",
+    "/api/management/profile/email",
+    (d) =>
+      !String(d.get("newEmail")).trim()
+        ? "Enter the new email"
+        : !d.get("currentPassword")
+          ? "Enter your current password"
+          : null,
+    (form, body) => {
+      const current = document.getElementById(
+        "current-email",
+      ) as HTMLInputElement;
+      current.value = body.email;
+      document
+        .querySelectorAll(".user-email")
+        .forEach((el) => (el.textContent = body.email));
+      form.reset();
+      return "Email updated.";
+    },
+  );
+
+  bindForm(
+    "password-form",
+    "/api/management/profile/password",
+    (d) => {
+      const next = String(d.get("newPassword"));
+      if (!d.get("currentPassword")) return "Enter your current password";
+      if (next.length < 8) return "New password must be at least 8 characters";
+      if (next !== d.get("confirmPassword")) return "Passwords don't match";
+      return null;
+    },
+    (form) => {
+      form.reset();
+      return "Password updated. Other devices have been signed out.";
+    },
+  );
+</script>
+
+<style>
+  .profile-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2xl);
+    max-width: 720px;
+  }
+
+  .section-subtitle {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+  }
+
+  .form-card {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .form-body {
+    padding: var(--space-2xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+  }
+
+  .section-heading {
+    font-size: 1.1rem;
+    margin: 0;
+    font-family: var(--font-heading);
+    font-weight: 600;
+    padding-bottom: var(--space-xs);
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text);
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg) var(--space-xl);
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2xs);
+  }
+
+  .form-group label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--color-text);
+  }
+
+  .field-subtext {
+    font-size: 0.775rem;
+    color: var(--color-text-muted);
+    line-height: 1.4;
+  }
+
+  .required {
+    color: var(--color-accent);
+  }
+
+  .form-group input {
+    background-color: var(--color-bg);
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-md);
+    font-family: inherit;
+    font-size: 0.95rem;
+    width: 100%;
+    box-sizing: border-box;
+    transition:
+      border-color var(--transition-fast),
+      box-shadow var(--transition-fast);
+  }
+
+  .pw-field {
+    position: relative;
+  }
+
+  .pw-field input {
+    padding-right: 2.75rem;
+  }
+
+  .form-group input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px
+      color-mix(in srgb, var(--color-accent) 15%, transparent);
+  }
+
+  .form-group input:disabled {
+    color: var(--color-text-muted);
+    cursor: not-allowed;
+  }
+
+  .form-actions-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-lg);
+    padding: var(--space-lg) var(--space-2xl);
+    border-top: 1px solid var(--color-border);
+    background-color: var(--color-surface-elevated);
+  }
+
+  .form-msg {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #ef4444;
+  }
+
+  .form-msg.ok {
+    color: var(--color-text-muted);
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    background-color: var(--color-accent);
+    color: var(--color-bg);
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius-md);
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 0.95rem;
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+    transition:
+      background-color var(--transition-fast),
+      transform var(--transition-fast);
+  }
+
+  .btn-primary:hover {
+    background-color: var(--color-accent-hover);
+    transform: translateY(-1px);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.6;
+    cursor: wait;
+    transform: none;
+  }
+
+  @media (max-width: 700px) {
+    .form-grid {
+      grid-template-columns: 1fr;
+    }
+    .form-body,
+    .form-actions-bar {
+      padding-left: var(--space-lg);
+      padding-right: var(--space-lg);
+    }
+  }
+</style>

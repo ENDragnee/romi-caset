@@ -1,6 +1,8 @@
 ---
 import "../../styles/global.css";
 import LoginCard from "../../features/management/components/login-card.astro";
+import ThemeInit from "../../features/management/components/theme-init.astro";
+import ThemeToggle from "../../features/management/components/theme-toggle.astro";
 
 if (Astro.locals.user) {
   return Astro.redirect("/management/projects");
@@ -13,21 +15,10 @@ if (Astro.locals.user) {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Studio Access — Bini Romi</title>
-    <script is:inline>
-      (function () {
-        var stored = localStorage.getItem("kaset-theme");
-        var preferred = window.matchMedia("(prefers-color-scheme: dark)")
-          .matches
-          ? "dark"
-          : "light";
-        document.documentElement.setAttribute(
-          "data-theme",
-          stored || preferred,
-        );
-      })();
-    </script>
+    <ThemeInit />
   </head>
   <body class="login-body">
+    <ThemeToggle class="login-theme" />
     <div class="login-wrapper">
       <LoginCard />
     </div>
@@ -55,6 +46,13 @@ if (Astro.locals.user) {
         color-mix(in srgb, var(--color-accent-secondary) 5%, transparent) 0%,
         transparent 50%
       );
+  }
+
+  .login-body :global(.login-theme) {
+    position: fixed;
+    top: var(--space-lg);
+    right: var(--space-lg);
+    z-index: 10;
   }
 
   .login-wrapper {

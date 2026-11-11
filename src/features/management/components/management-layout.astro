@@ -1,5 +1,7 @@
 ---
 import "../../../styles/global.css";
+import ThemeInit from "./theme-init.astro";
+import UserMenu from "./user-menu.astro";
 
 interface Props {
   title: string;
@@ -38,19 +40,7 @@ const navItems = [
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title} — Studio Management</title>
-    <script is:inline>
-      (function () {
-        var stored = localStorage.getItem("kaset-theme");
-        var preferred = window.matchMedia("(prefers-color-scheme: dark)")
-          .matches
-          ? "dark"
-          : "light";
-        document.documentElement.setAttribute(
-          "data-theme",
-          stored || preferred,
-        );
-      })();
-    </script>
+    <ThemeInit />
   </head>
 
   <body class="mgmt-body">
@@ -92,33 +82,11 @@ const navItems = [
         </nav>
 
         <div class="sidebar-footer">
-          <div class="user-profile">
-            <div class="user-avatar">
-              {user.name ? user.name.charAt(0).toUpperCase() : "A"}
-            </div>
-            <div class="user-info">
-              <span class="user-name">{user.name || "Admin"}</span>
-              <span class="user-email">{user.email}</span>
-            </div>
-          </div>
-          <button id="logout-btn" class="btn-logout" title="Sign Out">
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              ><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"
-              ></path><polyline points="16 17 21 12 16 7"></polyline><line
-                x1="21"
-                y1="12"
-                x2="9"
-                y2="12"></line></svg
-            >
-          </button>
+          <UserMenu
+            name={user.name}
+            email={user.email}
+            settingsActive={currentPath.startsWith("/management/settings")}
+          />
         </div>
       </aside>
 
@@ -158,28 +126,6 @@ const navItems = [
       </div>
     </div>
 
-    <script>
-      const logoutBtn =
-        document.querySelector<HTMLButtonElement>("#logout-btn");
-      logoutBtn?.addEventListener("click", async () => {
-        logoutBtn.disabled = true;
-        try {
-          // better-auth rejects a body-less POST (415), which left the session alive
-          const res = await fetch("/api/auth/sign-out", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: "{}",
-          });
-          if (!res.ok) throw new Error(`sign-out failed: ${res.status}`);
-          window.location.replace("/management");
-        } catch (err) {
-          console.error(err);
-          logoutBtn.disabled = false;
-          alert("Sign out failed. Please try again.");
-        }
-      });
-    </script>
-
     <style>
       .mgmt-body {
         margin: 0;
@@ -195,6 +141,8 @@ const navItems = [
       }
 
       /* Sidebar */
+      /* Exactly one viewport tall and sticky, so it stays in view while the
+         page scrolls instead of stretching with the content. */
       .mgmt-sidebar {
         width: 260px;
         background-color: var(--color-surface);
@@ -202,6 +150,11 @@ const navItems = [
         display: flex;
         flex-direction: column;
         flex-shrink: 0;
+        position: sticky;
+        top: 0;
+        align-self: flex-start;
+        height: 100vh;
+        height: 100dvh;
       }
 
       .sidebar-brand {
@@ -243,8 +196,13 @@ const navItems = [
           color-mix(in srgb, var(--color-accent) 30%, transparent);
       }
 
+      /* Only the nav scrolls if it outgrows the viewport; brand and the
+         account footer stay pinned. */
       .sidebar-nav {
         flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
         padding: var(--space-lg) var(--space-md);
       }
 
@@ -297,75 +255,15 @@ const navItems = [
       }
 
       .sidebar-footer {
-        padding: var(--space-md) var(--space-lg);
+        padding: var(--space-sm);
         border-top: 1px solid var(--color-border);
         display: flex;
         align-items: center;
-        justify-content: space-between;
         background-color: color-mix(
           in srgb,
           var(--color-surface) 50%,
           var(--color-bg)
         );
-      }
-
-      .user-profile {
-        display: flex;
-        align-items: center;
-        gap: var(--space-sm);
-        overflow: hidden;
-      }
-
-      .user-avatar {
-        width: 32px;
-        height: 32px;
-        border-radius: var(--radius-full);
-        background-color: var(--color-accent);
-        color: var(--color-bg);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        font-size: 0.85rem;
-        flex-shrink: 0;
-      }
-
-      .user-info {
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-      }
-
-      .user-name {
-        font-size: 0.85rem;
-        font-weight: 600;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-
-      .user-email {
-        font-size: 0.75rem;
-        color: var(--color-text-muted);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-
-      .btn-logout {
-        background: transparent;
-        border: none;
-        color: var(--color-text-muted);
-        cursor: pointer;
-        padding: var(--space-2xs);
-        border-radius: var(--radius-sm);
-        display: flex;
-        align-items: center;
-        transition: color var(--transition-fast);
-      }
-
-      .btn-logout:hover {
-        color: #ef4444;
       }
 
       /* Main Content Wrapper */
@@ -423,6 +321,8 @@ const navItems = [
         }
         .mgmt-sidebar {
           width: 100%;
+          position: static;
+          height: auto;
         }
         .mgmt-content {
           padding: var(--space-lg);

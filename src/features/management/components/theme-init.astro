@@ -1,0 +1,19 @@
+---
+// Sets data-theme before first paint. Rules match src/lib/mgmt-theme.ts.
+---
+
+<script is:inline>
+  (function () {
+    var stored = null;
+    try {
+      stored = localStorage.getItem("kaset-theme");
+    } catch (e) {}
+    var theme =
+      stored === "light" || stored === "dark"
+        ? stored
+        : matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light";
+    document.documentElement.setAttribute("data-theme", theme);
+  })();
+</script>

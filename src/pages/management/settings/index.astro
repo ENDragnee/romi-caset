@@ -1,0 +1,6 @@
+---
+import { SETTINGS_SECTIONS } from "../../../features/management/lib/settings-sections";
+
+// /management/settings opens the first section
+return Astro.redirect(SETTINGS_SECTIONS[0].href);
+---
