@@ -17,10 +17,9 @@ const heroVideoRecords = await prisma.heroVideo.findMany({
   orderBy: [{ order: "asc" }, { createdAt: "desc" }],
 });
 
+// Backblaze showreel for the preloader; without one it keeps its bundled fallback clip
 const heroVideoUrl =
-  heroVideoRecords.length > 0
-    ? `/api/media/${heroVideoRecords[0].key}`
-    : "/videos/hero-video.mp4";
+  heroVideoRecords.length > 0 ? `/api/media/${heroVideoRecords[0].key}` : "";
 
 const featuredProjects = await prisma.project.findMany({
   where: { featured: true },

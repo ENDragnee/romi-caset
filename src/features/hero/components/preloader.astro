@@ -5,8 +5,9 @@ interface Props {
   showreelUrl?: string;
 }
 
-// Default fallback is explicitly set to /videos/hero-video.mp4
-const { showreelUrl = "/videos/hero-video.mp4" } = Astro.props;
+// showreelUrl is the Backblaze showreel (/api/media/...). Until that has been
+// downloaded and cached, the loader plays the bundled fallback clip instead.
+const { showreelUrl = "" } = Astro.props;
 const L = LOGOS.left;
 ---
 
@@ -75,27 +76,27 @@ const L = LOGOS.left;
     // ------------------------------------------------------------------
     // SOURCE PRIORITY (first match wins, never swapped mid-intro so the
     // timed shader cuts at 1.0s / 2.29s / 3.46s can't jump):
-    //   1. Backend (Backblaze) showreel in Cache Storage  -> instant, from disk
-    //   2. Default hero-video in Cache Storage            -> instant, from disk
+    //   1. Backend (Backblaze) showreel in Cache Storage  -> instant, from disk;
+    //      the intro then runs for the length of this video
+    //   2. Bundled fallback clip in Cache Storage          -> instant, from disk
     //                                                        (+ backend warmed in background)
-    //   3. Nothing cached yet -> DOWNLOAD the default hero-video *inside the loader*
+    //   3. Nothing cached yet -> DOWNLOAD the fallback clip *inside the loader*
     //      with real progress, cache it, and only then start the intro timeline.
     //      (+ backend warmed in background afterwards, so visit #2 uses it.)
     // ------------------------------------------------------------------
-    const HERO_VERSION = "1"; // bump when you replace public/videos/hero-video.mp4
-    const HERO_URL = "/videos/hero-video.mp4?v=" + HERO_VERSION;
+    const FALLBACK_VERSION = "1"; // bump when you replace public/videos/hero-fallback.mp4
+    const HERO_URL = "/videos/hero-fallback.mp4?v=" + FALLBACK_VERSION;
     const CACHE_NAME = "br-showreel-v1";
     const MAX_BYTES = 120 * 1024 * 1024; // never cache absurdly large files
     const STALE_MS = 24 * 60 * 60 * 1000; // refresh backend copy in background after 24h
     const MAX_WAIT = 12000; // hard ceiling on how long the loader will wait for a download
     const remote =
-      showreelUrl && !showreelUrl.startsWith("/videos/hero-video.mp4")
-        ? showreelUrl
-        : "";
+      showreelUrl && !showreelUrl.startsWith("/videos/") ? showreelUrl : "";
     let objUrl = "";
 
     ctl.progress = 0; // 0..1 real download progress (stays 0 when served from cache)
     ctl.isReady = false; // true once a source is attached and can play
+    ctl.fromBackend = false; // true when playing the cached Backblaze showreel
     ctl.ready = new Promise((r) => (ctl._resolveReady = r));
     const markReady = () => {
       if (ctl.isReady) return;
@@ -217,6 +218,7 @@ const L = LOGOS.left;
       const tag = (v) => (document.documentElement.dataset.reelSource = v); // handy for debugging
       if (found) {
         tag(found.kind === "remote" ? "backend-cache" : "default-cache");
+        ctl.fromBackend = found.kind === "remote";
         attach(null, found.blob);
         if (found.kind === "remote") {
           if (Date.now() - found.at > STALE_MS)
@@ -541,12 +543,9 @@ const L = LOGOS.left;
       `<path d="${L.shell}" fill="${fill}" mask="url(#mk${i})"/>` +
       `<g clip-path="url(#ct${i})"><path class="fl-tag" d="${L.tag}" fill-rule="evenodd" fill="${fill}"/></g></svg>`;
 
+    // Built now (hidden) so the SVG is parsed before the flight; shown at step 3.
     flyEls.forEach((el, i) => {
-      el.style.cssText =
-        "display:block;opacity:0.001;position:fixed;pointer-events:none;will-change:transform,opacity;" +
-        "contain:layout style;backface-visibility:hidden;z-index:" +
-        (120 + i) +
-        ";";
+      el.style.cssText = "display:none;";
       el.innerHTML = flySVG(i, NEG_FILLS[i]);
     });
     const clrs = $$(".clr");
@@ -573,7 +572,13 @@ const L = LOGOS.left;
 
     // 1b. Cinematic counter BASE% -> 100%. The video starts playing at the same moment,
     //     so its timed cuts (1.0s / 2.29s / 3.46s) always land inside this window.
-    const DUR = reduce ? 600 : 3500;
+    //     With the cached Backblaze showreel the count runs for one play of that video.
+    const vidDur = $("#ld-vid", lay).duration;
+    const DUR = reduce
+      ? 600
+      : reel.fromBackend && Number.isFinite(vidDur) && vidDur > 0
+        ? clamp(vidDur * 1000, 2000, 15000)
+        : 3500;
     const t0 = performance.now();
 
     await new Promise((res) => {
@@ -632,89 +637,57 @@ const L = LOGOS.left;
     if (page)
       $$(".proj.rise:not(.in)", page).forEach((el) => el.classList.add("fb"));
 
-    // 3. Swap loader block -> fly layers (same frame, no flicker)
-    flyEls.forEach((el) => {
-      el.style.left = target.left + "px";
-      el.style.top = target.top + "px";
-      el.style.width = target.width + "px";
-      el.style.height = target.height + "px";
-      el.style.transformOrigin = fcx + "px " + fcy + "px";
-      el.style.transform = `translate3d(${dx0}px,${dy0}px,0) scale(${k0})`;
+    // 3. Swap loader block -> fly layers (same frame, no flicker). The tinted
+    //    film-negative copies are only needed while footage is visible.
+    const flyT = (e) =>
+      `translate(${dx0 * (1 - e)}px,${dy0 * (1 - e)}px) scale(${1 + (k0 - 1) * (1 - e)})`;
+    const live = vo0 > 0.001 ? flyEls : [flyEls[0]];
+    live.forEach((el) => {
+      el.style.cssText =
+        `display:block;left:${target.left}px;top:${target.top}px;` +
+        `width:${target.width}px;height:${target.height}px;` +
+        `transform-origin:${fcx}px ${fcy}px;transform:${flyT(0)}`;
     });
-    flyEls[0].style.opacity = "1";
     flyEls[1].style.opacity = flyEls[2].style.opacity = vo0.toFixed(3);
     blk.style.display = "none";
     negs.forEach((n) => (n.style.display = "none"));
     ld.style.visibility = "hidden";
 
-    // Backdrop fade without per-frame colour-mix(): a plain layer whose opacity is animated.
     const bg = $("#ld-bg", lay);
     bg.style.display = "block";
     lay.style.background = "transparent";
-
-    // 4. The flight. Everything the compositor can do, it does:
-    //    transform (sampled easeSharp) + opacity fades via WAAPI, off the main thread.
-    const TT = reduce ? 300 : 1800;
-    const STEPS = reduce ? 4 : 36;
-
-    const flightFrames = [];
-    for (let i = 0; i <= STEPS; i++) {
-      const p = i / STEPS;
-      const e = easeSharp(p);
-      flightFrames.push({
-        transform: `translate3d(${dx0 * (1 - e)}px,${dy0 * (1 - e)}px,0) scale(${1 + (k0 - 1) * (1 - e)})`,
-        offset: p,
-      });
-    }
-    const anims = flyEls.map((el) =>
-      el.animate(flightFrames, {
-        duration: TT,
-        easing: "linear",
-        fill: "forwards",
-      }),
-    );
-
-    // Fade: begins at 15% of the flight, finishes at 70%
-    const fadeOpts = {
-      duration: TT * 0.55,
-      delay: TT * 0.15,
-      easing: "linear",
-      fill: "both",
-    };
-    const fadeOut = (el, from) =>
-      el.animate([{ opacity: from }, { opacity: 0 }], fadeOpts);
-    anims.push(fadeOut(bg, 1));
-    anims.push(
-      fadeOut(reel.el, parseFloat(getComputedStyle(reel.el).opacity) || 0),
-    );
-    anims.push(fadeOut(flyEls[1], vo0));
-    anims.push(fadeOut(flyEls[2], vo0));
     reel.el.style.transition = "none";
+    const reel0 = parseFloat(getComputedStyle(reel.el).opacity) || 0;
 
-    // Main-thread work is only the letter wipe + FILMWORK unfold (a few SVG attribute writes).
+    // 4. The flight, driven per frame on the main thread like the reference.
+    //    (Compositor-driven WAAPI transforms on these blend-mode layers left a
+    //    ghost copy of the logo at its landing spot in iOS Safari.)
+    const TT = reduce ? 300 : 1800;
     const t_start = performance.now();
     let shown = false;
-    let lastW = -1;
-    let lastU = -1;
 
     await new Promise((res) => {
       function frame(now) {
         const t = clamp((now - t_start) / TT);
+        const tr = flyT(easeSharp(t));
+        for (const el of live) el.style.transform = tr;
 
         // Knock the letters out of the shell, left to right
         const w = (L.bw + 8) * easeIO((t - 0.1) / 0.62);
-        if (w !== lastW) {
-          lastW = w;
-          for (const r of clrs) r.setAttribute("width", w);
-        }
+        for (const r of clrs) r.setAttribute("width", w);
 
         // Unfold FILMWORK: slide the tagline up into place from below the shell
         const u = easeOut((t - 0.6) / 0.4);
-        if (u !== lastU) {
-          lastU = u;
-          const tr = `translate(0 ${(1 - u) * (L.h - L.by - L.bh) * 0.9})`;
-          for (const tg of tags) tg.setAttribute("transform", tr);
-        }
+        const tt = `translate(0 ${(1 - u) * (L.h - L.by - L.bh) * 0.9})`;
+        for (const tg of tags) tg.setAttribute("transform", tt);
+
+        // Backdrop, footage and negative tint fade out between 15% and 70%
+        const fadeF = 1 - clamp((t - 0.15) / 0.55);
+        bg.style.opacity = fadeF;
+        reel.el.style.opacity = reel0 * fadeF;
+        flyEls[1].style.opacity = flyEls[2].style.opacity = (
+          fadeF * vo0
+        ).toFixed(3);
 
         // Cards rise as the logo lands (single class flip, CSS handles the rest)
         if (!shown && t > 0.45) {
@@ -734,9 +707,6 @@ const L = LOGOS.left;
       requestAnimationFrame(frame);
     });
 
-    // Make sure the compositor animations have fully landed before the hand-off
-    await Promise.all(anims.map((a) => a.finished.catch(() => {})));
-
     // 5. Hand-off to the real navbar logo: swap in a single frame, no cross-fade, no pop.
     const lg = $("#hdr .logo");
     if (lg) lg.style.transition = "none";
@@ -746,10 +716,8 @@ const L = LOGOS.left;
     // mix-blend-mode:difference, so if they ever overlap for even one frame the
     // navbar logo is differenced against the black fly logo and renders ivory (invisible).
     reel.stop();
-    anims.forEach((a) => a.cancel());
     flyEls.forEach((el) => {
       el.style.display = "none";
-      el.style.willChange = "auto";
       el.innerHTML = "";
     });
     lay.remove();
@@ -869,7 +837,6 @@ const L = LOGOS.left;
     z-index: 120;
     pointer-events: none;
     mix-blend-mode: difference;
-    will-change: transform;
   }
 
   #fly :global(svg),
@@ -905,6 +872,5 @@ const L = LOGOS.left;
     position: fixed;
     z-index: 121;
     pointer-events: none;
-    will-change: transform;
   }
 </style>

@@ -38,15 +38,33 @@ export const GET: APIRoute = async ({ params, request }) => {
       return new Response(stream, { status: 206, headers });
     }
 
+    // Keys are unique (uuid/filename), so the content never changes. Let
+    // Vercel's CDN keep full responses (it only stores 200s up to 10MB:
+    // images, trailers, the preloader showreel) so repeat views don't each
+    // cost a Backblaze download. stale-if-error keeps serving the edge copy
+    // if Backblaze refuses (e.g. daily cap hit).
+    headers.set(
+      "Vercel-CDN-Cache-Control",
+      "max-age=31536000, stale-if-error=604800",
+    );
+
     return new Response(stream, { status: 200, headers });
   } catch (err: any) {
-    if (err.name === "NoSuchKey" || err.$metadata?.httpStatusCode === 404) {
+    const status = err.$metadata?.httpStatusCode;
+    if (err.name === "NoSuchKey" || status === 404) {
       return new Response("Media not found", { status: 404 });
     }
+    // Anything else is a storage-side failure (e.g. B2 403 when the daily
+    // download cap is hit), not a missing file: say so, and don't let it be cached.
     console.error(
       `[media-serve] Failed to fetch key "${key}":`,
-      err.name || err.message || err,
+      err.name,
+      status,
+      err.message,
     );
-    return new Response("Media not found", { status: 404 });
+    return new Response("Media temporarily unavailable", {
+      status: status === 416 ? 416 : 503,
+      headers: { "Cache-Control": "no-store", "Retry-After": "300" },
+    });
   }
 };
